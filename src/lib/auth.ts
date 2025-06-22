@@ -1,10 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { supabase } from "./supabase";
 import { UserRole } from '@/types'
-
-// Initialize Supabase client
-export const supabaseClient = supabase;
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,48 +15,46 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        try {
-          // Supabase auth kontrolü
-          const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-            email: credentials.email,
-            password: credentials.password,
-          })
-
-          if (authError) {
-            console.error('Auth error:', authError)
-            return null
+        // Demo kullanıcılar - Supabase hazır olduğunda kaldırılacak
+        const users = [
+          {
+            id: "1",
+            email: "admin@example.com",
+            password: "admin123",
+            name: "Admin User",
+            role: "admin" as UserRole
+          },
+          {
+            id: "2", 
+            email: "manager@example.com",
+            password: "manager123",
+            name: "Manager User",
+            role: "manager" as UserRole
+          },
+          {
+            id: "3",
+            email: "user@example.com", 
+            password: "user123",
+            name: "Regular User",
+            role: "user" as UserRole
           }
+        ]
 
-          if (!user?.id) {
-            return null
-          }
+        const user = users.find(user => 
+          user.email === credentials.email && 
+          user.password === credentials.password
+        )
 
-          // Profil bilgilerini al
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-
-          if (profileError) {
-            console.error('Profile error:', profileError)
-            return null
-          }
-
-          if (!profile) {
-            return null
-          }
-
+        if (user) {
           return {
             id: user.id,
-            email: user.email!,
-            name: profile.name,
-            role: profile.role as UserRole
+            email: user.email,
+            name: user.name,
+            role: user.role
           }
-        } catch (error) {
-          console.error('Auth error:', error)
-          return null
         }
+
+        return null
       }
     })
   ],

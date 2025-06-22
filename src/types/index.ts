@@ -23,8 +23,10 @@ export interface Spool {
   id: string
   name: string
   projectId: string
+  projectName?: string
   status: 'pending' | 'active' | 'completed'
   assignedTo?: string
+  assignedToName?: string
   quantity: number
   completedQuantity: number
   startDate: string
@@ -37,9 +39,11 @@ export interface WorkOrder {
   id: string
   number: string
   projectId: string
+  projectName?: string
   status: 'pending' | 'active' | 'completed' | 'cancelled'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   assignedTo: string
+  assignedToName?: string
   startDate: string
   dueDate: string
   description?: string
@@ -64,6 +68,7 @@ export interface Shipment {
   id: string
   number: string
   projectId: string
+  projectName?: string
   status: 'pending' | 'in_transit' | 'delivered' | 'cancelled'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   destination: string
@@ -76,24 +81,30 @@ export interface Shipment {
   updatedAt: string
 }
 
+export type Activity = {
+  id: string
+  type: 'spool_created' | 'spool_updated' | 'work_order_created' | 'shipment_created'
+  description: string
+  user: string
+  timestamp: string
+}
+
+export type Notification = {
+  id: string
+  type: 'info' | 'warning' | 'error' | 'success'
+  title: string
+  message: string
+  timestamp: string
+  read: boolean
+}
+
 export type Material = {
   id: string
   name: string
   type: string
+  quantity: number
   unit: string
-  stock_quantity: number
-  min_quantity?: number
-  created_at: string
-  updated_at?: string
-}
-
-export type Activity = {
-  id: string
-  user_id: string
-  activity_type: 'create' | 'update' | 'delete' | 'login' | 'logout'
-  description: string
-  resource_type: 'project' | 'spool' | 'material' | 'personnel'
-  resource_id: string
+  supplier: string
   created_at: string
 }
 
