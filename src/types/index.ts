@@ -14,6 +14,7 @@ export interface Project {
   startDate: string
   endDate?: string
   managerId: string
+  managerName?: string
   description?: string
   createdAt: string
   updatedAt: string

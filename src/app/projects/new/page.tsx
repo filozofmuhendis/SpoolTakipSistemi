@@ -2,259 +2,216 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { read, utils } from 'xlsx';
-import JsBarcode from 'jsbarcode';
-import { useEffect, useRef } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Save, X } from 'lucide-react'
+import { projectService } from '@/lib/services/projects'
+import { personnelService } from '@/lib/services/personnel'
+import { Personnel } from '@/types'
+import Link from 'next/link'
 
-interface ProjectForm {
-  shipyardName: string
-  shipName: string
-  projectNumber: string
-  circuitName: string
-  spools: SpoolItem[]
-  documents: FileList | null
-}
+const projectSchema = z.object({
+  name: z.string().min(1, 'Proje adı gereklidir'),
+  description: z.string().optional(),
+  startDate: z.string().min(1, 'Başlangıç tarihi gereklidir'),
+  endDate: z.string().optional(),
+  managerId: z.string().min(1, 'Proje yöneticisi seçilmelidir'),
+  status: z.enum(['active', 'pending', 'completed']).default('pending')
+})
 
-interface SpoolItem {
-  number: string
-  diameter: string
-  material: string
-  barcode?: string; // Barkod değerini ekledik
-}
+type ProjectFormData = z.infer<typeof projectSchema>
 
-export default function NewProject() {
-    const [step, setStep] = useState(1)
-    const [spools, setSpools] = useState<SpoolItem[]>([])
-    const [newSpool, setNewSpool] = useState<SpoolItem>({
-      number: '',
-      diameter: '',
-      material: ''
-    });
-  
-    const { register, handleSubmit, formState: { errors } } = useForm<ProjectForm>()
-  
-    const onSubmit = (data: ProjectForm) => {
-      console.log({
-        ...data,
-        spools: spools
-      });
-      // API call can be added here
+export default function NewProjectPage() {
+  const [loading, setLoading] = useState(false)
+  const [personnel, setPersonnel] = useState<Personnel[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      status: 'pending'
     }
-  
-    const handleAddSpool = () => {
-      if (newSpool.number && newSpool.diameter && newSpool.material) {
-        setSpools([...spools, newSpool]);
-        setNewSpool({ number: '', diameter: '', material: '' });
-      }
-    };
-  
-    const handleRemoveSpool = (index: number) => {
-      setSpools(spools.filter((_, i) => i !== index));
-    };
+  })
 
-    const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files?.length) return;
-    
-        const file = event.target.files[0];
-        const data = await file.arrayBuffer();
-        const workbook = read(data);
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = utils.sheet_to_json<SpoolItem>(worksheet);
-    
-        setSpools([...spools, ...jsonData]);
-      };
+  useState(() => {
+    loadPersonnel()
+  })
+
+  const loadPersonnel = async () => {
+    try {
+      const personnelData = await personnelService.getAllPersonnel()
+      setPersonnel(personnelData)
+    } catch (error) {
+      console.error('Personel yüklenirken hata:', error)
+    }
+  }
+
+  const onSubmit = async (data: ProjectFormData) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      await projectService.createProject({
+        name: data.name,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate || undefined,
+        managerId: data.managerId,
+        status: data.status
+      })
+
+      router.push('/projects')
+    } catch (error: any) {
+      setError(error.message || 'Proje oluşturulurken bir hata oluştu')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <h1 className="text-2xl font-bold mb-6">Yeni Proje Oluştur</h1>
+    <div className="p-6 w-full max-w-[1600px] mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-4">
+          <Link href="/projects" className="btn-secondary flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Geri
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">Yeni Proje</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Yeni proje oluşturun</p>
+          </div>
+        </div>
+      </div>
 
-        {/* Progress Steps */}
-        <div className="flex justify-between mb-8">
-          {[1, 2, 3].map((num) => (
-            <div
-              key={num}
-              className={`flex items-center ${num < 3 ? 'flex-1' : ''}`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= num
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {num}
-              </div>
-              {num < 3 && (
-                <div
-                  className={`flex-1 h-1 mx-2 ${
-                    step > num ? 'bg-blue-500' : 'bg-gray-200'
-                  }`}
-                />
+      {/* Form */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Proje Adı */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Proje Adı *
+              </label>
+              <input
+                type="text"
+                {...register('name')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Proje adını girin"
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
               )}
             </div>
-          ))}
-        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Step 1: Basic Project Info */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2">Tersane Adı</label>
-                <input
-                  {...register('shipyardName', { required: true })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block mb-2">Gemi Adı</label>
-                <input
-                  {...register('shipName', { required: true })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block mb-2">Proje Numarası</label>
-                <input
-                  {...register('projectNumber', { required: true })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div>
-                <label className="block mb-2">Devre Adı</label>
-                <input
-                  {...register('circuitName', { required: true })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Spool List */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="flex gap-4 mb-4">
-                <input
-                  placeholder="Spool No"
-                  value={newSpool.number}
-                  onChange={(e) => setNewSpool({ ...newSpool, number: e.target.value })}
-                  className="flex-1 p-2 border rounded"
-                />
-                <input
-                  placeholder="Çap"
-                  value={newSpool.diameter}
-                  onChange={(e) => setNewSpool({ ...newSpool, diameter: e.target.value })}
-                  className="flex-1 p-2 border rounded"
-                />
-                <input
-                  placeholder="Malzeme"
-                  value={newSpool.material}
-                  onChange={(e) => setNewSpool({ ...newSpool, material: e.target.value })}
-                  className="flex-1 p-2 border rounded"
-                />
-                <button type="button" onClick={handleAddSpool} className="px-4 py-2 bg-blue-500 text-white rounded">
-                  Ekle
-                </button>
-              </div>
-              
-              <table className="w-full border rounded">
-                <thead>
-                  <tr>
-                    <th className="p-2">Spool No</th>
-                    <th className="p-2">Çap</th>
-                    <th className="p-2">Malzeme</th>
-                    <th className="p-2">İşlem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {spools.map((spool, index) => (
-                    <tr key={index}>
-                      <td className="p-2">{spool.number}</td>
-                      <td className="p-2">{spool.diameter}</td>
-                      <td className="p-2">{spool.material}</td>
-                      <td className="p-2">
-                        <button onClick={() => handleRemoveSpool(index)} className="text-red-500">
-                          Sil
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <input type="file" multiple onChange={handleExcelImport} />
-            </div>
-          )}
-
-          {/* Step 3: Documents */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2">Proje Dökümanları</label>
-                <input
-                  type="file"
-                  multiple
-                  {...register('documents')}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              <div className="mt-8">
-                <h3 className="font-semibold mb-4">Barkod Yazdırma</h3>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // TODO: Implement barcode printing functionality
-                      console.log('Print all barcodes');
-                    }}
-                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                  >
-                    Tüm Barkodları Yazdır
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // TODO: Implement selected barcode printing functionality
-                      console.log('Print selected barcodes', spools);
-                    }}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Seçili Barkodları Yazdır
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8">
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={() => setStep(step - 1)}
-                className="px-4 py-2 bg-gray-500 text-white rounded"
+            {/* Proje Yöneticisi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Proje Yöneticisi *
+              </label>
+              <select
+                {...register('managerId')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                Geri
-              </button>
-            )}
-            {step < 3 ? (
-              <button
-                type="button"
-                onClick={() => setStep(step + 1)}
-                className="px-4 py-2 bg-blue-500 text-white rounded ml-auto"
+                <option value="">Yönetici seçin</option>
+                {personnel.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} - {person.position}
+                  </option>
+                ))}
+              </select>
+              {errors.managerId && (
+                <p className="mt-1 text-sm text-red-600">{errors.managerId.message}</p>
+              )}
+            </div>
+
+            {/* Başlangıç Tarihi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Başlangıç Tarihi *
+              </label>
+              <input
+                type="date"
+                {...register('startDate')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              {errors.startDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+              )}
+            </div>
+
+            {/* Bitiş Tarihi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Bitiş Tarihi
+              </label>
+              <input
+                type="date"
+                {...register('endDate')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+
+            {/* Durum */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Durum
+              </label>
+              <select
+                {...register('status')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
-                İleri
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-500 text-white rounded ml-auto"
-              >
-                Projeyi Oluştur
-              </button>
-            )}
+                <option value="pending">Beklemede</option>
+                <option value="active">Aktif</option>
+                <option value="completed">Tamamlandı</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Açıklama */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Açıklama
+            </label>
+            <textarea
+              {...register('description')}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              placeholder="Proje açıklamasını girin"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <Link href="/projects" className="btn-secondary flex items-center gap-2">
+              <X className="w-4 h-4" />
+              İptal
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary flex items-center gap-2"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Proje Oluştur
+            </button>
           </div>
         </form>
       </div>

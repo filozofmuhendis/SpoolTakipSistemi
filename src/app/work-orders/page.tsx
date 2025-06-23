@@ -1,73 +1,65 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, Package, Calendar, User, Clock } from 'lucide-react'
+import { workOrderService } from '@/lib/services/workOrders'
+import { spoolService } from '@/lib/services/spools'
+import { WorkOrder } from '@/types'
+import Link from 'next/link'
 
-interface WorkOrder {
-  id: string
-  number: string
-  projectName: string
-  status: 'pending' | 'active' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  assignedTo: string
-  startDate: string
-  dueDate: string
-  spoolCount: number
-  completedSpools: number
-  progress: number
+interface WorkOrderWithStats extends WorkOrder {
+  spoolCount: number;
+  completedSpools: number;
+  progress: number;
 }
 
 export default function WorkOrdersPage() {
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([
-    {
-      id: '1',
-      number: 'WO-2024-001',
-      projectName: 'Galata Projesi',
-      status: 'active',
-      priority: 'high',
-      assignedTo: 'Ahmet Yılmaz',
-      startDate: '2024-01-15',
-      dueDate: '2024-01-25',
-      spoolCount: 12,
-      completedSpools: 8,
-      progress: 67
-    },
-    {
-      id: '2',
-      number: 'WO-2024-002',
-      projectName: 'Bosphorus Projesi',
-      status: 'completed',
-      priority: 'medium',
-      assignedTo: 'Mehmet Demir',
-      startDate: '2024-01-10',
-      dueDate: '2024-01-20',
-      spoolCount: 8,
-      completedSpools: 8,
-      progress: 100
-    },
-    {
-      id: '3',
-      number: 'WO-2024-003',
-      projectName: 'Istanbul Projesi',
-      status: 'pending',
-      priority: 'urgent',
-      assignedTo: 'Ayşe Kaya',
-      startDate: '2024-02-01',
-      dueDate: '2024-02-15',
-      spoolCount: 15,
-      completedSpools: 0,
-      progress: 0
-    }
-  ])
-
+  const [workOrders, setWorkOrders] = useState<WorkOrderWithStats[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
+  useEffect(() => {
+    loadWorkOrders()
+  }, [])
+
+  const loadWorkOrders = async () => {
+    try {
+      setLoading(true)
+      
+      // İş emirlerini ve spool'ları paralel olarak çek
+      const [workOrdersData, spoolsData] = await Promise.all([
+        workOrderService.getAllWorkOrders(),
+        spoolService.getAllSpools()
+      ])
+
+      // Her iş emri için spool istatistiklerini hesapla
+      const workOrdersWithStats = workOrdersData.map(workOrder => {
+        const workOrderSpools = spoolsData.filter(spool => spool.projectId === workOrder.projectId)
+        const completedSpools = workOrderSpools.filter(spool => spool.status === 'completed').length
+        const progress = workOrderSpools.length > 0 ? Math.round((completedSpools / workOrderSpools.length) * 100) : 0
+
+        return {
+          ...workOrder,
+          spoolCount: workOrderSpools.length,
+          completedSpools,
+          progress
+        }
+      })
+
+      setWorkOrders(workOrdersWithStats)
+    } catch (error) {
+      console.error('İş emirleri yüklenirken hata:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredWorkOrders = workOrders.filter(workOrder => {
     const matchesSearch = workOrder.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workOrder.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workOrder.assignedTo.toLowerCase().includes(searchTerm.toLowerCase())
+                         workOrder.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         workOrder.assignedToName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || workOrder.status === statusFilter
     const matchesPriority = priorityFilter === 'all' || workOrder.priority === priorityFilter
     return matchesSearch && matchesStatus && matchesPriority
@@ -113,15 +105,26 @@ export default function WorkOrdersPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">İş emirleri yükleniyor...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 w-full max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">İş Emirleri</h1>
-        <button className="btn-primary flex items-center gap-2">
+        <Link href="/work-orders/new" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Yeni İş Emri
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -205,7 +208,7 @@ export default function WorkOrdersPage() {
                     {workOrder.number}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {workOrder.projectName}
+                    {workOrder.projectName || 'Bilinmiyor'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(workOrder.status)}`}>
@@ -218,35 +221,40 @@ export default function WorkOrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {workOrder.assignedTo}
+                    {workOrder.assignedToName || 'Atanmamış'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(workOrder.startDate).toLocaleDateString('tr-TR')} - {new Date(workOrder.dueDate).toLocaleDateString('tr-TR')}
+                    <div>
+                      <div>Başlangıç: {new Date(workOrder.startDate).toLocaleDateString('tr-TR')}</div>
+                      <div>Bitiş: {new Date(workOrder.dueDate).toLocaleDateString('tr-TR')}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                        <div 
-                          className="bg-primary-600 h-2 rounded-full" 
-                          style={{width: `${workOrder.progress}%`}}
-                        ></div>
+                      <div className="flex-1 mr-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                            style={{width: `${workOrder.progress}%`}}
+                          ></div>
+                        </div>
                       </div>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {workOrder.completedSpools}/{workOrder.spoolCount}
+                        {workOrder.progress}%
                       </span>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {workOrder.completedSpools}/{workOrder.spoolCount} Spool
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400">
+                    <div className="flex gap-2">
+                      <Link href={`/work-orders/${workOrder.id}`} className="text-primary-600 hover:text-primary-900">
                         Detaylar
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900 dark:hover:text-gray-400">
+                      </Link>
+                      <Link href={`/work-orders/${workOrder.id}/edit`} className="text-blue-600 hover:text-blue-900">
                         Düzenle
-                      </button>
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -256,12 +264,15 @@ export default function WorkOrdersPage() {
         </div>
       </div>
 
-      {filteredWorkOrders.length === 0 && (
+      {filteredWorkOrders.length === 0 && !loading && (
         <div className="text-center py-12">
           <Package className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">İş emri bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Arama kriterlerinize uygun iş emri bulunamadı.
+            {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+              ? 'Arama kriterlerinize uygun iş emri bulunamadı.'
+              : 'Henüz iş emri oluşturulmamış.'
+            }
           </p>
         </div>
       )}

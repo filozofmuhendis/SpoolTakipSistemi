@@ -1,76 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, User, Mail, Phone, Calendar, Briefcase } from 'lucide-react'
+import { personnelService } from '@/lib/services/personnel'
+import { projectService } from '@/lib/services/projects'
+import { workOrderService } from '@/lib/services/workOrders'
+import { Personnel } from '@/types'
+import { WorkOrder } from '@/types'
+import Link from 'next/link'
 
-interface Personnel {
-  id: string
-  name: string
-  email: string
-  phone: string
-  position: string
-  department: string
-  status: 'active' | 'inactive' | 'on_leave'
-  hireDate: string
-  projects: number
-  completedTasks: number
+interface PersonnelWithStats extends Personnel {
+  projects: number;
+  completedTasks: number;
 }
 
 export default function PersonnelPage() {
-  const [personnel, setPersonnel] = useState<Personnel[]>([
-    {
-      id: '1',
-      name: 'Ahmet Yılmaz',
-      email: 'ahmet.yilmaz@example.com',
-      phone: '+90 532 123 4567',
-      position: 'Üretim Mühendisi',
-      department: 'Üretim',
-      status: 'active',
-      hireDate: '2023-01-15',
-      projects: 5,
-      completedTasks: 127
-    },
-    {
-      id: '2',
-      name: 'Mehmet Demir',
-      email: 'mehmet.demir@example.com',
-      phone: '+90 533 234 5678',
-      position: 'Kalite Kontrol Uzmanı',
-      department: 'Kalite',
-      status: 'active',
-      hireDate: '2022-08-20',
-      projects: 8,
-      completedTasks: 203
-    },
-    {
-      id: '3',
-      name: 'Ayşe Kaya',
-      email: 'ayse.kaya@example.com',
-      phone: '+90 534 345 6789',
-      position: 'Proje Yöneticisi',
-      department: 'Proje Yönetimi',
-      status: 'active',
-      hireDate: '2021-03-10',
-      projects: 12,
-      completedTasks: 456
-    },
-    {
-      id: '4',
-      name: 'Fatma Özkan',
-      email: 'fatma.ozkan@example.com',
-      phone: '+90 535 456 7890',
-      position: 'Teknik Ressam',
-      department: 'Tasarım',
-      status: 'on_leave',
-      hireDate: '2023-06-01',
-      projects: 3,
-      completedTasks: 89
-    }
-  ])
-
+  const [personnel, setPersonnel] = useState<PersonnelWithStats[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  useEffect(() => {
+    loadPersonnel()
+  }, [])
+
+  const loadPersonnel = async () => {
+    try {
+      setLoading(true)
+      
+      // Paralel olarak tüm verileri çek
+      const [personnelData, projects, workOrders] = await Promise.all([
+        personnelService.getAllPersonnel(),
+        projectService.getAllProjects(),
+        workOrderService.getAllWorkOrders()
+      ])
+      
+      // Her personel için gerçek istatistikleri hesapla
+      const personnelWithStats = personnelData.map((person: Personnel) => {
+        // Personelin atandığı iş emirlerini bul
+        const personWorkOrders = workOrders.filter((wo: WorkOrder) => wo.assignedTo === person.id)
+        const completedWorkOrders = personWorkOrders.filter((wo: WorkOrder) => wo.status === 'completed')
+        
+        // Personelin çalıştığı projeleri bul (iş emirlerinden)
+        const personProjects = new Set(personWorkOrders.map((wo: WorkOrder) => wo.projectId))
+        
+        return {
+          ...person,
+          projects: personProjects.size,
+          completedTasks: completedWorkOrders.length
+        }
+      })
+
+      setPersonnel(personnelWithStats)
+    } catch (error) {
+      console.error('Personel yüklenirken hata:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredPersonnel = personnel.filter(person => {
     const matchesSearch = person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,15 +89,26 @@ export default function PersonnelPage() {
 
   const departments = Array.from(new Set(personnel.map(p => p.department)))
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Personel yükleniyor...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 w-full max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Personel</h1>
-        <button className="btn-primary flex items-center gap-2">
+        <Link href="/personnel/new" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Yeni Personel
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -200,23 +199,26 @@ export default function PersonnelPage() {
             </div>
             
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 btn-secondary text-sm">
+              <Link href={`/personnel/${person.id}`} className="flex-1 btn-secondary text-sm text-center">
                 Detaylar
-              </button>
-              <button className="flex-1 btn-primary text-sm">
+              </Link>
+              <Link href={`/personnel/${person.id}/edit`} className="flex-1 btn-primary text-sm text-center">
                 Düzenle
-              </button>
+              </Link>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredPersonnel.length === 0 && (
+      {filteredPersonnel.length === 0 && !loading && (
         <div className="text-center py-12">
           <User className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Personel bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Arama kriterlerinize uygun personel bulunamadı.
+            {searchTerm || departmentFilter !== 'all' || statusFilter !== 'all'
+              ? 'Arama kriterlerinize uygun personel bulunamadı.'
+              : 'Henüz personel kaydı oluşturulmamış.'
+            }
           </p>
         </div>
       )}

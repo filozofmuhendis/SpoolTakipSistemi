@@ -34,105 +34,6 @@ export const shipmentService = {
     }))
   },
 
-  // Sevkiyat oluştur
-  async createShipment(shipment: Omit<Shipment, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('shipments')
-      .insert({
-        number: shipment.number,
-        project_id: shipment.projectId,
-        status: shipment.status,
-        priority: shipment.priority,
-        destination: shipment.destination,
-        scheduled_date: shipment.scheduledDate,
-        actual_date: shipment.actualDate,
-        carrier: shipment.carrier,
-        tracking_number: shipment.trackingNumber,
-        total_weight: shipment.totalWeight
-      })
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Sevkiyat oluşturulamadı: ${error.message}`)
-    }
-
-    return {
-      id: data.id,
-      number: data.number,
-      projectId: data.project_id,
-      status: data.status,
-      priority: data.priority,
-      destination: data.destination,
-      scheduledDate: data.scheduled_date,
-      actualDate: data.actual_date,
-      carrier: data.carrier,
-      trackingNumber: data.tracking_number,
-      totalWeight: data.total_weight,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    }
-  },
-
-  // Sevkiyat güncelle
-  async updateShipment(id: string, updates: Partial<Shipment>) {
-    const updateData: any = {}
-    
-    if (updates.number) updateData.number = updates.number
-    if (updates.projectId) updateData.project_id = updates.projectId
-    if (updates.status) updateData.status = updates.status
-    if (updates.priority) updateData.priority = updates.priority
-    if (updates.destination) updateData.destination = updates.destination
-    if (updates.scheduledDate) updateData.scheduled_date = updates.scheduledDate
-    if (updates.actualDate) updateData.actual_date = updates.actualDate
-    if (updates.carrier) updateData.carrier = updates.carrier
-    if (updates.trackingNumber) updateData.tracking_number = updates.trackingNumber
-    if (updates.totalWeight) updateData.total_weight = updates.totalWeight
-    
-    updateData.updated_at = new Date().toISOString()
-
-    const { data, error } = await supabase
-      .from('shipments')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Sevkiyat güncellenemedi: ${error.message}`)
-    }
-
-    return {
-      id: data.id,
-      number: data.number,
-      projectId: data.project_id,
-      status: data.status,
-      priority: data.priority,
-      destination: data.destination,
-      scheduledDate: data.scheduled_date,
-      actualDate: data.actual_date,
-      carrier: data.carrier,
-      trackingNumber: data.tracking_number,
-      totalWeight: data.total_weight,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    }
-  },
-
-  // Sevkiyat sil
-  async deleteShipment(id: string) {
-    const { error } = await supabase
-      .from('shipments')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      throw new Error(`Sevkiyat silinemedi: ${error.message}`)
-    }
-
-    return true
-  },
-
   // Sevkiyat detayını getir
   async getShipmentById(id: string) {
     const { data, error } = await supabase
@@ -163,6 +64,95 @@ export const shipmentService = {
       totalWeight: data.total_weight,
       createdAt: data.created_at,
       updatedAt: data.updated_at
+    }
+  },
+
+  // Yeni sevkiyat oluştur
+  async createShipment(data: {
+    number: string
+    projectId: string
+    status: 'pending' | 'in_transit' | 'delivered' | 'cancelled'
+    priority: 'low' | 'medium' | 'high' | 'urgent'
+    destination: string
+    scheduledDate: string
+    actualDate?: string
+    carrier: string
+    trackingNumber?: string
+    totalWeight: number
+  }) {
+    const { data: shipment, error } = await supabase
+      .from('shipments')
+      .insert([{
+        number: data.number,
+        project_id: data.projectId,
+        status: data.status,
+        priority: data.priority,
+        destination: data.destination,
+        scheduled_date: data.scheduledDate,
+        actual_date: data.actualDate,
+        carrier: data.carrier,
+        tracking_number: data.trackingNumber,
+        total_weight: data.totalWeight
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Sevkiyat oluşturulamadı: ${error.message}`)
+    }
+
+    return shipment
+  },
+
+  // Sevkiyat güncelle
+  async updateShipment(id: string, data: {
+    number?: string
+    projectId?: string
+    status?: 'pending' | 'in_transit' | 'delivered' | 'cancelled'
+    priority?: 'low' | 'medium' | 'high' | 'urgent'
+    destination?: string
+    scheduledDate?: string
+    actualDate?: string
+    carrier?: string
+    trackingNumber?: string
+    totalWeight?: number
+  }) {
+    const updateData: any = {}
+    
+    if (data.number) updateData.number = data.number
+    if (data.projectId) updateData.project_id = data.projectId
+    if (data.status) updateData.status = data.status
+    if (data.priority) updateData.priority = data.priority
+    if (data.destination) updateData.destination = data.destination
+    if (data.scheduledDate) updateData.scheduled_date = data.scheduledDate
+    if (data.actualDate !== undefined) updateData.actual_date = data.actualDate
+    if (data.carrier) updateData.carrier = data.carrier
+    if (data.trackingNumber !== undefined) updateData.tracking_number = data.trackingNumber
+    if (data.totalWeight) updateData.total_weight = data.totalWeight
+
+    const { data: shipment, error } = await supabase
+      .from('shipments')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Sevkiyat güncellenemedi: ${error.message}`)
+    }
+
+    return shipment
+  },
+
+  // Sevkiyat sil
+  async deleteShipment(id: string) {
+    const { error } = await supabase
+      .from('shipments')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      throw new Error(`Sevkiyat silinemedi: ${error.message}`)
     }
   },
 

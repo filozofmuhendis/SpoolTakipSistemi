@@ -1,61 +1,63 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, Package, Calendar, User } from 'lucide-react'
+import { projectService } from '@/lib/services/projects'
+import { spoolService } from '@/lib/services/spools'
+import { Project } from '@/types'
+import Link from 'next/link'
 
-interface Project {
-  id: string
-  name: string
-  status: 'active' | 'completed' | 'pending'
-  startDate: string
-  endDate?: string
-  manager: string
-  spoolCount: number
-  completedSpools: number
-  progress: number
+interface ProjectWithStats extends Project {
+  spoolCount: number;
+  completedSpools: number;
+  progress: number;
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Galata Projesi',
-      status: 'active',
-      startDate: '2024-01-15',
-      manager: 'Ahmet Yılmaz',
-      spoolCount: 34,
-      completedSpools: 25,
-      progress: 74
-    },
-    {
-      id: '2',
-      name: 'Bosphorus Projesi',
-      status: 'completed',
-      startDate: '2023-12-01',
-      endDate: '2024-01-10',
-      manager: 'Mehmet Demir',
-      spoolCount: 28,
-      completedSpools: 28,
-      progress: 100
-    },
-    {
-      id: '3',
-      name: 'Istanbul Projesi',
-      status: 'pending',
-      startDate: '2024-02-01',
-      manager: 'Ayşe Kaya',
-      spoolCount: 42,
-      completedSpools: 0,
-      progress: 0
-    }
-  ])
-
+  const [projects, setProjects] = useState<ProjectWithStats[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
+  useEffect(() => {
+    loadProjects()
+  }, [])
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true)
+      
+      // Projeleri ve spool'ları paralel olarak çek
+      const [projectsData, spoolsData] = await Promise.all([
+        projectService.getAllProjects(),
+        spoolService.getAllSpools()
+      ])
+
+      // Her proje için spool istatistiklerini hesapla
+      const projectsWithStats = projectsData.map(project => {
+        const projectSpools = spoolsData.filter(spool => spool.projectId === project.id)
+        const completedSpools = projectSpools.filter(spool => spool.status === 'completed').length
+        const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0
+
+        return {
+          ...project,
+          spoolCount: projectSpools.length,
+          completedSpools,
+          progress
+        }
+      })
+
+      setProjects(projectsWithStats)
+    } catch (error) {
+      console.error('Projeler yüklenirken hata:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.manager.toLowerCase().includes(searchTerm.toLowerCase())
+                         project.managerName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -78,15 +80,26 @@ export default function ProjectsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Projeler yükleniyor...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 w-full max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Projeler</h1>
-        <button className="btn-primary flex items-center gap-2">
+        <Link href="/projects/new" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Yeni Proje
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -133,7 +146,7 @@ export default function ProjectsPage() {
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <User className="h-4 w-4 mr-2" />
-                {project.manager}
+                {project.managerName || 'Atanmamış'}
               </div>
               
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
@@ -162,23 +175,26 @@ export default function ProjectsPage() {
             </div>
             
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 btn-secondary text-sm">
+              <Link href={`/projects/${project.id}`} className="flex-1 btn-secondary text-sm text-center">
                 Detaylar
-              </button>
-              <button className="flex-1 btn-primary text-sm">
+              </Link>
+              <Link href={`/projects/${project.id}/edit`} className="flex-1 btn-primary text-sm text-center">
                 Düzenle
-              </button>
+              </Link>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredProjects.length === 0 && (
+      {filteredProjects.length === 0 && !loading && (
         <div className="text-center py-12">
           <Package className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Proje bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Arama kriterlerinize uygun proje bulunamadı.
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Arama kriterlerinize uygun proje bulunamadı.'
+              : 'Henüz proje oluşturulmamış.'
+            }
           </p>
         </div>
       )}

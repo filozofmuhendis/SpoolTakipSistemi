@@ -7,7 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Spool Takip Sistemi",
+  title: "AtölyeAkış",
   description: "Modern üretim takip sistemi",
 };
 

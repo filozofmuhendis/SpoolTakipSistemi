@@ -1,73 +1,58 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, Truck, Calendar, Package, MapPin, Clock } from 'lucide-react'
+import { shipmentService } from '@/lib/services/shipments'
+import { spoolService } from '@/lib/services/spools'
+import { Shipment } from '@/types'
+import Link from 'next/link'
 
-interface Shipment {
-  id: string
-  number: string
-  projectName: string
-  status: 'pending' | 'in_transit' | 'delivered' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  destination: string
-  scheduledDate: string
-  actualDate?: string
-  spoolCount: number
-  totalWeight: number
-  carrier: string
-  trackingNumber?: string
+interface ShipmentWithStats extends Shipment {
+  spoolCount: number;
 }
 
 export default function ShipmentsPage() {
-  const [shipments, setShipments] = useState<Shipment[]>([
-    {
-      id: '1',
-      number: 'SH-2024-001',
-      projectName: 'Galata Projesi',
-      status: 'in_transit',
-      priority: 'high',
-      destination: 'İstanbul, Türkiye',
-      scheduledDate: '2024-01-20',
-      spoolCount: 25,
-      totalWeight: 1500,
-      carrier: 'ABC Lojistik',
-      trackingNumber: 'TRK123456789'
-    },
-    {
-      id: '2',
-      number: 'SH-2024-002',
-      projectName: 'Bosphorus Projesi',
-      status: 'delivered',
-      priority: 'medium',
-      destination: 'Ankara, Türkiye',
-      scheduledDate: '2024-01-15',
-      actualDate: '2024-01-16',
-      spoolCount: 18,
-      totalWeight: 1200,
-      carrier: 'XYZ Nakliyat',
-      trackingNumber: 'TRK987654321'
-    },
-    {
-      id: '3',
-      number: 'SH-2024-003',
-      projectName: 'Istanbul Projesi',
-      status: 'pending',
-      priority: 'urgent',
-      destination: 'İzmir, Türkiye',
-      scheduledDate: '2024-02-01',
-      spoolCount: 32,
-      totalWeight: 2100,
-      carrier: 'DEF Kargo'
-    }
-  ])
-
+  const [shipments, setShipments] = useState<ShipmentWithStats[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
+  useEffect(() => {
+    loadShipments()
+  }, [])
+
+  const loadShipments = async () => {
+    try {
+      setLoading(true)
+      
+      // Sevkiyatları ve spool'ları paralel olarak çek
+      const [shipmentsData, spoolsData] = await Promise.all([
+        shipmentService.getAllShipments(),
+        spoolService.getAllSpools()
+      ])
+
+      // Her sevkiyat için spool sayısını hesapla
+      const shipmentsWithStats = shipmentsData.map(shipment => {
+        const shipmentSpools = spoolsData.filter(spool => spool.projectId === shipment.projectId)
+        
+        return {
+          ...shipment,
+          spoolCount: shipmentSpools.length
+        }
+      })
+
+      setShipments(shipmentsWithStats)
+    } catch (error) {
+      console.error('Sevkiyatlar yüklenirken hata:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredShipments = shipments.filter(shipment => {
     const matchesSearch = shipment.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         shipment.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         shipment.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          shipment.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          shipment.carrier.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || shipment.status === statusFilter
@@ -115,15 +100,26 @@ export default function ShipmentsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Sevkiyatlar yükleniyor...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 w-full max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Sevkiyatlar</h1>
-        <button className="btn-primary flex items-center gap-2">
+        <Link href="/shipments/new" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Yeni Sevkiyat
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -175,7 +171,7 @@ export default function ShipmentsPage() {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{shipment.number}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{shipment.projectName}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{shipment.projectName || 'Bilinmiyor'}</p>
               </div>
               <div className="flex flex-col gap-1">
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(shipment.status)}`}>
@@ -203,14 +199,14 @@ export default function ShipmentsPage() {
                 Planlanan: {new Date(shipment.scheduledDate).toLocaleDateString('tr-TR')}
                 {shipment.actualDate && (
                   <span className="ml-2">
-                    (Teslim: {new Date(shipment.actualDate).toLocaleDateString('tr-TR')})
+                    | Teslim: {new Date(shipment.actualDate).toLocaleDateString('tr-TR')}
                   </span>
                 )}
               </div>
               
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <Package className="h-4 w-4 mr-2" />
-                {shipment.spoolCount} Spool ({shipment.totalWeight} kg)
+                {shipment.spoolCount} Spool | {shipment.totalWeight} kg
               </div>
               
               {shipment.trackingNumber && (
@@ -222,23 +218,26 @@ export default function ShipmentsPage() {
             </div>
             
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 btn-secondary text-sm">
+              <Link href={`/shipments/${shipment.id}`} className="flex-1 btn-secondary text-sm text-center">
                 Detaylar
-              </button>
-              <button className="flex-1 btn-primary text-sm">
+              </Link>
+              <Link href={`/shipments/${shipment.id}/edit`} className="flex-1 btn-primary text-sm text-center">
                 Düzenle
-              </button>
+              </Link>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredShipments.length === 0 && (
+      {filteredShipments.length === 0 && !loading && (
         <div className="text-center py-12">
           <Truck className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Sevkiyat bulunamadı</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Arama kriterlerinize uygun sevkiyat bulunamadı.
+            {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+              ? 'Arama kriterlerinize uygun sevkiyat bulunamadı.'
+              : 'Henüz sevkiyat oluşturulmamış.'
+            }
           </p>
         </div>
       )}
