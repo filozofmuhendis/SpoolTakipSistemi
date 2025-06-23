@@ -29,6 +29,7 @@ export const spoolService = {
       completedQuantity: spool.completed_quantity,
       startDate: spool.start_date,
       endDate: spool.end_date,
+      description: spool.description,
       createdAt: spool.created_at,
       updatedAt: spool.updated_at
     }))
@@ -46,7 +47,8 @@ export const spoolService = {
         quantity: spool.quantity,
         completed_quantity: spool.completedQuantity || 0,
         start_date: spool.startDate,
-        end_date: spool.endDate
+        end_date: spool.endDate,
+        description: spool.description
       })
       .select()
       .single()
@@ -65,6 +67,7 @@ export const spoolService = {
       completedQuantity: data.completed_quantity,
       startDate: data.start_date,
       endDate: data.end_date,
+      description: data.description,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     }
@@ -82,6 +85,7 @@ export const spoolService = {
     if (updates.completedQuantity !== undefined) updateData.completed_quantity = updates.completedQuantity
     if (updates.startDate) updateData.start_date = updates.startDate
     if (updates.endDate) updateData.end_date = updates.endDate
+    if (updates.description !== undefined) updateData.description = updates.description
     
     updateData.updated_at = new Date().toISOString()
 
@@ -106,6 +110,7 @@ export const spoolService = {
       completedQuantity: data.completed_quantity,
       startDate: data.start_date,
       endDate: data.end_date,
+      description: data.description,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     }
@@ -153,6 +158,7 @@ export const spoolService = {
       completedQuantity: data.completed_quantity,
       startDate: data.start_date,
       endDate: data.end_date,
+      description: data.description,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     }

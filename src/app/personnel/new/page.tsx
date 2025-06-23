@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
+import { personnelService } from '@/lib/services/personnel'
+import { supabase } from '@/lib/supabase'
 
 interface PersonnelForm {
   fullName: string
@@ -29,6 +32,10 @@ const roleOptions = [
 ]
 
 export default function NewPersonnel() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
   const { register, handleSubmit, watch, formState: { errors } } = useForm<PersonnelForm>({
     defaultValues: {
       isActive: true,
@@ -43,9 +50,54 @@ export default function NewPersonnel() {
     }
   })
 
-  const onSubmit = (data: PersonnelForm) => {
-    console.log(data)
-    // API call will be implemented here
+  const onSubmit = async (data: PersonnelForm) => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      // Önce Supabase Auth ile kullanıcı oluştur
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            role: data.role
+          }
+        }
+      })
+
+      if (authError) {
+        throw new Error(authError.message)
+      }
+
+      if (authData.user) {
+        // Profil tablosuna personel bilgilerini ekle
+        const personnelData = {
+          name: data.fullName,
+          email: data.email,
+          phone: '', // Form'da telefon alanı yok, boş bırakıyoruz
+          position: data.role,
+          department: 'Üretim', // Varsayılan departman
+          status: (data.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'on_leave',
+          hireDate: new Date().toISOString().split('T')[0]
+        }
+
+        try {
+          await personnelService.createPersonnel(personnelData)
+          router.push('/personnel?success=true')
+        } catch (profileError: any) {
+          // Eğer profil oluşturulamazsa, auth kullanıcısını da sil
+          await supabase.auth.admin.deleteUser(authData.user.id)
+          throw new Error(profileError.message)
+        }
+      }
+    } catch (error: any) {
+      console.error('Personel ekleme hatası:', error)
+      setError(error.message || 'Personel eklenirken bir hata oluştu')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const selectedRole = watch('role')
@@ -56,6 +108,12 @@ export default function NewPersonnel() {
         <h1 className="text-2xl font-bold mb-6">Yeni Personel Kaydı</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+
           {/* Temel Bilgiler */}
           <div className="space-y-4">
             <div>
@@ -204,9 +262,10 @@ export default function NewPersonnel() {
           <div className="pt-6">
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              disabled={isLoading}
+              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
             >
-              Personel Kaydını Oluştur
+              {isLoading ? 'Kaydediliyor...' : 'Personel Kaydını Oluştur'}
             </button>
           </div>
         </form>

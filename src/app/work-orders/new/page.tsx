@@ -1,31 +1,67 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
+import { workOrderService } from '@/lib/services/workOrders'
+import { personnelService } from '@/lib/services/personnel'
+import { projectService } from '@/lib/services/projects'
+import { Personnel, Project } from '@/types'
 
 interface NewWorkOrderForm {
-  projectNumber: string
+  projectId: string
   spoolNumber: string
   assignedTo: string
   startDate: string
   dueDate: string
-  priority: 'low' | 'medium' | 'high'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
   description: string
 }
 
 export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm<NewWorkOrderForm>()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [personnel, setPersonnel] = useState<Personnel[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      const [personnelData, projectsData] = await Promise.all([
+        personnelService.getAllPersonnel(),
+        projectService.getAllProjects()
+      ])
+      setPersonnel(personnelData)
+      setProjects(projectsData)
+    } catch (error) {
+      console.error('Veri yüklenirken hata:', error)
+    }
+  }
 
   const onSubmit = async (data: NewWorkOrderForm) => {
     setIsLoading(true)
+    setError(null)
+    
     try {
-      // API call will be implemented here
-      console.log(data)
+      await workOrderService.createWorkOrder({
+        number: `WO-${Date.now()}`, // Otomatik numara oluştur
+        projectId: data.projectId,
+        status: 'pending',
+        priority: data.priority,
+        assignedTo: data.assignedTo,
+        startDate: data.startDate,
+        dueDate: data.dueDate,
+        description: data.description
+      })
+      
       onClose()
-    } catch (error) {
-      console.error(error)
+    } catch (error: any) {
+      console.error('İş emri oluşturma hatası:', error)
+      setError(error.message || 'İş emri oluşturulurken bir hata oluştu')
     } finally {
       setIsLoading(false)
     }
@@ -39,16 +75,28 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="projectNumber" className="block text-sm font-medium mb-2">Proje Numarası</label>
-              <input
-                {...register('projectNumber', { required: 'Proje numarası gerekli' })}
+              <label htmlFor="projectId" className="block text-sm font-medium mb-2">Proje</label>
+              <select
+                {...register('projectId', { required: 'Proje seçilmelidir' })}
                 className="w-full p-2 border rounded-lg"
-                placeholder="PRJ-001"
-              />
-              {errors.projectNumber && (
-                <span className="text-red-500 text-sm">{errors.projectNumber.message}</span>
+              >
+                <option value="">Proje seçiniz...</option>
+                {projects.map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+              {errors.projectId && (
+                <span className="text-red-500 text-sm">{errors.projectId.message}</span>
               )}
             </div>
 
@@ -71,8 +119,11 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
                 className="w-full p-2 border rounded-lg"
               >
                 <option value="">Seçiniz...</option>
-                <option value="1">Ahmet Yılmaz</option>
-                <option value="2">Mehmet Demir</option>
+                {personnel.map(person => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} - {person.position}
+                  </option>
+                ))}
               </select>
               {errors.assignedTo && (
                 <span className="text-red-500 text-sm">{errors.assignedTo.message}</span>
@@ -88,6 +139,7 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
                 <option value="low">Düşük</option>
                 <option value="medium">Orta</option>
                 <option value="high">Yüksek</option>
+                <option value="urgent">Acil</option>
               </select>
             </div>
 

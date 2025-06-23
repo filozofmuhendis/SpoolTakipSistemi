@@ -2,25 +2,43 @@
 
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { personnelService } from '@/lib/services/personnel'
+import { Personnel } from '@/types'
 
 interface EditPersonnelModalProps {
-  personnel: {
-    name: string
-    position: string
-    department: string
-    email: string
-    phone: string
-  }
+  personnel: Personnel
   onClose: () => void
-  onSave: (data: any) => void
+  onSave: (personnel: Personnel) => void
 }
 
 export default function EditPersonnelModal({ personnel, onClose, onSave }: EditPersonnelModalProps) {
   const [formData, setFormData] = useState(personnel)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const updatedPersonnel = await personnelService.updatePersonnel(personnel.id, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        department: formData.department,
+        status: formData.status
+      })
+      
+      onSave(updatedPersonnel)
+      onClose()
+    } catch (error: any) {
+      console.error('Personel güncelleme hatası:', error)
+      setError(error.message || 'Personel güncellenirken bir hata oluştu')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -34,6 +52,12 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium mb-2">Ad Soyad</label>
@@ -42,6 +66,18 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">E-posta</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                required
               />
             </div>
 
@@ -52,29 +88,18 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 className="w-full p-2 border rounded-lg"
+                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Departman</label>
-              <select
+              <input
+                type="text"
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="w-full p-2 border rounded-lg"
-              >
-                <option value="production">Üretim</option>
-                <option value="quality">Kalite</option>
-                <option value="engineering">Mühendislik</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-2 border rounded-lg"
+                required
               />
             </div>
 
@@ -86,6 +111,19 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full p-2 border rounded-lg"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Durum</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'on_leave' })}
+                className="w-full p-2 border rounded-lg"
+              >
+                <option value="active">Aktif</option>
+                <option value="inactive">Pasif</option>
+                <option value="on_leave">İzinde</option>
+              </select>
             </div>
           </div>
 
@@ -99,9 +137,10 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
             >
-              Kaydet
+              {isLoading ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>

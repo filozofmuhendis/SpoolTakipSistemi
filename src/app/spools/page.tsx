@@ -7,6 +7,7 @@ import { Spool } from '@/types'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
 import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import Link from 'next/link'
 
 export default function SpoolsPage() {
   const { data: session, status } = useSession()
@@ -71,7 +72,21 @@ export default function SpoolsPage() {
   }
 
   const getProgressPercentage = (completed: number, total: number) => {
+    if (total === 0) return 0
     return Math.round((completed / total) * 100)
+  }
+
+  const handleDeleteSpool = async (spoolId: string) => {
+    if (confirm('Bu spool\'u silmek istediğinizden emin misiniz?')) {
+      try {
+        await spoolService.deleteSpool(spoolId)
+        // Listeyi yenile
+        loadData()
+      } catch (error) {
+        console.error('Spool silme hatası:', error)
+        alert('Spool silinirken bir hata oluştu')
+      }
+    }
   }
 
   if (loading) {
@@ -89,10 +104,10 @@ export default function SpoolsPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Spool Takibi</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Üretim spool'larının durumunu ve ilerlemesini takip edin</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <Link href="/spools/new" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <Plus size={20} />
           Yeni Spool Ekle
-        </button>
+        </Link>
       </div>
 
       {/* Filtreler */}
@@ -210,13 +225,16 @@ export default function SpoolsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                      <Link href={`/spools/${spool.id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
                         <Eye size={16} />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                      </Link>
+                      <Link href={`/spools/${spool.id}/edit`} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
                         <Edit size={16} />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                      </Link>
+                      <button 
+                        onClick={() => handleDeleteSpool(spool.id)}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>

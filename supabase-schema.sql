@@ -1,214 +1,250 @@
--- Enable UUID extension
+-- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create profiles table
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  role TEXT CHECK (role IN ('admin', 'manager', 'user')) DEFAULT 'user',
+  full_name TEXT,
+  phone TEXT,
+  department TEXT,
+  position TEXT,
+  avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
-  status TEXT CHECK (status IN ('active', 'completed', 'pending')) DEFAULT 'pending',
-  start_date DATE NOT NULL,
-  end_date DATE,
-  manager_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create spools table
-CREATE TABLE spools (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  status TEXT CHECK (status IN ('pending', 'active', 'completed')) DEFAULT 'pending',
-  assigned_to UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  completed_quantity INTEGER DEFAULT 0 CHECK (completed_quantity >= 0),
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
   start_date DATE NOT NULL,
   end_date DATE,
+  manager_id UUID REFERENCES profiles(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create personnel table
-CREATE TABLE personnel (
+CREATE TABLE IF NOT EXISTS personnel (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   phone TEXT,
-  position TEXT NOT NULL,
   department TEXT NOT NULL,
-  status TEXT CHECK (status IN ('active', 'inactive', 'on_leave')) DEFAULT 'active',
+  position TEXT NOT NULL,
   hire_date DATE NOT NULL,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'terminated')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create spools table
+CREATE TABLE IF NOT EXISTS spools (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  assigned_to UUID REFERENCES personnel(id),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed')),
+  quantity INTEGER NOT NULL DEFAULT 1,
+  completed_quantity INTEGER DEFAULT 0,
+  start_date DATE,
+  end_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create work_orders table
-CREATE TABLE work_orders (
+CREATE TABLE IF NOT EXISTS work_orders (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  number TEXT UNIQUE NOT NULL,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  status TEXT CHECK (status IN ('pending', 'active', 'completed', 'cancelled')) DEFAULT 'pending',
-  priority TEXT CHECK (priority IN ('low', 'medium', 'high', 'urgent')) DEFAULT 'medium',
-  assigned_to UUID REFERENCES personnel(id) ON DELETE SET NULL,
-  start_date DATE NOT NULL,
-  due_date DATE NOT NULL,
+  title TEXT NOT NULL,
   description TEXT,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  spool_id UUID REFERENCES spools(id) ON DELETE CASCADE,
+  assigned_to UUID REFERENCES personnel(id),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+  start_date DATE,
+  due_date DATE,
+  completed_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create shipments table
-CREATE TABLE shipments (
+CREATE TABLE IF NOT EXISTS shipments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   number TEXT UNIQUE NOT NULL,
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  status TEXT CHECK (status IN ('pending', 'in_transit', 'delivered', 'cancelled')) DEFAULT 'pending',
-  priority TEXT CHECK (priority IN ('low', 'medium', 'high', 'urgent')) DEFAULT 'medium',
   destination TEXT NOT NULL,
+  carrier TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_transit', 'delivered', 'cancelled')),
   scheduled_date DATE NOT NULL,
   actual_date DATE,
-  carrier TEXT NOT NULL,
+  total_weight DECIMAL(10,2),
   tracking_number TEXT,
-  total_weight DECIMAL(10,2) NOT NULL CHECK (total_weight > 0),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create file_uploads table
+CREATE TABLE IF NOT EXISTS file_uploads (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  uploaded_by UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment')),
+  entity_id UUID NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error')),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  entity_type TEXT CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment')),
+  entity_id UUID,
+  read BOOLEAN DEFAULT FALSE,
+  action_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create notification_preferences table
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+  email_notifications BOOLEAN DEFAULT TRUE,
+  push_notifications BOOLEAN DEFAULT TRUE,
+  spool_updates BOOLEAN DEFAULT TRUE,
+  project_updates BOOLEAN DEFAULT TRUE,
+  personnel_updates BOOLEAN DEFAULT TRUE,
+  work_order_updates BOOLEAN DEFAULT TRUE,
+  shipment_updates BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_projects_manager_id ON projects(manager_id);
-CREATE INDEX idx_projects_status ON projects(status);
-CREATE INDEX idx_spools_project_id ON spools(project_id);
-CREATE INDEX idx_spools_assigned_to ON spools(assigned_to);
-CREATE INDEX idx_spools_status ON spools(status);
-CREATE INDEX idx_work_orders_project_id ON work_orders(project_id);
-CREATE INDEX idx_work_orders_assigned_to ON work_orders(assigned_to);
-CREATE INDEX idx_work_orders_status ON work_orders(status);
-CREATE INDEX idx_shipments_project_id ON shipments(project_id);
-CREATE INDEX idx_shipments_status ON shipments(status);
+CREATE INDEX IF NOT EXISTS idx_spools_project_id ON spools(project_id);
+CREATE INDEX IF NOT EXISTS idx_spools_assigned_to ON spools(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_spools_status ON spools(status);
+CREATE INDEX IF NOT EXISTS idx_work_orders_project_id ON work_orders(project_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_to ON work_orders(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
+CREATE INDEX IF NOT EXISTS idx_shipments_project_id ON shipments(project_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
+CREATE INDEX IF NOT EXISTS idx_file_uploads_entity ON file_uploads(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
 
 -- Create RLS (Row Level Security) policies
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE spools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personnel ENABLE ROW LEVEL SECURITY;
+ALTER TABLE spools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shipments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
-CREATE POLICY "Users can view their own profile" ON profiles
+CREATE POLICY "Users can view own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Users can update their own profile" ON profiles
+CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Admins can view all profiles" ON profiles
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Users can insert own profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Projects policies
-CREATE POLICY "Users can view all projects" ON projects
+-- Projects policies (admin can do everything, users can view)
+CREATE POLICY "Users can view projects" ON projects
   FOR SELECT USING (true);
 
-CREATE POLICY "Managers and admins can create projects" ON projects
-  FOR INSERT WITH CHECK (
+CREATE POLICY "Admin can manage projects" ON projects
+  FOR ALL USING (
     EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() AND position = 'admin'
     )
   );
 
-CREATE POLICY "Managers and admins can update projects" ON projects
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')
-    )
-  );
+-- Personnel policies
+CREATE POLICY "Users can view personnel" ON personnel
+  FOR SELECT USING (true);
 
-CREATE POLICY "Admins can delete projects" ON projects
-  FOR DELETE USING (
+CREATE POLICY "Admin can manage personnel" ON personnel
+  FOR ALL USING (
     EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() AND position = 'admin'
     )
   );
 
 -- Spools policies
-CREATE POLICY "Users can view all spools" ON spools
+CREATE POLICY "Users can view spools" ON spools
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can create spools" ON spools
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Users can update spools" ON spools
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Users can delete spools" ON spools
-  FOR DELETE USING (true);
-
--- Personnel policies
-CREATE POLICY "Users can view all personnel" ON personnel
-  FOR SELECT USING (true);
-
-CREATE POLICY "Managers and admins can create personnel" ON personnel
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')
-    )
-  );
-
-CREATE POLICY "Managers and admins can update personnel" ON personnel
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'manager')
-    )
-  );
-
-CREATE POLICY "Admins can delete personnel" ON personnel
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+CREATE POLICY "Users can manage spools" ON spools
+  FOR ALL USING (true);
 
 -- Work orders policies
-CREATE POLICY "Users can view all work orders" ON work_orders
+CREATE POLICY "Users can view work orders" ON work_orders
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can create work orders" ON work_orders
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Users can update work orders" ON work_orders
-  FOR UPDATE USING (true);
-
-CREATE POLICY "Users can delete work orders" ON work_orders
-  FOR DELETE USING (true);
+CREATE POLICY "Users can manage work orders" ON work_orders
+  FOR ALL USING (true);
 
 -- Shipments policies
-CREATE POLICY "Users can view all shipments" ON shipments
+CREATE POLICY "Users can view shipments" ON shipments
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can create shipments" ON shipments
+CREATE POLICY "Users can manage shipments" ON shipments
+  FOR ALL USING (true);
+
+-- File uploads policies
+CREATE POLICY "Users can view file uploads" ON file_uploads
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can upload files" ON file_uploads
+  FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
+
+CREATE POLICY "Users can delete own files" ON file_uploads
+  FOR DELETE USING (auth.uid() = uploaded_by);
+
+-- Notifications policies
+CREATE POLICY "Users can view own notifications" ON notifications
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own notifications" ON notifications
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "System can create notifications" ON notifications
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can update shipments" ON shipments
-  FOR UPDATE USING (true);
+-- Notification preferences policies
+CREATE POLICY "Users can view own preferences" ON notification_preferences
+  FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete shipments" ON shipments
-  FOR DELETE USING (true);
+CREATE POLICY "Users can update own preferences" ON notification_preferences
+  FOR UPDATE USING (auth.uid() = user_id);
 
--- Create functions for automatic timestamp updates
+CREATE POLICY "Users can insert own preferences" ON notification_preferences
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create functions for automatic timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -217,17 +253,17 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers for automatic timestamp updates
+-- Create triggers for updated_at
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_spools_updated_at BEFORE UPDATE ON spools
+CREATE TRIGGER update_personnel_updated_at BEFORE UPDATE ON personnel
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_personnel_updated_at BEFORE UPDATE ON personnel
+CREATE TRIGGER update_spools_updated_at BEFORE UPDATE ON spools
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON work_orders
@@ -236,12 +272,19 @@ CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON work_orders
 CREATE TRIGGER update_shipments_updated_at BEFORE UPDATE ON shipments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_notification_preferences_updated_at BEFORE UPDATE ON notification_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Create function to handle new user registration
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, name, role)
-  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'name', 'Kullanıcı'), 'user');
+  INSERT INTO profiles (id, email, full_name)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  
+  INSERT INTO notification_preferences (user_id)
+  VALUES (NEW.id);
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -251,34 +294,23 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
--- Insert sample data
-INSERT INTO profiles (id, email, name, role) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'admin@example.com', 'Admin User', 'admin'),
-  ('00000000-0000-0000-0000-000000000002', 'manager@example.com', 'Manager User', 'manager'),
-  ('00000000-0000-0000-0000-000000000003', 'user@example.com', 'Regular User', 'user');
+-- Create storage bucket for file uploads
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('uploads', 'uploads', true)
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO projects (name, status, start_date, end_date, manager_id, description) VALUES
-  ('Petrokimya Projesi', 'active', '2024-01-15', '2024-06-30', '00000000-0000-0000-0000-000000000002', 'Büyük ölçekli petrokimya tesisi projesi'),
-  ('Gaz Boru Hattı', 'pending', '2024-03-01', '2024-12-31', '00000000-0000-0000-0000-000000000002', 'Doğal gaz boru hattı inşaat projesi'),
-  ('Rafineri Modernizasyonu', 'completed', '2023-09-01', '2024-02-28', '00000000-0000-0000-0000-000000000001', 'Mevcut rafineri modernizasyon projesi');
+-- Create storage policies
+CREATE POLICY "Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'uploads');
 
-INSERT INTO personnel (name, email, phone, position, department, status, hire_date) VALUES
-  ('Ahmet Yılmaz', 'ahmet.yilmaz@company.com', '+90 555 123 4567', 'Mühendis', 'Üretim', 'active', '2023-01-15'),
-  ('Fatma Demir', 'fatma.demir@company.com', '+90 555 234 5678', 'Teknisyen', 'Kalite Kontrol', 'active', '2023-03-20'),
-  ('Mehmet Kaya', 'mehmet.kaya@company.com', '+90 555 345 6789', 'Operatör', 'Üretim', 'active', '2022-11-10'),
-  ('Ayşe Özkan', 'ayse.ozkan@company.com', '+90 555 456 7890', 'Mühendis', 'Proje Yönetimi', 'on_leave', '2023-06-01');
+CREATE POLICY "Authenticated users can upload files" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'uploads' AND 
+    auth.role() = 'authenticated'
+  );
 
-INSERT INTO work_orders (number, project_id, status, priority, assigned_to, start_date, due_date, description) VALUES
-  ('WO-2024-001', (SELECT id FROM projects WHERE name = 'Petrokimya Projesi'), 'active', 'high', (SELECT id FROM personnel WHERE name = 'Ahmet Yılmaz'), '2024-01-20', '2024-02-15', 'Ana boru hattı montajı'),
-  ('WO-2024-002', (SELECT id FROM projects WHERE name = 'Petrokimya Projesi'), 'pending', 'medium', (SELECT id FROM personnel WHERE name = 'Fatma Demir'), '2024-02-01', '2024-02-28', 'Kalite kontrol testleri'),
-  ('WO-2024-003', (SELECT id FROM projects WHERE name = 'Gaz Boru Hattı'), 'active', 'urgent', (SELECT id FROM personnel WHERE name = 'Mehmet Kaya'), '2024-03-05', '2024-03-20', 'Acil boru değişimi');
-
-INSERT INTO shipments (number, project_id, status, priority, destination, scheduled_date, carrier, total_weight) VALUES
-  ('SH-2024-001', (SELECT id FROM projects WHERE name = 'Petrokimya Projesi'), 'in_transit', 'high', 'İstanbul', '2024-02-10', 'ABC Kargo', 2500.50),
-  ('SH-2024-002', (SELECT id FROM projects WHERE name = 'Gaz Boru Hattı'), 'pending', 'medium', 'Ankara', '2024-03-15', 'XYZ Lojistik', 1800.75),
-  ('SH-2024-003', (SELECT id FROM projects WHERE name = 'Rafineri Modernizasyonu'), 'delivered', 'low', 'İzmir', '2024-01-25', 'DEF Nakliye', 3200.00);
-
-INSERT INTO spools (name, project_id, status, assigned_to, quantity, completed_quantity, start_date) VALUES
-  ('SP-001', (SELECT id FROM projects WHERE name = 'Petrokimya Projesi'), 'active', '00000000-0000-0000-0000-000000000003', 100, 75, '2024-01-20'),
-  ('SP-002', (SELECT id FROM projects WHERE name = 'Petrokimya Projesi'), 'pending', '00000000-0000-0000-0000-000000000003', 50, 0, '2024-02-01'),
-  ('SP-003', (SELECT id FROM projects WHERE name = 'Gaz Boru Hattı'), 'completed', '00000000-0000-0000-0000-000000000002', 200, 200, '2024-03-01'); 
+CREATE POLICY "Users can delete own files" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'uploads' AND 
+    auth.uid()::text = (storage.foldername(name))[1]
+  ); 

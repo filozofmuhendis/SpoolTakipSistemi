@@ -32,6 +32,7 @@ export interface Spool {
   completedQuantity: number
   startDate: string
   endDate?: string
+  description?: string
   createdAt: string
   updatedAt: string
 }

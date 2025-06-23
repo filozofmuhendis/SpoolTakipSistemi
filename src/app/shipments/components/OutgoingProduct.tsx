@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { ArrowLeft, Camera, Upload, Scan } from 'lucide-react'
+import { shipmentService } from '@/lib/services/shipments'
 
 interface OutgoingProductForm {
   date: string
@@ -16,13 +17,33 @@ interface OutgoingProductForm {
 export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<OutgoingProductForm>()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [showScanner, setShowScanner] = useState(false)
 
   const onSubmit = async (data: OutgoingProductForm) => {
     setIsLoading(true)
-    console.log(data)
-    // API implementation will be here
-    setIsLoading(false)
+    setError(null)
+    
+    try {
+      await shipmentService.createShipment({
+        number: `PROD-${Date.now()}`, // Otomatik numara oluştur
+        projectId: '', // Giden ürün için proje ID'si boş olabilir
+        status: 'pending',
+        priority: 'medium',
+        destination: data.transportCompany || 'Müşteri',
+        scheduledDate: data.date,
+        carrier: data.transportCompany || 'Kendi Araç',
+        trackingNumber: data.spoolNumber, // Spool numarasını tracking number olarak kullan
+        totalWeight: 0 // Giden ürün için ağırlık bilgisi yok
+      })
+      
+      onBack()
+    } catch (error: any) {
+      console.error('Giden ürün kaydetme hatası:', error)
+      setError(error.message || 'Ürün kaydedilirken bir hata oluştu')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleBarcodeScan = (result: string) => {
@@ -40,6 +61,12 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-4">
           <div>
             <label className="block mb-2">Sevkiyat Tarihi</label>
@@ -87,35 +114,35 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               placeholder="Sevkiyat açıklaması"
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-2">
-                <Camera className="w-4 h-4 inline mr-2" />
-                Fotoğraf Ekle
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                {...register('photos')}
-                className="w-full p-2 border rounded"
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block mb-2">
+              <Camera className="w-4 h-4 inline mr-2" />
+              Fotoğraf Ekle
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              {...register('photos')}
+              className="w-full p-2 border rounded"
+            />
+          </div>
 
-            <div>
-              <label className="block mb-2">
-                <Upload className="w-4 h-4 inline mr-2" />
-                Belge Ekle
-              </label>
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                multiple
-                {...register('documents')}
-                className="w-full p-2 border rounded"
-              />
-            </div>
+          <div>
+            <label className="block mb-2">
+              <Upload className="w-4 h-4 inline mr-2" />
+              Belge Ekle
+            </label>
+            <input
+              type="file"
+              accept=".pdf,image/*"
+              multiple
+              {...register('documents')}
+              className="w-full p-2 border rounded"
+            />
           </div>
         </div>
 

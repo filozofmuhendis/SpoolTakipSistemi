@@ -8,6 +8,8 @@ import { workOrderService } from '@/lib/services/workOrders'
 import { Personnel } from '@/types'
 import { WorkOrder } from '@/types'
 import Link from 'next/link'
+import EditPersonnelModal from './components/EditPersonnelModal'
+import DeletePersonnelModal from './components/DeletePersonnelModal'
 
 interface PersonnelWithStats extends Personnel {
   projects: number;
@@ -20,6 +22,8 @@ export default function PersonnelPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null)
+  const [deletingPersonnel, setDeletingPersonnel] = useState<Personnel | null>(null)
 
   useEffect(() => {
     loadPersonnel()
@@ -88,6 +92,24 @@ export default function PersonnelPage() {
   }
 
   const departments = Array.from(new Set(personnel.map(p => p.department)))
+
+  const handleEditPersonnel = (updatedPersonnel: Personnel) => {
+    setPersonnel(prev => prev.map(p => 
+      p.id === updatedPersonnel.id 
+        ? { ...p, ...updatedPersonnel }
+        : p
+    ))
+  }
+
+  const handleDeletePersonnel = async (personnelId: string) => {
+    try {
+      await personnelService.deletePersonnel(personnelId)
+      setPersonnel(prev => prev.filter(p => p.id !== personnelId))
+      setDeletingPersonnel(null)
+    } catch (error) {
+      console.error('Personel silme hatası:', error)
+    }
+  }
 
   if (loading) {
     return (
@@ -202,9 +224,18 @@ export default function PersonnelPage() {
               <Link href={`/personnel/${person.id}`} className="flex-1 btn-secondary text-sm text-center">
                 Detaylar
               </Link>
-              <Link href={`/personnel/${person.id}/edit`} className="flex-1 btn-primary text-sm text-center">
+              <button 
+                onClick={() => setEditingPersonnel(person)}
+                className="flex-1 btn-primary text-sm text-center"
+              >
                 Düzenle
-              </Link>
+              </button>
+              <button 
+                onClick={() => setDeletingPersonnel(person)}
+                className="flex-1 btn-danger text-sm text-center"
+              >
+                Sil
+              </button>
             </div>
           </div>
         ))}
@@ -221,6 +252,23 @@ export default function PersonnelPage() {
             }
           </p>
         </div>
+      )}
+
+      {/* Modals */}
+      {editingPersonnel && (
+        <EditPersonnelModal
+          personnel={editingPersonnel}
+          onClose={() => setEditingPersonnel(null)}
+          onSave={handleEditPersonnel}
+        />
+      )}
+
+      {deletingPersonnel && (
+        <DeletePersonnelModal
+          onClose={() => setDeletingPersonnel(null)}
+          onConfirm={() => handleDeletePersonnel(deletingPersonnel.id)}
+          mode="delete"
+        />
       )}
     </div>
   )
