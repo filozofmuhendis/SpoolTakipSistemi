@@ -4,34 +4,45 @@ import { WorkOrder } from '@/types'
 export const workOrderService = {
   // Tüm iş emirlerini getir
   async getAllWorkOrders() {
-    const { data, error } = await supabase
-      .from('work_orders')
-      .select(`
-        *,
-        projects!work_orders_project_id_fkey(name),
-        personnel!work_orders_assigned_to_fkey(name)
-      `)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select(`
+          *,
+          projects!work_orders_project_id_fkey(name),
+          personnel!work_orders_assigned_to_fkey(name)
+        `)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(`İş emirleri getirilemedi: ${error.message}`)
+      if (error) {
+        console.log('İş emirleri getirilemedi:', error)
+        return []
+      }
+
+      // Veri yoksa boş array döndür
+      if (!data || data.length === 0) {
+        return []
+      }
+
+      return data.map(workOrder => ({
+        id: workOrder.id,
+        number: workOrder.number,
+        projectId: workOrder.project_id,
+        projectName: workOrder.projects?.name || 'Bilinmiyor',
+        status: workOrder.status,
+        priority: workOrder.priority,
+        assignedTo: workOrder.assigned_to,
+        assignedToName: workOrder.personnel?.name || 'Bilinmiyor',
+        startDate: workOrder.start_date,
+        dueDate: workOrder.due_date,
+        description: workOrder.description,
+        createdAt: workOrder.created_at,
+        updatedAt: workOrder.updated_at
+      }))
+    } catch (error) {
+      console.log('İş emirleri getirilemedi:', error)
+      return []
     }
-
-    return data.map(workOrder => ({
-      id: workOrder.id,
-      number: workOrder.number,
-      projectId: workOrder.project_id,
-      projectName: workOrder.projects?.name || 'Bilinmiyor',
-      status: workOrder.status,
-      priority: workOrder.priority,
-      assignedTo: workOrder.assigned_to,
-      assignedToName: workOrder.personnel?.name || 'Bilinmiyor',
-      startDate: workOrder.start_date,
-      dueDate: workOrder.due_date,
-      description: workOrder.description,
-      createdAt: workOrder.created_at,
-      updatedAt: workOrder.updated_at
-    }))
   },
 
   // İş emri oluştur
@@ -127,34 +138,44 @@ export const workOrderService = {
 
   // İş emri detayını getir
   async getWorkOrderById(id: string) {
-    const { data, error } = await supabase
-      .from('work_orders')
-      .select(`
-        *,
-        projects!work_orders_project_id_fkey(name),
-        personnel!work_orders_assigned_to_fkey(name)
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select(`
+          *,
+          projects!work_orders_project_id_fkey(name),
+          personnel!work_orders_assigned_to_fkey(name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      throw new Error(`İş emri bulunamadı: ${error.message}`)
-    }
+      if (error) {
+        console.log('İş emri bulunamadı:', error)
+        return null
+      }
 
-    return {
-      id: data.id,
-      number: data.number,
-      projectId: data.project_id,
-      projectName: data.projects?.name || 'Bilinmiyor',
-      status: data.status,
-      priority: data.priority,
-      assignedTo: data.assigned_to,
-      assignedToName: data.personnel?.name || 'Bilinmiyor',
-      startDate: data.start_date,
-      dueDate: data.due_date,
-      description: data.description,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (!data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        number: data.number,
+        projectId: data.project_id,
+        projectName: data.projects?.name || 'Bilinmiyor',
+        status: data.status,
+        priority: data.priority,
+        assignedTo: data.assigned_to,
+        assignedToName: data.personnel?.name || 'Bilinmiyor',
+        startDate: data.start_date,
+        dueDate: data.due_date,
+        description: data.description,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('İş emri bulunamadı:', error)
+      return null
     }
   },
 

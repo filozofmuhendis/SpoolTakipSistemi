@@ -6,6 +6,10 @@ import { workOrderService } from '@/lib/services/workOrders'
 import { spoolService } from '@/lib/services/spools'
 import { WorkOrder } from '@/types'
 import Link from 'next/link'
+import Loading from '@/components/ui/Loading'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface WorkOrderWithStats extends WorkOrder {
   spoolCount: number;
@@ -19,6 +23,8 @@ export default function WorkOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const { showToast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadWorkOrders()
@@ -27,6 +33,7 @@ export default function WorkOrdersPage() {
   const loadWorkOrders = async () => {
     try {
       setLoading(true)
+      setError(null)
       
       // İş emirlerini ve spool'ları paralel olarak çek
       const [workOrdersData, spoolsData] = await Promise.all([
@@ -50,7 +57,9 @@ export default function WorkOrdersPage() {
 
       setWorkOrders(workOrdersWithStats)
     } catch (error) {
-      console.error('İş emirleri yüklenirken hata:', error)
+      setError('İş emirleri yüklenirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'İş emirleri yüklenirken bir hata oluştu.' })
+      console.log('İş emirleri yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -106,14 +115,15 @@ export default function WorkOrdersPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">İş emirleri yükleniyor...</p>
-        </div>
-      </div>
-    )
+    return <Loading text="İş emirleri yükleniyor..." />
+  }
+
+  if (error) {
+    return <ErrorState title="Hata" description={error} />
+  }
+
+  if (filteredWorkOrders.length === 0) {
+    return <EmptyState title="İş emri bulunamadı" description="Kriterlere uygun iş emri kaydı yok." />
   }
 
   return (
@@ -263,19 +273,6 @@ export default function WorkOrdersPage() {
           </table>
         </div>
       </div>
-
-      {filteredWorkOrders.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <Package className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">İş emri bulunamadı</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-              ? 'Arama kriterlerinize uygun iş emri bulunamadı.'
-              : 'Henüz iş emri oluşturulmamış.'
-            }
-          </p>
-        </div>
-      )}
     </div>
   )
 }

@@ -92,7 +92,7 @@ export default function FileUploadComponent({
         onUploadError?.(`${file.name} yüklenirken hata oluştu.`)
       }
     } catch (error) {
-      console.error('Dosya yükleme hatası:', error)
+      console.log('Dosya yükleme hatası:', error)
       onUploadError?.(`${file.name} yüklenirken hata oluştu.`)
     } finally {
       setUploading(false)
@@ -115,7 +115,7 @@ export default function FileUploadComponent({
         onUploadError?.('Dosya silinirken hata oluştu.')
       }
     } catch (error) {
-      console.error('Dosya silme hatası:', error)
+      console.log('Dosya silme hatası:', error)
       onUploadError?.('Dosya silinirken hata oluştu.')
     }
   }

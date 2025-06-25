@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { ArrowLeft, Camera, Upload } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
+import { projectService } from '@/lib/services/projects'
+import { useToast } from '@/components/ui/ToastProvider'
+import { storageService } from '@/lib/services/storage'
 
 interface OutgoingMaterialForm {
+  projectId: string
   date: string
   type: 'material' | 'scrap' | 'return'
   company: string
@@ -19,28 +23,47 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm<OutgoingMaterialForm>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [projects, setProjects] = useState<any[]>([])
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    projectService.getAllProjects().then(setProjects)
+  }, [])
 
   const onSubmit = async (data: OutgoingMaterialForm) => {
     setIsLoading(true)
     setError(null)
-    
     try {
-      await shipmentService.createShipment({
-        number: `OUT-${Date.now()}`, // Otomatik numara oluştur
-        projectId: '', // Giden malzeme için proje ID'si boş olabilir
+      const shipment = await shipmentService.createShipment({
+        number: `OUT-${Date.now()}`,
+        projectId: data.projectId,
         status: 'pending',
         priority: 'medium',
         destination: data.company,
         scheduledDate: data.date,
         carrier: data.company,
         trackingNumber: data.waybillNo,
-        totalWeight: 0 // Giden malzeme için ağırlık bilgisi yok
+        totalWeight: 0
       })
-      
+      // Fotoğraf ve belgeleri yükle
+      const filesToUpload: File[] = [
+        ...(data.photos ? Array.from(data.photos) : []),
+        ...(data.documents ? Array.from(data.documents) : [])
+      ]
+      for (const file of filesToUpload) {
+        const uploaded = await storageService.uploadFile(file, 'shipment', shipment.id)
+        if (uploaded) {
+          showToast({ type: 'success', message: `${file.name} yüklendi!` })
+        } else {
+          showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
+        }
+      }
+      showToast({ type: 'success', message: 'Giden malzeme kaydedildi!' })
       onBack()
     } catch (error: any) {
-      console.error('Giden malzeme kaydetme hatası:', error)
+      console.log('Giden malzeme kaydetme hatası:', error)
       setError(error.message || 'Malzeme kaydedilirken bir hata oluştu')
+      showToast({ type: 'error', message: 'Malzeme kaydedilirken bir hata oluştu' })
     } finally {
       setIsLoading(false)
     }
@@ -54,14 +77,27 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
         </button>
         <h2 className="text-2xl font-semibold">Giden Malzeme Sevkiyatı</h2>
       </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             {error}
           </div>
         )}
-
+        <div className="mb-4">
+          <label className="block mb-2">Proje *</label>
+          <select
+            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Proje seçin</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>{project.name}</option>
+            ))}
+          </select>
+          {errors.projectId && (
+            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-2">Sevkiyat Tarihi</label>
@@ -72,7 +108,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               className="w-full p-2 border rounded"
             />
           </div>
-
           <div>
             <label className="block mb-2">Sevkiyat Türü</label>
             <select
@@ -84,7 +119,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               <option value="return">Malzeme İadesi</option>
             </select>
           </div>
-
           <div>
             <label className="block mb-2">Firma</label>
             <input
@@ -93,7 +127,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               placeholder="Firma adı giriniz"
             />
           </div>
-
           <div>
             <label className="block mb-2">İrsaliye No</label>
             <input
@@ -103,7 +136,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
-
         <div>
           <label className="block mb-2">Açıklama</label>
           <textarea
@@ -113,7 +145,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
             placeholder="Sevkiyat açıklaması"
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-2">
@@ -128,7 +159,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               className="w-full p-2 border rounded"
             />
           </div>
-
           <div>
             <label className="block mb-2">
               <Upload className="w-4 h-4 inline mr-2" />
@@ -143,7 +173,6 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
-
         <button
           type="submit"
           disabled={isLoading}

@@ -4,35 +4,46 @@ import { Spool } from '@/types'
 export const spoolService = {
   // Tüm spool'ları getir
   async getAllSpools() {
-    const { data, error } = await supabase
-      .from('spools')
-      .select(`
-        *,
-        projects!spools_project_id_fkey(name),
-        profiles!spools_assigned_to_fkey(name)
-      `)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('spools')
+        .select(`
+          *,
+          projects!spools_project_id_fkey(name),
+          profiles!spools_assigned_to_fkey(name)
+        `)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(`Spool'lar getirilemedi: ${error.message}`)
+      if (error) {
+        console.log('Spool\'lar getirilemedi:', error)
+        return []
+      }
+
+      // Veri yoksa boş array döndür
+      if (!data || data.length === 0) {
+        return []
+      }
+
+      return data.map(spool => ({
+        id: spool.id,
+        name: spool.name,
+        projectId: spool.project_id,
+        projectName: spool.projects?.name || 'Bilinmiyor',
+        status: spool.status,
+        assignedTo: spool.assigned_to,
+        assignedToName: spool.profiles?.name || 'Atanmamış',
+        quantity: spool.quantity,
+        completedQuantity: spool.completed_quantity,
+        startDate: spool.start_date,
+        endDate: spool.end_date,
+        description: spool.description,
+        createdAt: spool.created_at,
+        updatedAt: spool.updated_at
+      }))
+    } catch (error) {
+      console.log('Spool\'lar getirilemedi:', error)
+      return []
     }
-
-    return data.map(spool => ({
-      id: spool.id,
-      name: spool.name,
-      projectId: spool.project_id,
-      projectName: spool.projects?.name || 'Bilinmiyor',
-      status: spool.status,
-      assignedTo: spool.assigned_to,
-      assignedToName: spool.profiles?.name || 'Atanmamış',
-      quantity: spool.quantity,
-      completedQuantity: spool.completed_quantity,
-      startDate: spool.start_date,
-      endDate: spool.end_date,
-      description: spool.description,
-      createdAt: spool.created_at,
-      updatedAt: spool.updated_at
-    }))
   },
 
   // Spool oluştur
@@ -132,35 +143,45 @@ export const spoolService = {
 
   // Spool detayını getir
   async getSpoolById(id: string) {
-    const { data, error } = await supabase
-      .from('spools')
-      .select(`
-        *,
-        projects!spools_project_id_fkey(name),
-        profiles!spools_assigned_to_fkey(name)
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('spools')
+        .select(`
+          *,
+          projects!spools_project_id_fkey(name),
+          profiles!spools_assigned_to_fkey(name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      throw new Error(`Spool bulunamadı: ${error.message}`)
-    }
+      if (error) {
+        console.log('Spool bulunamadı:', error)
+        return null
+      }
 
-    return {
-      id: data.id,
-      name: data.name,
-      projectId: data.project_id,
-      projectName: data.projects?.name || 'Bilinmiyor',
-      status: data.status,
-      assignedTo: data.assigned_to,
-      assignedToName: data.profiles?.name || 'Atanmamış',
-      quantity: data.quantity,
-      completedQuantity: data.completed_quantity,
-      startDate: data.start_date,
-      endDate: data.end_date,
-      description: data.description,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (!data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        projectId: data.project_id,
+        projectName: data.projects?.name || 'Bilinmiyor',
+        status: data.status,
+        assignedTo: data.assigned_to,
+        assignedToName: data.profiles?.name || 'Atanmamış',
+        quantity: data.quantity,
+        completedQuantity: data.completed_quantity,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        description: data.description,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('Spool bulunamadı:', error)
+      return null
     }
   },
 
@@ -230,33 +251,43 @@ export const spoolService = {
 
   // İlerleme güncelle
   async updateProgress(id: string, completedQuantity: number) {
-    const { data, error } = await supabase
-      .from('spools')
-      .update({
-        completed_quantity: completedQuantity,
-        status: completedQuantity >= (await this.getSpoolById(id)).quantity ? 'completed' : 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      const spool = await this.getSpoolById(id)
+      if (!spool) {
+        throw new Error('Spool bulunamadı')
+      }
 
-    if (error) {
-      throw new Error(`İlerleme güncellenemedi: ${error.message}`)
-    }
+      const { data, error } = await supabase
+        .from('spools')
+        .update({
+          completed_quantity: completedQuantity,
+          status: completedQuantity >= spool.quantity ? 'completed' : 'active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
 
-    return {
-      id: data.id,
-      name: data.name,
-      projectId: data.project_id,
-      status: data.status,
-      assignedTo: data.assigned_to,
-      quantity: data.quantity,
-      completedQuantity: data.completed_quantity,
-      startDate: data.start_date,
-      endDate: data.end_date,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (error) {
+        throw new Error(`İlerleme güncellenemedi: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        projectId: data.project_id,
+        status: data.status,
+        assignedTo: data.assigned_to,
+        quantity: data.quantity,
+        completedQuantity: data.completed_quantity,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('İlerleme güncellenemedi:', error)
+      throw error
     }
   }
 } 

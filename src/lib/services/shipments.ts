@@ -4,66 +4,87 @@ import { Shipment } from '@/types'
 export const shipmentService = {
   // Tüm sevkiyatları getir
   async getAllShipments() {
-    const { data, error } = await supabase
-      .from('shipments')
-      .select(`
-        *,
-        projects!shipments_project_id_fkey(name)
-      `)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('shipments')
+        .select(`
+          *,
+          projects!shipments_project_id_fkey(name)
+        `)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(`Sevkiyatlar getirilemedi: ${error.message}`)
+      if (error) {
+        console.log('Sevkiyatlar getirilemedi:', error)
+        return []
+      }
+
+      // Veri yoksa boş array döndür
+      if (!data || data.length === 0) {
+        return []
+      }
+
+      return data.map(shipment => ({
+        id: shipment.id,
+        number: shipment.number,
+        projectId: shipment.project_id,
+        projectName: shipment.projects?.name || 'Bilinmiyor',
+        status: shipment.status,
+        priority: shipment.priority,
+        destination: shipment.destination,
+        scheduledDate: shipment.scheduled_date,
+        actualDate: shipment.actual_date,
+        carrier: shipment.carrier,
+        trackingNumber: shipment.tracking_number,
+        totalWeight: shipment.total_weight,
+        createdAt: shipment.created_at,
+        updatedAt: shipment.updated_at
+      }))
+    } catch (error) {
+      console.log('Sevkiyatlar getirilemedi:', error)
+      return []
     }
-
-    return data.map(shipment => ({
-      id: shipment.id,
-      number: shipment.number,
-      projectId: shipment.project_id,
-      projectName: shipment.projects?.name || 'Bilinmiyor',
-      status: shipment.status,
-      priority: shipment.priority,
-      destination: shipment.destination,
-      scheduledDate: shipment.scheduled_date,
-      actualDate: shipment.actual_date,
-      carrier: shipment.carrier,
-      trackingNumber: shipment.tracking_number,
-      totalWeight: shipment.total_weight,
-      createdAt: shipment.created_at,
-      updatedAt: shipment.updated_at
-    }))
   },
 
   // Sevkiyat detayını getir
   async getShipmentById(id: string) {
-    const { data, error } = await supabase
-      .from('shipments')
-      .select(`
-        *,
-        projects!shipments_project_id_fkey(name)
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('shipments')
+        .select(`
+          *,
+          projects!shipments_project_id_fkey(name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      throw new Error(`Sevkiyat bulunamadı: ${error.message}`)
-    }
+      if (error) {
+        console.log('Sevkiyat bulunamadı:', error)
+        return null
+      }
 
-    return {
-      id: data.id,
-      number: data.number,
-      projectId: data.project_id,
-      projectName: data.projects?.name || 'Bilinmiyor',
-      status: data.status,
-      priority: data.priority,
-      destination: data.destination,
-      scheduledDate: data.scheduled_date,
-      actualDate: data.actual_date,
-      carrier: data.carrier,
-      trackingNumber: data.tracking_number,
-      totalWeight: data.total_weight,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (!data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        number: data.number,
+        projectId: data.project_id,
+        projectName: data.projects?.name || 'Bilinmiyor',
+        status: data.status,
+        priority: data.priority,
+        destination: data.destination,
+        scheduledDate: data.scheduled_date,
+        actualDate: data.actual_date,
+        carrier: data.carrier,
+        trackingNumber: data.tracking_number,
+        totalWeight: data.total_weight,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('Sevkiyat bulunamadı:', error)
+      return null
     }
   },
 

@@ -23,8 +23,8 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
       const spoolData = await spoolService.getSpoolById(params.id)
       setSpool(spoolData)
     } catch (error) {
-      console.error('Spool yüklenirken hata:', error)
-      setError('Spool bulunamadı')
+      console.log('Spool yüklenirken hata:', error)
+      setError('Spool yüklenirken bir hata oluştu')
     } finally {
       setLoading(false)
     }
@@ -36,8 +36,8 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
         await spoolService.deleteSpool(params.id)
         router.push('/spools?deleted=true')
       } catch (error) {
-        console.error('Spool silme hatası:', error)
-        alert('Spool silinirken bir hata oluştu')
+        console.log('Spool silme hatası:', error)
+        setError('Spool silinirken bir hata oluştu')
       }
     }
   }

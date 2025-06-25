@@ -1,6 +1,6 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 export function useAuth() {
   const { data: session, status } = useSession()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,10 +17,10 @@ const projectSchema = z.object({
   startDate: z.string().min(1, 'Başlangıç tarihi gereklidir'),
   endDate: z.string().optional(),
   managerId: z.string().min(1, 'Proje yöneticisi seçilmelidir'),
-  status: z.enum(['active', 'pending', 'completed']).default('pending')
+  status: z.enum(['active', 'pending', 'completed']).optional().default('pending')
 })
 
-type ProjectFormData = z.infer<typeof projectSchema>
+type ProjectFormData = Omit<z.infer<typeof projectSchema>, 'status'> & { status?: 'active' | 'pending' | 'completed' }
 
 export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
@@ -40,18 +40,18 @@ export default function NewProjectPage() {
     }
   })
 
-  useState(() => {
-    loadPersonnel()
-  })
-
   const loadPersonnel = async () => {
     try {
       const personnelData = await personnelService.getAllPersonnel()
       setPersonnel(personnelData)
     } catch (error) {
-      console.error('Personel yüklenirken hata:', error)
+      console.log('Personel yüklenirken hata:', error)
     }
   }
+
+  useEffect(() => {
+    loadPersonnel()
+  }, [])
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
@@ -64,7 +64,7 @@ export default function NewProjectPage() {
         startDate: data.startDate,
         endDate: data.endDate || undefined,
         managerId: data.managerId,
-        status: data.status
+        status: data.status ?? 'pending'
       })
 
       router.push('/projects')

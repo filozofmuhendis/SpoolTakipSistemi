@@ -8,6 +8,10 @@ import { spoolService } from '@/lib/services/spools'
 import { personnelService } from '@/lib/services/personnel'
 import { workOrderService } from '@/lib/services/workOrders'
 import { shipmentService } from '@/lib/services/shipments'
+import Loading from '@/components/ui/Loading'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface ReportData {
   projects: any[]
@@ -38,6 +42,8 @@ export default function ReportsPage() {
   })
   const [projectFilter, setProjectFilter] = useState<string>('all')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
+  const { showToast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadReportData()
@@ -46,6 +52,7 @@ export default function ReportsPage() {
   const loadReportData = async () => {
     try {
       setLoading(true)
+      setError(null)
       
       const [projects, spools, personnel, workOrders, shipments] = await Promise.all([
         projectService.getAllProjects(),
@@ -63,7 +70,9 @@ export default function ReportsPage() {
         shipments
       })
     } catch (error) {
-      console.error('Rapor verisi yüklenirken hata:', error)
+      setError('Rapor verisi yüklenirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'Rapor verisi yüklenirken bir hata oluştu.' })
+      console.log('Rapor verisi yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -266,7 +275,7 @@ export default function ReportsPage() {
       
       alert(`${reportType} raporu başarıyla indirildi!`)
     } catch (error) {
-      console.error('Rapor export hatası:', error)
+      console.log('Rapor export hatası:', error)
       alert('Rapor indirilirken hata oluştu!')
     } finally {
       setLoading(false)
@@ -336,14 +345,15 @@ export default function ReportsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Raporlar yükleniyor...</p>
-        </div>
-      </div>
-    )
+    return <Loading text="Raporlar yükleniyor..." />
+  }
+
+  if (error) {
+    return <ErrorState title="Hata" description={error} />
+  }
+
+  if (!reportData) {
+    return <EmptyState title="Rapor verisi yok" description="Henüz rapor verisi bulunamadı." />
   }
 
   const stats = getOverviewStats()

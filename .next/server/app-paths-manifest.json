@@ -1,10 +1,3 @@
 {
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/projects/page": "app/projects/page.js",
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/projects/new/page": "app/projects/new/page.js",
-  "/personnel/new/page": "app/personnel/new/page.js"
+  "/login/page": "app/login/page.js"
 }

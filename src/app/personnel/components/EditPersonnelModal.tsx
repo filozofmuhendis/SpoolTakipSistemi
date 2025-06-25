@@ -34,7 +34,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
       onSave(updatedPersonnel)
       onClose()
     } catch (error: any) {
-      console.error('Personel güncelleme hatası:', error)
+      console.log('Personel güncelleme hatası:', error)
       setError(error.message || 'Personel güncellenirken bir hata oluştu')
     } finally {
       setIsLoading(false)

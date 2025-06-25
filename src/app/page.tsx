@@ -96,7 +96,7 @@ export default function Home() {
       setProjectStatuses(projectStatusList);
 
     } catch (error) {
-      console.error('Dashboard verisi yüklenirken hata:', error);
+      console.log('Dashboard verisi yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
@@ -353,7 +353,7 @@ export default function Home() {
               <QuickActionCard 
                 title="Sevkiyatlar"
                 icon="🚚"
-                href="/shipments"
+                href="/shipments/new"
               />
               <QuickActionCard 
                 title="Malzeme Girişi"

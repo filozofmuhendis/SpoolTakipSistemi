@@ -40,13 +40,13 @@ export const notificationService = {
         .single()
 
       if (error) {
-        console.error('Bildirim oluşturma hatası:', error)
+        console.log('Bildirim oluşturma hatası:', error)
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Bildirim oluşturma hatası:', error)
+      console.log('Bildirim oluşturma hatası:', error)
       return null
     }
   },
@@ -62,13 +62,13 @@ export const notificationService = {
         .limit(limit)
 
       if (error) {
-        console.error('Bildirim getirme hatası:', error)
+        console.log('Bildirim getirme hatası:', error)
         return []
       }
 
       return data || []
     } catch (error) {
-      console.error('Bildirim getirme hatası:', error)
+      console.log('Bildirim getirme hatası:', error)
       return []
     }
   },
@@ -84,13 +84,13 @@ export const notificationService = {
         .order('createdAt', { ascending: false })
 
       if (error) {
-        console.error('Okunmamış bildirim getirme hatası:', error)
+        console.log('Okunmamış bildirim getirme hatası:', error)
         return []
       }
 
       return data || []
     } catch (error) {
-      console.error('Okunmamış bildirim getirme hatası:', error)
+      console.log('Okunmamış bildirim getirme hatası:', error)
       return []
     }
   },
@@ -104,13 +104,13 @@ export const notificationService = {
         .eq('id', notificationId)
 
       if (error) {
-        console.error('Bildirim okundu işaretleme hatası:', error)
+        console.log('Bildirim okundu işaretleme hatası:', error)
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Bildirim okundu işaretleme hatası:', error)
+      console.log('Bildirim okundu işaretleme hatası:', error)
       return false
     }
   },
@@ -125,13 +125,13 @@ export const notificationService = {
         .eq('read', false)
 
       if (error) {
-        console.error('Tüm bildirimleri okundu işaretleme hatası:', error)
+        console.log('Tüm bildirimleri okundu işaretleme hatası:', error)
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Tüm bildirimleri okundu işaretleme hatası:', error)
+      console.log('Tüm bildirimleri okundu işaretleme hatası:', error)
       return false
     }
   },
@@ -145,13 +145,13 @@ export const notificationService = {
         .eq('id', notificationId)
 
       if (error) {
-        console.error('Bildirim silme hatası:', error)
+        console.log('Bildirim silme hatası:', error)
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Bildirim silme hatası:', error)
+      console.log('Bildirim silme hatası:', error)
       return false
     }
   },
@@ -166,13 +166,13 @@ export const notificationService = {
         .single()
 
       if (error) {
-        console.error('Bildirim tercihleri getirme hatası:', error)
+        console.log('Bildirim tercihleri getirme hatası:', error)
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Bildirim tercihleri getirme hatası:', error)
+      console.log('Bildirim tercihleri getirme hatası:', error)
       return null
     }
   },
@@ -185,13 +185,13 @@ export const notificationService = {
         .upsert(preferences, { onConflict: 'userId' })
 
       if (error) {
-        console.error('Bildirim tercihleri güncelleme hatası:', error)
+        console.log('Bildirim tercihleri güncelleme hatası:', error)
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Bildirim tercihleri güncelleme hatası:', error)
+      console.log('Bildirim tercihleri güncelleme hatası:', error)
       return false
     }
   },
@@ -248,13 +248,13 @@ export const notificationService = {
         .eq('read', false)
 
       if (error) {
-        console.error('Okunmamış bildirim sayısı getirme hatası:', error)
+        console.log('Okunmamış bildirim sayısı getirme hatası:', error)
         return 0
       }
 
       return count || 0
     } catch (error) {
-      console.error('Okunmamış bildirim sayısı getirme hatası:', error)
+      console.log('Okunmamış bildirim sayısı getirme hatası:', error)
       return 0
     }
   }

@@ -23,7 +23,7 @@ export default function Register() {
       )
       router.push('/login?registered=true')
     } catch (error: any) {
-      console.error('Registration error:', error)
+      console.log('Registration error:', error)
       setError('Kayıt işlemi başarısız oldu. Lütfen bilgilerinizi kontrol edin.')
     }
   }

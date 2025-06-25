@@ -93,7 +93,7 @@ export default function NewPersonnel() {
         }
       }
     } catch (error: any) {
-      console.error('Personel ekleme hatası:', error)
+      console.log('Personel ekleme hatası:', error)
       setError(error.message || 'Personel eklenirken bir hata oluştu')
     } finally {
       setIsLoading(false)

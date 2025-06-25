@@ -4,27 +4,38 @@ import { Personnel } from '@/types'
 export const personnelService = {
   // Tüm personeli getir
   async getAllPersonnel() {
-    const { data, error } = await supabase
-      .from('personnel')
-      .select('*')
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('personnel')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(`Personel listesi getirilemedi: ${error.message}`)
+      if (error) {
+        console.log('Personel listesi getirilemedi:', error)
+        return []
+      }
+
+      // Veri yoksa boş array döndür
+      if (!data || data.length === 0) {
+        return []
+      }
+
+      return data.map(person => ({
+        id: person.id,
+        name: person.name,
+        email: person.email,
+        phone: person.phone,
+        position: person.position,
+        department: person.department,
+        status: person.status,
+        hireDate: person.hire_date,
+        createdAt: person.created_at,
+        updatedAt: person.updated_at
+      }))
+    } catch (error) {
+      console.log('Personel listesi getirilemedi:', error)
+      return []
     }
-
-    return data.map(person => ({
-      id: person.id,
-      name: person.name,
-      email: person.email,
-      phone: person.phone,
-      position: person.position,
-      department: person.department,
-      status: person.status,
-      hireDate: person.hire_date,
-      createdAt: person.created_at,
-      updatedAt: person.updated_at
-    }))
   },
 
   // Personel oluştur
@@ -116,27 +127,37 @@ export const personnelService = {
 
   // Personel detayını getir
   async getPersonnelById(id: string) {
-    const { data, error } = await supabase
-      .from('personnel')
-      .select('*')
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('personnel')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      throw new Error(`Personel bulunamadı: ${error.message}`)
-    }
+      if (error) {
+        console.log('Personel bulunamadı:', error)
+        return null
+      }
 
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      position: data.position,
-      department: data.department,
-      status: data.status,
-      hireDate: data.hire_date,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (!data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        position: data.position,
+        department: data.department,
+        status: data.status,
+        hireDate: data.hire_date,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('Personel bulunamadı:', error)
+      return null
     }
   },
 
@@ -164,5 +185,23 @@ export const personnelService = {
       createdAt: person.created_at,
       updatedAt: person.updated_at
     }))
+  }
+}
+
+export async function getAllPersonnelBasic(): Promise<Pick<Personnel, 'id' | 'name'>[]> {
+  try {
+    const { data, error } = await supabase
+      .from('personnel')
+      .select('id, name')
+    
+    if (error) {
+      console.log('Personel listesi getirilemedi:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.log('Personel listesi getirilemedi:', error)
+    return []
   }
 } 

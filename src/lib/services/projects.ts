@@ -4,30 +4,41 @@ import { Project } from '@/types'
 export const projectService = {
   // Tüm projeleri getir
   async getAllProjects() {
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        profiles!projects_manager_id_fkey(name)
-      `)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          profiles!projects_manager_id_fkey(name)
+        `)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new Error(`Projeler getirilemedi: ${error.message}`)
+      if (error) {
+        console.log('Projeler getirilemedi:', error)
+        return []
+      }
+
+      // Veri yoksa boş array döndür
+      if (!data || data.length === 0) {
+        return []
+      }
+
+      return data.map(project => ({
+        id: project.id,
+        name: project.name,
+        status: project.status,
+        startDate: project.start_date,
+        endDate: project.end_date,
+        managerId: project.manager_id,
+        managerName: project.profiles?.name || 'Bilinmiyor',
+        description: project.description,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at
+      }))
+    } catch (error) {
+      console.log('Projeler getirilemedi:', error)
+      return []
     }
-
-    return data.map(project => ({
-      id: project.id,
-      name: project.name,
-      status: project.status,
-      startDate: project.start_date,
-      endDate: project.end_date,
-      managerId: project.manager_id,
-      managerName: project.profiles?.name || 'Bilinmiyor',
-      description: project.description,
-      createdAt: project.created_at,
-      updatedAt: project.updated_at
-    }))
   },
 
   // Proje oluştur
@@ -115,30 +126,40 @@ export const projectService = {
 
   // Proje detayını getir
   async getProjectById(id: string) {
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        profiles!projects_manager_id_fkey(name)
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          profiles!projects_manager_id_fkey(name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      throw new Error(`Proje bulunamadı: ${error.message}`)
-    }
+      if (error) {
+        console.log('Proje bulunamadı:', error)
+        return null
+      }
 
-    return {
-      id: data.id,
-      name: data.name,
-      status: data.status,
-      startDate: data.start_date,
-      endDate: data.end_date,
-      managerId: data.manager_id,
-      managerName: data.profiles?.name || 'Bilinmiyor',
-      description: data.description,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      if (!data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        managerId: data.manager_id,
+        managerName: data.profiles?.name || 'Bilinmiyor',
+        description: data.description,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.log('Proje bulunamadı:', error)
+      return null
     }
   }
 } 

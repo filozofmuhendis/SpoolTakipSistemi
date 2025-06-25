@@ -8,6 +8,10 @@ import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
 import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
 import Link from 'next/link'
+import Loading from '@/components/ui/Loading'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export default function SpoolsPage() {
   const { data: session, status } = useSession()
@@ -17,6 +21,8 @@ export default function SpoolsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [projectFilter, setProjectFilter] = useState<string>('all')
+  const { showToast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -31,6 +37,7 @@ export default function SpoolsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
+      setError(null)
       const [spoolsData, projectsData] = await Promise.all([
         spoolService.getAllSpools(),
         projectService.getAllProjects()
@@ -38,7 +45,9 @@ export default function SpoolsPage() {
       setSpools(spoolsData)
       setProjects(projectsData)
     } catch (error) {
-      console.error('Veri yüklenirken hata:', error)
+      setError('Veri yüklenirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'Veri yüklenirken bir hata oluştu.' })
+      console.log('Veri yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -80,21 +89,26 @@ export default function SpoolsPage() {
     if (confirm('Bu spool\'u silmek istediğinizden emin misiniz?')) {
       try {
         await spoolService.deleteSpool(spoolId)
-        // Listeyi yenile
         loadData()
+        showToast({ type: 'success', message: 'Spool başarıyla silindi.' })
       } catch (error) {
-        console.error('Spool silme hatası:', error)
-        alert('Spool silinirken bir hata oluştu')
+        setError('Spool silinirken bir hata oluştu.')
+        showToast({ type: 'error', message: 'Spool silinirken bir hata oluştu.' })
+        console.log('Spool silme hatası:', error)
       }
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <Loading text="Spool'lar yükleniyor..." />
+  }
+
+  if (error) {
+    return <ErrorState title="Hata" description={error} />
+  }
+
+  if (filteredSpools.length === 0) {
+    return <EmptyState title="Spool bulunamadı" description="Kriterlere uygun spool kaydı yok." />
   }
 
   return (

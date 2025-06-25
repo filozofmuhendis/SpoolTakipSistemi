@@ -10,6 +10,10 @@ import { WorkOrder } from '@/types'
 import Link from 'next/link'
 import EditPersonnelModal from './components/EditPersonnelModal'
 import DeletePersonnelModal from './components/DeletePersonnelModal'
+import Loading from '@/components/ui/Loading'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface PersonnelWithStats extends Personnel {
   projects: number;
@@ -24,6 +28,8 @@ export default function PersonnelPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null)
   const [deletingPersonnel, setDeletingPersonnel] = useState<Personnel | null>(null)
+  const { showToast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadPersonnel()
@@ -32,6 +38,7 @@ export default function PersonnelPage() {
   const loadPersonnel = async () => {
     try {
       setLoading(true)
+      setError(null)
       
       // Paralel olarak tüm verileri çek
       const [personnelData, projects, workOrders] = await Promise.all([
@@ -58,7 +65,9 @@ export default function PersonnelPage() {
 
       setPersonnel(personnelWithStats)
     } catch (error) {
-      console.error('Personel yüklenirken hata:', error)
+      setError('Personel yüklenirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'Personel yüklenirken bir hata oluştu.' })
+      console.log('Personel yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -106,20 +115,24 @@ export default function PersonnelPage() {
       await personnelService.deletePersonnel(personnelId)
       setPersonnel(prev => prev.filter(p => p.id !== personnelId))
       setDeletingPersonnel(null)
+      showToast({ type: 'success', message: 'Personel başarıyla silindi.' })
     } catch (error) {
-      console.error('Personel silme hatası:', error)
+      setError('Personel silinirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'Personel silinirken bir hata oluştu.' })
+      console.log('Personel silme hatası:', error)
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Personel yükleniyor...</p>
-        </div>
-      </div>
-    )
+    return <Loading text="Personel yükleniyor..." />
+  }
+
+  if (error) {
+    return <ErrorState title="Hata" description={error} />
+  }
+
+  if (filteredPersonnel.length === 0) {
+    return <EmptyState title="Personel bulunamadı" description="Kriterlere uygun personel kaydı yok." />
   }
 
   return (
@@ -240,19 +253,6 @@ export default function PersonnelPage() {
           </div>
         ))}
       </div>
-
-      {filteredPersonnel.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <User className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Personel bulunamadı</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchTerm || departmentFilter !== 'all' || statusFilter !== 'all'
-              ? 'Arama kriterlerinize uygun personel bulunamadı.'
-              : 'Henüz personel kaydı oluşturulmamış.'
-            }
-          </p>
-        </div>
-      )}
 
       {/* Modals */}
       {editingPersonnel && (

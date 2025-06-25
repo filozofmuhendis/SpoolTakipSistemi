@@ -15,7 +15,7 @@ import Link from 'next/link'
 const spoolSchema = z.object({
   name: z.string().min(1, 'Spool adı gereklidir'),
   projectId: z.string().min(1, 'Proje seçilmelidir'),
-  status: z.enum(['pending', 'active', 'completed']).default('pending'),
+  status: z.enum(['pending', 'active', 'completed']).optional().default('pending'),
   assignedTo: z.string().optional(),
   quantity: z.number().min(1, 'Miktar en az 1 olmalıdır'),
   completedQuantity: z.number().min(0, 'Tamamlanan miktar 0 veya daha fazla olmalıdır').default(0),
@@ -24,7 +24,7 @@ const spoolSchema = z.object({
   description: z.string().optional()
 })
 
-type SpoolFormData = z.infer<typeof spoolSchema>
+type SpoolFormData = Omit<z.infer<typeof spoolSchema>, 'status' | 'completedQuantity'> & { status?: 'pending' | 'active' | 'completed', completedQuantity?: number }
 
 export default function EditSpoolPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(false)
@@ -67,19 +67,21 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
       setPersonnel(personnelData)
 
       // Form verilerini doldur
-      reset({
-        name: spoolData.name,
-        projectId: spoolData.projectId,
-        status: spoolData.status,
-        assignedTo: spoolData.assignedTo || '',
-        quantity: spoolData.quantity,
-        completedQuantity: spoolData.completedQuantity,
-        startDate: spoolData.startDate,
-        endDate: spoolData.endDate || '',
-        description: spoolData.description || ''
-      })
+      if (spoolData) {
+        reset({
+          name: spoolData.name,
+          projectId: spoolData.projectId,
+          status: spoolData.status,
+          assignedTo: spoolData.assignedTo || '',
+          quantity: spoolData.quantity,
+          completedQuantity: spoolData.completedQuantity ?? 0,
+          startDate: spoolData.startDate,
+          endDate: spoolData.endDate || '',
+          description: spoolData.description || ''
+        })
+      }
     } catch (error) {
-      console.error('Veri yüklenirken hata:', error)
+      console.log('Veri yüklenirken hata:', error)
       setError('Spool bulunamadı veya veriler yüklenirken bir hata oluştu')
     } finally {
       setInitialLoading(false)
@@ -94,7 +96,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
       await spoolService.updateSpool(params.id, {
         name: data.name,
         projectId: data.projectId,
-        status: data.status,
+        status: data.status ?? 'pending',
         assignedTo: data.assignedTo,
         quantity: data.quantity,
         completedQuantity: data.completedQuantity,

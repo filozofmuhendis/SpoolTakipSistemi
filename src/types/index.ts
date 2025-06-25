@@ -129,3 +129,26 @@ export type MaterialEntry = {
   supplier: string
   created_at: string
 }
+
+export interface Inventory {
+  id: string
+  name: string
+  code: string
+  category: string
+  type: 'raw_material' | 'finished_product' | 'semi_finished' | 'consumable'
+  quantity: number
+  unit: string
+  minStock: number
+  maxStock: number
+  location: string
+  supplier: string
+  projectId?: string
+  projectName?: string
+  description?: string
+  specifications?: string
+  cost: number
+  status: 'active' | 'inactive' | 'discontinued'
+  lastUpdated: string
+  createdAt: string
+  updatedAt: string
+}

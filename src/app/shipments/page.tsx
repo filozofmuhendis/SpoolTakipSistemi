@@ -6,6 +6,10 @@ import { shipmentService } from '@/lib/services/shipments'
 import { spoolService } from '@/lib/services/spools'
 import { Shipment } from '@/types'
 import Link from 'next/link'
+import Loading from '@/components/ui/Loading'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface ShipmentWithStats extends Shipment {
   spoolCount: number;
@@ -17,6 +21,8 @@ export default function ShipmentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const { showToast } = useToast()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadShipments()
@@ -25,6 +31,7 @@ export default function ShipmentsPage() {
   const loadShipments = async () => {
     try {
       setLoading(true)
+      setError(null)
       
       // Sevkiyatları ve spool'ları paralel olarak çek
       const [shipmentsData, spoolsData] = await Promise.all([
@@ -44,7 +51,9 @@ export default function ShipmentsPage() {
 
       setShipments(shipmentsWithStats)
     } catch (error) {
-      console.error('Sevkiyatlar yüklenirken hata:', error)
+      setError('Sevkiyatlar yüklenirken bir hata oluştu.')
+      showToast({ type: 'error', message: 'Sevkiyatlar yüklenirken bir hata oluştu.' })
+      console.log('Sevkiyatlar yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -101,14 +110,15 @@ export default function ShipmentsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Sevkiyatlar yükleniyor...</p>
-        </div>
-      </div>
-    )
+    return <Loading text="Sevkiyatlar yükleniyor..." />
+  }
+
+  if (error) {
+    return <ErrorState title="Hata" description={error} />
+  }
+
+  if (filteredShipments.length === 0) {
+    return <EmptyState title="Sevkiyat bulunamadı" description="Kriterlere uygun sevkiyat kaydı yok." />
   }
 
   return (
@@ -228,19 +238,6 @@ export default function ShipmentsPage() {
           </div>
         ))}
       </div>
-
-      {filteredShipments.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <Truck className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Sevkiyat bulunamadı</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-              ? 'Arama kriterlerinize uygun sevkiyat bulunamadı.'
-              : 'Henüz sevkiyat oluşturulmamış.'
-            }
-          </p>
-        </div>
-      )}
     </div>
   )
 }

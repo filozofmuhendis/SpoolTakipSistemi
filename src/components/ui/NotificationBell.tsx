@@ -27,7 +27,7 @@ export default function NotificationBell() {
       const data = await notificationService.getUserNotifications(user.id, 20)
       setNotifications(data)
     } catch (error) {
-      console.error('Bildirimler yüklenirken hata:', error)
+      console.log('Bildirimler yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
@@ -40,7 +40,7 @@ export default function NotificationBell() {
       const count = await notificationService.getUnreadCount(user.id)
       setUnreadCount(count)
     } catch (error) {
-      console.error('Okunmamış bildirim sayısı yüklenirken hata:', error)
+      console.log('Okunmamış bildirim sayısı yüklenirken hata:', error)
     }
   }
 
@@ -52,7 +52,7 @@ export default function NotificationBell() {
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
     } catch (error) {
-      console.error('Bildirim okundu işaretlenirken hata:', error)
+      console.log('Bildirim okundu işaretlenirken hata:', error)
     }
   }
 
@@ -64,7 +64,7 @@ export default function NotificationBell() {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setUnreadCount(0)
     } catch (error) {
-      console.error('Tüm bildirimler okundu işaretlenirken hata:', error)
+      console.log('Tüm bildirimler okundu işaretlenirken hata:', error)
     }
   }
 
@@ -76,7 +76,7 @@ export default function NotificationBell() {
         setUnreadCount(prev => Math.max(0, prev - 1))
       }
     } catch (error) {
-      console.error('Bildirim silinirken hata:', error)
+      console.log('Bildirim silinirken hata:', error)
     }
   }
 

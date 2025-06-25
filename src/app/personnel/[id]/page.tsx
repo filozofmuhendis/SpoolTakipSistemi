@@ -1,13 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, UserCircle, Building, Mail, Phone, Calendar, Briefcase, Edit, Trash, Activity } from 'lucide-react'
 import Link from 'next/link'
+import Loading from '@/components/ui/Loading'
+import ErrorState from '@/components/ui/ErrorState'
+import EmptyState from '@/components/ui/EmptyState'
+import { personnelService } from '@/lib/services/personnel'
+import { useToast } from '@/components/ui/ToastProvider'
+import EditPersonnelModal from '../components/EditPersonnelModal'
+import DeletePersonnelModal from '../components/DeletePersonnelModal'
+import { Personnel } from '@/types'
 
 export default function PersonnelDetail({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'history'>('overview')
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [personnel, setPersonnel] = useState<Personnel | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    const fetchPersonnel = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await personnelService.getPersonnelById(params.id)
+        setPersonnel(data)
+      } catch (err: any) {
+        setError('Personel bulunamadı veya yüklenirken hata oluştu')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPersonnel()
+  }, [params.id])
+
+  if (loading) {
+    return <Loading text="Personel yükleniyor..." />
+  }
+  if (error) {
+    return <ErrorState title="Bir hata oluştu" description={error} />
+  }
+  if (!personnel) {
+    return <EmptyState title="Personel bulunamadı." />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
@@ -131,8 +169,33 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
         </div>
       </div>
 
-      {/* Edit Modal will be added here */}
-      {/* Delete Confirmation Modal will be added here */}
+      {showEditModal && (
+        <EditPersonnelModal
+          personnel={personnel}
+          onClose={() => setShowEditModal(false)}
+          onSave={(updated) => {
+            setPersonnel(updated)
+            setShowEditModal(false)
+            showToast({ type: 'success', title: 'Başarılı', message: 'Personel güncellendi.' })
+          }}
+        />
+      )}
+      {showDeleteModal && (
+        <DeletePersonnelModal
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={async () => {
+            try {
+              await personnelService.deletePersonnel(personnel.id)
+              showToast({ type: 'success', title: 'Başarılı', message: 'Personel pasife alındı.' })
+              setShowDeleteModal(false)
+              // Yönlendirme veya sayfa güncelleme
+            } catch (err: any) {
+              showToast({ type: 'error', title: 'Hata', message: err.message || 'Personel pasife alınamadı.' })
+            }
+          }}
+          mode="deactivate"
+        />
+      )}
     </div>
   )
 }

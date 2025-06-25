@@ -38,7 +38,7 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
       setPersonnel(personnelData)
       setProjects(projectsData)
     } catch (error) {
-      console.error('Veri yüklenirken hata:', error)
+      console.log('Veri yüklenirken hata:', error)
     }
   }
 
@@ -60,7 +60,7 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
       
       onClose()
     } catch (error: any) {
-      console.error('İş emri oluşturma hatası:', error)
+      console.log('İş emri oluşturma hatası:', error)
       setError(error.message || 'İş emri oluşturulurken bir hata oluştu')
     } finally {
       setIsLoading(false)

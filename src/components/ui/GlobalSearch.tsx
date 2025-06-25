@@ -154,7 +154,7 @@ export default function GlobalSearch() {
       setResults(searchResults)
       setSelectedIndex(-1)
     } catch (error) {
-      console.error('Arama hatası:', error)
+      console.log('Arama hatası:', error)
       setResults([])
     } finally {
       setLoading(false)

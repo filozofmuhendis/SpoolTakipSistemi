@@ -60,7 +60,7 @@ export default function NewSpoolPage() {
       setProjects(projectsData)
       setPersonnel(personnelData)
     } catch (error) {
-      console.error('Veri yüklenirken hata:', error)
+      console.log('Veri yüklenirken hata:', error)
       setError('Veriler yüklenirken bir hata oluştu')
     }
   }

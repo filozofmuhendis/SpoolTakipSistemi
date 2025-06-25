@@ -58,7 +58,7 @@ export default function ProfilePage() {
         .single()
 
       if (error) {
-        console.error('Profil yükleme hatası:', error)
+        console.log('Profil yükleme hatası:', error)
         return
       }
 
@@ -70,7 +70,7 @@ export default function ProfilePage() {
         position: data.position || ''
       })
     } catch (error) {
-      console.error('Profil yükleme hatası:', error)
+      console.log('Profil yükleme hatası:', error)
     } finally {
       setLoading(false)
     }
@@ -83,7 +83,7 @@ export default function ProfilePage() {
       const prefs = await notificationService.getNotificationPreferences(user.id)
       setNotificationPrefs(prefs)
     } catch (error) {
-      console.error('Bildirim tercihleri yükleme hatası:', error)
+      console.log('Bildirim tercihleri yükleme hatası:', error)
     }
   }
 
@@ -108,7 +108,7 @@ export default function ProfilePage() {
       setMessage({ type: 'success', text: 'Profil başarıyla güncellendi!' })
       await loadProfile()
     } catch (error) {
-      console.error('Profil güncelleme hatası:', error)
+      console.log('Profil güncelleme hatası:', error)
       setMessage({ type: 'error', text: 'Profil güncellenirken hata oluştu.' })
     } finally {
       setSaving(false)
@@ -146,7 +146,7 @@ export default function ProfilePage() {
         confirm_password: ''
       })
     } catch (error) {
-      console.error('Şifre değiştirme hatası:', error)
+      console.log('Şifre değiştirme hatası:', error)
       setMessage({ type: 'error', text: 'Şifre değiştirilirken hata oluştu.' })
     } finally {
       setSaving(false)
@@ -165,7 +165,7 @@ export default function ProfilePage() {
         setMessage({ type: 'success', text: 'Bildirim tercihleri güncellendi!' })
       }
     } catch (error) {
-      console.error('Bildirim tercihleri güncelleme hatası:', error)
+      console.log('Bildirim tercihleri güncelleme hatası:', error)
       setMessage({ type: 'error', text: 'Bildirim tercihleri güncellenirken hata oluştu.' })
     }
   }

@@ -8,7 +8,7 @@ export interface FileUpload {
   type: string
   uploadedAt: string
   uploadedBy: string
-  entityType: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment'
+  entityType: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment' | 'inventory'
   entityId: string
   description?: string
 }
@@ -30,7 +30,7 @@ export const storageService = {
         .upload(fileName, file)
 
       if (error) {
-        console.error('Dosya yükleme hatası:', error)
+        console.log('Dosya yükleme hatası:', error)
         return null
       }
 
@@ -59,13 +59,13 @@ export const storageService = {
         .single()
 
       if (dbError) {
-        console.error('Veritabanı kayıt hatası:', dbError)
+        console.log('Veritabanı kayıt hatası:', dbError)
         return null
       }
 
       return dbData
     } catch (error) {
-      console.error('Dosya yükleme hatası:', error)
+      console.log('Dosya yükleme hatası:', error)
       return null
     }
   },
@@ -81,7 +81,7 @@ export const storageService = {
         .single()
 
       if (fetchError || !fileData) {
-        console.error('Dosya bulunamadı:', fetchError)
+        console.log('Dosya bulunamadı:', fetchError)
         return false
       }
 
@@ -93,7 +93,7 @@ export const storageService = {
           .remove([fileName])
 
         if (storageError) {
-          console.error('Storage silme hatası:', storageError)
+          console.log('Storage silme hatası:', storageError)
         }
       }
 
@@ -104,13 +104,13 @@ export const storageService = {
         .eq('id', fileId)
 
       if (dbError) {
-        console.error('Veritabanı silme hatası:', dbError)
+        console.log('Veritabanı silme hatası:', dbError)
         return false
       }
 
       return true
     } catch (error) {
-      console.error('Dosya silme hatası:', error)
+      console.log('Dosya silme hatası:', error)
       return false
     }
   },
@@ -129,13 +129,13 @@ export const storageService = {
         .order('uploadedAt', { ascending: false })
 
       if (error) {
-        console.error('Dosya listesi alma hatası:', error)
+        console.log('Dosya listesi alma hatası:', error)
         return []
       }
 
       return data || []
     } catch (error) {
-      console.error('Dosya listesi alma hatası:', error)
+      console.log('Dosya listesi alma hatası:', error)
       return []
     }
   },
@@ -149,13 +149,13 @@ export const storageService = {
         .order('uploadedAt', { ascending: false })
 
       if (error) {
-        console.error('Dosya listesi alma hatası:', error)
+        console.log('Dosya listesi alma hatası:', error)
         return []
       }
 
       return data || []
     } catch (error) {
-      console.error('Dosya listesi alma hatası:', error)
+      console.log('Dosya listesi alma hatası:', error)
       return []
     }
   },

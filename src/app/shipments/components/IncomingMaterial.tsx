@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { ArrowLeft, Camera, Upload } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
+import { projectService } from '@/lib/services/projects'
+import { useToast } from '@/components/ui/ToastProvider'
+import { storageService } from '@/lib/services/storage'
 
 interface IncomingMaterialForm {
+  projectId: string
   date: string
   company: string
   waybillNo: string
@@ -18,28 +22,48 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm<IncomingMaterialForm>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [projects, setProjects] = useState<any[]>([])
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    projectService.getAllProjects().then(setProjects)
+  }, [])
 
   const onSubmit = async (data: IncomingMaterialForm) => {
     setIsLoading(true)
     setError(null)
     
     try {
-      await shipmentService.createShipment({
-        number: `IN-${Date.now()}`, // Otomatik numara oluştur
-        projectId: '', // Gelen malzeme için proje ID'si boş olabilir
+      const shipment = await shipmentService.createShipment({
+        number: `IN-${Date.now()}`,
+        projectId: data.projectId,
         status: 'pending',
         priority: 'medium',
         destination: data.company,
         scheduledDate: data.date,
         carrier: data.company,
         trackingNumber: data.waybillNo,
-        totalWeight: 0 // Gelen malzeme için ağırlık bilgisi yok
+        totalWeight: 0
       })
-      
+      // Fotoğraf ve belgeleri yükle
+      const filesToUpload: File[] = [
+        ...(data.photos ? Array.from(data.photos) : []),
+        ...(data.documents ? Array.from(data.documents) : [])
+      ]
+      for (const file of filesToUpload) {
+        const uploaded = await storageService.uploadFile(file, 'shipment', shipment.id)
+        if (uploaded) {
+          showToast({ type: 'success', message: `${file.name} yüklendi!` })
+        } else {
+          showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
+        }
+      }
+      showToast({ type: 'success', message: 'Gelen malzeme kaydedildi!' })
       onBack()
     } catch (error: any) {
-      console.error('Gelen malzeme kaydetme hatası:', error)
+      console.log('Gelen malzeme kaydetme hatası:', error)
       setError(error.message || 'Malzeme kaydedilirken bir hata oluştu')
+      showToast({ type: 'error', message: 'Malzeme kaydedilirken bir hata oluştu' })
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +84,21 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
             {error}
           </div>
         )}
-        
+        <div className="mb-4">
+          <label className="block mb-2">Proje *</label>
+          <select
+            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Proje seçin</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>{project.name}</option>
+            ))}
+          </select>
+          {errors.projectId && (
+            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-2">Tarih</label>

@@ -90,6 +90,29 @@ CREATE TABLE IF NOT EXISTS shipments (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create inventory table
+CREATE TABLE IF NOT EXISTS inventory (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  category TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('raw_material', 'finished_product', 'semi_finished', 'consumable')),
+  quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
+  unit TEXT NOT NULL,
+  min_stock DECIMAL(10,2) NOT NULL DEFAULT 0,
+  max_stock DECIMAL(10,2) NOT NULL DEFAULT 100,
+  location TEXT NOT NULL,
+  supplier TEXT NOT NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  description TEXT,
+  specifications TEXT,
+  cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'discontinued')),
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create file_uploads table
 CREATE TABLE IF NOT EXISTS file_uploads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -99,7 +122,7 @@ CREATE TABLE IF NOT EXISTS file_uploads (
   type TEXT NOT NULL,
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   uploaded_by UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment')),
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment', 'inventory')),
   entity_id UUID NOT NULL,
   description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -143,6 +166,11 @@ CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_to ON work_orders(assigned_t
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
 CREATE INDEX IF NOT EXISTS idx_shipments_project_id ON shipments(project_id);
 CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
+CREATE INDEX IF NOT EXISTS idx_inventory_project_id ON inventory(project_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_category ON inventory(category);
+CREATE INDEX IF NOT EXISTS idx_inventory_type ON inventory(type);
+CREATE INDEX IF NOT EXISTS idx_inventory_status ON inventory(status);
+CREATE INDEX IF NOT EXISTS idx_inventory_code ON inventory(code);
 CREATE INDEX IF NOT EXISTS idx_file_uploads_entity ON file_uploads(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
@@ -155,6 +183,7 @@ ALTER TABLE personnel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE spools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shipments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE file_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
@@ -212,6 +241,13 @@ CREATE POLICY "Users can view shipments" ON shipments
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage shipments" ON shipments
+  FOR ALL USING (true);
+
+-- Inventory policies
+CREATE POLICY "Users can view inventory" ON inventory
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can manage inventory" ON inventory
   FOR ALL USING (true);
 
 -- File uploads policies
@@ -272,6 +308,9 @@ CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON work_orders
 CREATE TRIGGER update_shipments_updated_at BEFORE UPDATE ON shipments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_inventory_updated_at BEFORE UPDATE ON inventory
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_notification_preferences_updated_at BEFORE UPDATE ON notification_preferences
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -313,4 +352,77 @@ CREATE POLICY "Users can delete own files" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'uploads' AND 
     auth.uid()::text = (storage.foldername(name))[1]
-  ); 
+  );
+
+-- AUDIT LOGS TABLOSU
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    table_name text NOT NULL,
+    record_id text,
+    action text NOT NULL, -- 'INSERT', 'UPDATE', 'DELETE'
+    user_id uuid,
+    old_data jsonb,
+    new_data jsonb,
+    created_at timestamp with time zone DEFAULT timezone('utc', now())
+);
+
+-- AUDIT LOG FONKSİYONU
+CREATE OR REPLACE FUNCTION log_audit_event() RETURNS trigger AS $$
+DECLARE
+    v_user_id uuid := null;
+BEGIN
+    -- Supabase Auth ile user_id almak için
+    IF current_setting('request.jwt.claim.sub', true) IS NOT NULL THEN
+        v_user_id := current_setting('request.jwt.claim.sub', true)::uuid;
+    END IF;
+
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
+        VALUES (TG_TABLE_NAME, NEW.id::text, 'INSERT', v_user_id, NULL, row_to_json(NEW));
+        RETURN NEW;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
+        VALUES (TG_TABLE_NAME, NEW.id::text, 'UPDATE', v_user_id, row_to_json(OLD), row_to_json(NEW));
+        RETURN NEW;
+    ELSIF (TG_OP = 'DELETE') THEN
+        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
+        VALUES (TG_TABLE_NAME, OLD.id::text, 'DELETE', v_user_id, row_to_json(OLD), NULL);
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- PERSONNEL TABLOSU İÇİN TRIGGER
+DROP TRIGGER IF EXISTS trg_audit_personnel ON personnel;
+CREATE TRIGGER trg_audit_personnel
+AFTER INSERT OR UPDATE OR DELETE ON personnel
+FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+-- PROJECTS TABLOSU İÇİN TRIGGER
+DROP TRIGGER IF EXISTS trg_audit_projects ON projects;
+CREATE TRIGGER trg_audit_projects
+AFTER INSERT OR UPDATE OR DELETE ON projects
+FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+-- SPOOLS TABLOSU İÇİN TRIGGER
+DROP TRIGGER IF EXISTS trg_audit_spools ON spools;
+CREATE TRIGGER trg_audit_spools
+AFTER INSERT OR UPDATE OR DELETE ON spools
+FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+-- WORK_ORDERS TABLOSU İÇİN TRIGGER
+DROP TRIGGER IF EXISTS trg_audit_work_orders ON work_orders;
+CREATE TRIGGER trg_audit_work_orders
+AFTER INSERT OR UPDATE OR DELETE ON work_orders
+FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+-- SHIPMENTS TABLOSU İÇİN TRIGGER
+DROP TRIGGER IF EXISTS trg_audit_shipments ON shipments;
+CREATE TRIGGER trg_audit_shipments
+AFTER INSERT OR UPDATE OR DELETE ON shipments
+FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+CREATE TRIGGER trg_audit_inventory
+AFTER INSERT OR UPDATE OR DELETE ON inventory
+FOR EACH ROW EXECUTE FUNCTION log_audit_event(); 

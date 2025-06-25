@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { ArrowLeft, Camera, Upload, Scan } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
+import { projectService } from '@/lib/services/projects'
+import { useToast } from '@/components/ui/ToastProvider'
+import { storageService } from '@/lib/services/storage'
 
 interface OutgoingProductForm {
+  projectId: string
   date: string
   spoolNumber: string
   transportCompany: string
@@ -19,28 +23,47 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showScanner, setShowScanner] = useState(false)
+  const [projects, setProjects] = useState<any[]>([])
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    projectService.getAllProjects().then(setProjects)
+  }, [])
 
   const onSubmit = async (data: OutgoingProductForm) => {
     setIsLoading(true)
     setError(null)
-    
     try {
-      await shipmentService.createShipment({
-        number: `PROD-${Date.now()}`, // Otomatik numara oluştur
-        projectId: '', // Giden ürün için proje ID'si boş olabilir
+      const shipment = await shipmentService.createShipment({
+        number: `PROD-${Date.now()}`,
+        projectId: data.projectId,
         status: 'pending',
         priority: 'medium',
         destination: data.transportCompany || 'Müşteri',
         scheduledDate: data.date,
         carrier: data.transportCompany || 'Kendi Araç',
-        trackingNumber: data.spoolNumber, // Spool numarasını tracking number olarak kullan
-        totalWeight: 0 // Giden ürün için ağırlık bilgisi yok
+        trackingNumber: data.spoolNumber,
+        totalWeight: 0
       })
-      
+      // Fotoğraf ve belgeleri yükle
+      const filesToUpload: File[] = [
+        ...(data.photos ? Array.from(data.photos) : []),
+        ...(data.documents ? Array.from(data.documents) : [])
+      ]
+      for (const file of filesToUpload) {
+        const uploaded = await storageService.uploadFile(file, 'shipment', shipment.id)
+        if (uploaded) {
+          showToast({ type: 'success', message: `${file.name} yüklendi!` })
+        } else {
+          showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
+        }
+      }
+      showToast({ type: 'success', message: 'Giden ürün kaydedildi!' })
       onBack()
     } catch (error: any) {
-      console.error('Giden ürün kaydetme hatası:', error)
+      console.log('Giden ürün kaydetme hatası:', error)
       setError(error.message || 'Ürün kaydedilirken bir hata oluştu')
+      showToast({ type: 'error', message: 'Ürün kaydedilirken bir hata oluştu' })
     } finally {
       setIsLoading(false)
     }
@@ -59,14 +82,27 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
         </button>
         <h2 className="text-2xl font-semibold">Giden Ürün Sevkiyatı</h2>
       </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             {error}
           </div>
         )}
-
+        <div className="mb-4">
+          <label className="block mb-2">Proje *</label>
+          <select
+            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Proje seçin</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>{project.name}</option>
+            ))}
+          </select>
+          {errors.projectId && (
+            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          )}
+        </div>
         <div className="space-y-4">
           <div>
             <label className="block mb-2">Sevkiyat Tarihi</label>
@@ -77,7 +113,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               className="w-full p-2 border rounded"
             />
           </div>
-
           <div>
             <label className="block mb-2">Spool Numarası</label>
             <div className="flex gap-2">
@@ -95,7 +130,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               </button>
             </div>
           </div>
-
           <div>
             <label className="block mb-2">Taşıyan Firma</label>
             <input
@@ -104,7 +138,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               placeholder="Taşıyan firma adı"
             />
           </div>
-
           <div>
             <label className="block mb-2">Açıklama</label>
             <textarea
@@ -115,7 +148,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-2">
@@ -130,7 +162,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               className="w-full p-2 border rounded"
             />
           </div>
-
           <div>
             <label className="block mb-2">
               <Upload className="w-4 h-4 inline mr-2" />
@@ -145,7 +176,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
-
         <button
           type="submit"
           disabled={isLoading}
@@ -154,7 +184,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
           {isLoading ? 'Kaydediliyor...' : 'Sevkiyatı Kaydet'}
         </button>
       </form>
-
       {showScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg">

@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import NotificationBell from '@/components/ui/NotificationBell'
 import GlobalSearch from '@/components/ui/GlobalSearch'
+import { signOut } from 'next-auth/react'
 
 export default function Navbar() {
   const { user } = useAuth()
@@ -22,11 +23,12 @@ export default function Navbar() {
     { name: 'Personel', href: '/personnel', icon: '👥' },
     { name: 'İş Emirleri', href: '/work-orders', icon: '📋' },
     { name: 'Sevkiyat', href: '/shipments', icon: '🚚' },
+    { name: 'Envanter', href: '/inventory', icon: '📦' },
     { name: 'Raporlar', href: '/reports', icon: '📈' },
   ]
 
   const handleSignOut = async () => {
-    // Sign out logic will be implemented
+    await signOut({ callbackUrl: '/login' })
     setIsProfileOpen(false)
   }
 
