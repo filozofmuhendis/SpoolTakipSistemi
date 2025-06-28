@@ -45,7 +45,7 @@ export default function LoginPage() {
             <Package className="h-8 w-8 text-primary-600" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            AtölyeAkış'a Giriş Yap
+            AtölyeAkış&apos;a Giriş Yap
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Üretim takip sisteminize hoş geldiniz

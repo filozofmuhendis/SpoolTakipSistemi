@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
@@ -28,9 +28,10 @@ const inventorySchema = z.object({
   description: z.string().optional(),
   specifications: z.string().optional(),
   cost: z.number().min(0, 'Maliyet 0 veya daha fazla olmalıdır'),
-  status: z.enum(['active', 'inactive', 'discontinued']).optional().default('active'),
+  status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
   photos: z.any().optional(),
-  documents: z.any().optional()
+  documents: z.any().optional(),
+  hire_date: z.string().min(1, 'İşe giriş tarihi gereklidir')
 })
 
 type InventoryFormData = z.infer<typeof inventorySchema>
@@ -70,7 +71,7 @@ export default function NewInventoryPage() {
     loadProjects()
   }, [])
 
-  const onSubmit = async (data: InventoryFormData) => {
+  const onSubmit: SubmitHandler<InventoryFormData> = async (data) => {
     setLoading(true)
     try {
       const inventory = await inventoryService.createInventory({
@@ -88,7 +89,8 @@ export default function NewInventoryPage() {
         description: data.description || undefined,
         specifications: data.specifications || undefined,
         cost: data.cost,
-        status: data.status
+        status: data.status,
+        hire_date: data.hire_date
       })
 
       // Fotoğraf ve belgeleri yükle
@@ -426,6 +428,21 @@ export default function NewInventoryPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* İşe Giriş Tarihi */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              İşe Giriş Tarihi *
+            </label>
+            <input
+              type="date"
+              {...register('hire_date', { required: 'İşe giriş tarihi gereklidir' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            {errors.hire_date && (
+              <p className="mt-1 text-sm text-red-600">{errors.hire_date.message}</p>
+            )}
           </div>
 
           {/* Kaydet Butonu */}

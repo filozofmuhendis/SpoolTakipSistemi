@@ -12,6 +12,7 @@ interface PersonnelForm {
   isActive: boolean
   email: string
   password: string
+  hire_date?: string
   permissions: {
     projects: boolean
     manufacturing: boolean
@@ -39,6 +40,7 @@ export default function NewPersonnel() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<PersonnelForm>({
     defaultValues: {
       isActive: true,
+      hire_date: '',
       permissions: {
         projects: false,
         manufacturing: false,
@@ -80,7 +82,7 @@ export default function NewPersonnel() {
           position: data.role,
           department: 'Üretim', // Varsayılan departman
           status: (data.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'on_leave',
-          hireDate: new Date().toISOString().split('T')[0]
+          hireDate: data.hire_date && data.hire_date !== '' ? data.hire_date : new Date().toISOString().split('T')[0]
         }
 
         try {
@@ -153,6 +155,19 @@ export default function NewPersonnel() {
                 className="w-4 h-4"
               />
               <label>Aktif Personel</label>
+            </div>
+
+            {/* İşe Başlama Tarihi Alanı */}
+            <div>
+              <label className="block mb-2">İşe Başlama Tarihi</label>
+              <input
+                type="date"
+                {...register('hire_date')}
+                className="w-full p-2 border rounded"
+              />
+              {errors.hire_date && (
+                <span className="text-red-500 text-sm">{errors.hire_date.message}</span>
+              )}
             </div>
           </div>
 

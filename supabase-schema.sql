@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS personnel (
   phone TEXT,
   department TEXT NOT NULL,
   position TEXT NOT NULL,
-  hire_date DATE NOT NULL,
+  hire_date DATE NOT NULL DEFAULT CURRENT_DATE,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'terminated')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

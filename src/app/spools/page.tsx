@@ -116,7 +116,7 @@ export default function SpoolsPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Spool Takibi</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Üretim spool'larının durumunu ve ilerlemesini takip edin</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Üretim spool&apos;larının durumunu ve ilerlemesini takip edin</p>
         </div>
         <Link href="/spools/new" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <Plus size={20} />

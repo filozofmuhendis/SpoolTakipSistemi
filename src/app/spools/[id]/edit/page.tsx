@@ -155,7 +155,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
           <div>
             <h1 className="text-3xl font-bold">Spool Düzenle</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {spool?.name} spool'unu düzenleyin
+              {spool?.name} spool&apos;unu düzenleyin
             </p>
           </div>
         </div>
