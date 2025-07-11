@@ -10,12 +10,18 @@ import { projectService } from '@/lib/services/projects'
 import { personnelService } from '@/lib/services/personnel'
 import { Personnel } from '@/types'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 
 const projectSchema = z.object({
-  name: z.string().min(1, 'Proje adı gereklidir'),
-  description: z.string().optional(),
-  startDate: z.string().min(1, 'Başlangıç tarihi gereklidir'),
-  endDate: z.string().optional(),
+  name: z.string().min(3, 'Proje adı en az 3 karakter olmalıdır').max(100, 'Proje adı en fazla 100 karakter olabilir'),
+  description: z.string().max(500, 'Açıklama en fazla 500 karakter olabilir').optional(),
+  startDate: z.string().min(1, 'Başlangıç tarihi gereklidir')
+    .refine(date => !isNaN(Date.parse(date)), 'Geçerli bir tarih giriniz'),
+  endDate: z.string()
+    .refine(date => !date || !isNaN(Date.parse(date)), 'Geçerli bir tarih giriniz')
+    .refine(date => !date || new Date(date) > new Date(), 'Bitiş tarihi gelecekte olmalıdır')
+    .optional(),
   managerId: z.string().min(1, 'Proje yöneticisi seçilmelidir'),
   status: z.enum(['active', 'pending', 'completed']).optional().default('pending')
 })
@@ -24,9 +30,11 @@ type ProjectFormData = Omit<z.infer<typeof projectSchema>, 'status'> & { status?
 
 export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
-  const [personnel, setPersonnel] = useState<Personnel[]>([])
+  const [personnel, setPersonnel] = useState<any[]>([])
+  const [spoolFile, setSpoolFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { user } = useAuth();
 
   const {
     register,
@@ -50,23 +58,39 @@ export default function NewProjectPage() {
   }
 
   useEffect(() => {
-    loadPersonnel()
+    personnelService.getManagers().then(setPersonnel)
   }, [])
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
       setLoading(true)
       setError(null)
-
-      await projectService.createProject({
+      // 1. Proje kaydını oluştur
+      const project = await projectService.createProject({
         name: data.name,
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate || undefined,
         managerId: data.managerId,
-        status: data.status ?? 'pending'
+        status: data.status ?? 'pending',
+        priority: 'medium'
       })
-
+      // 2. Spool dosyası varsa storage'a yükle ve documents tablosuna kaydet
+      if (spoolFile && project.id && user?.id) {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('spool-lists')
+          .upload(`${project.id}/${spoolFile.name}`, spoolFile)
+        if (!uploadError && uploadData) {
+          await supabase
+            .from('documents')
+            .insert({
+              project_id: project.id,
+              name: spoolFile.name,
+              file_url: uploadData.path,
+              created_by: user.id
+            })
+        }
+      }
       router.push('/projects')
     } catch (error: any) {
       setError(error.message || 'Proje oluşturulurken bir hata oluştu')
@@ -129,13 +153,26 @@ export default function NewProjectPage() {
                 <option value="">Yönetici seçin</option>
                 {personnel.map((person) => (
                   <option key={person.id} value={person.id}>
-                    {person.name} - {person.position}
+                    {person.name}
                   </option>
                 ))}
               </select>
               {errors.managerId && (
                 <p className="mt-1 text-sm text-red-600">{errors.managerId.message}</p>
               )}
+            </div>
+
+            {/* Spool Listesi Excel Yükleme Alanı */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Spool Listesi (Excel)
+              </label>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={e => setSpoolFile(e.target.files?.[0] || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
             </div>
 
             {/* Başlangıç Tarihi */}

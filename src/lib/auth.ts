@@ -81,7 +81,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/error"
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key-for-development-only"
 }
 
 declare module "next-auth" {

@@ -5,7 +5,7 @@ import { Search, X, Package, Users, BarChart3, Truck, FileText } from 'lucide-re
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
 import { personnelService } from '@/lib/services/personnel'
-import { workOrderService } from '@/lib/services/workOrders'
+import { jobOrderService } from '@/lib/services/workOrders'
 import { shipmentService } from '@/lib/services/shipments'
 import { useRouter } from 'next/navigation'
 
@@ -110,7 +110,7 @@ export default function GlobalSearch() {
         }))
 
       // İş emirlerinde arama
-      const workOrders = await workOrderService.getAllWorkOrders()
+      const workOrders = await jobOrderService.getAllJobOrders()
       const workOrderResults = workOrders
         .filter(wo => 
           wo.title.toLowerCase().includes(query.toLowerCase()) ||

@@ -28,7 +28,7 @@ const roleOptions = [
   { value: 'argon_welder', label: 'Argon Kaynakçı' },
   { value: 'gas_welder', label: 'Gazaltı Kaynakçı' },
   { value: 'quality', label: 'Kontrol Personeli' },
-  { value: 'project_manager', label: 'Proje Takipçi' },
+  { value: 'manager', label: 'Proje Takipçi' },
   { value: 'admin', label: 'Yönetici' }
 ]
 
@@ -76,12 +76,11 @@ export default function NewPersonnel() {
       if (authData.user) {
         // Profil tablosuna personel bilgilerini ekle
         const personnelData = {
-          name: data.fullName,
+          fullName: data.fullName,
           email: data.email,
           phone: '', // Form'da telefon alanı yok, boş bırakıyoruz
           position: data.role,
-          department: 'Üretim', // Varsayılan departman
-          status: (data.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'on_leave',
+          isActive: data.isActive,
           hireDate: data.hire_date && data.hire_date !== '' ? data.hire_date : new Date().toISOString().split('T')[0]
         }
 

@@ -9,12 +9,9 @@ import { useToast } from '@/components/ui/ToastProvider'
 import { storageService } from '@/lib/services/storage'
 
 interface OutgoingMaterialForm {
-  projectId: string
-  date: string
-  type: 'material' | 'scrap' | 'return'
-  company: string
-  waybillNo: string
-  description: string
+  project_id: string
+  shipment_date: string
+  notes: string
   photos: FileList
   documents: FileList
 }
@@ -35,16 +32,12 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
     setError(null)
     try {
       const shipment = await shipmentService.createShipment({
-        number: `OUT-${Date.now()}`,
-        projectId: data.projectId,
+        project_id: data.project_id,
         status: 'pending',
-        priority: 'medium',
-        destination: data.company,
-        scheduledDate: data.date,
-        carrier: data.company,
-        trackingNumber: data.waybillNo,
-        totalWeight: 0
+        shipment_date: data.shipment_date,
+        notes: data.notes
       })
+      
       // Fotoğraf ve belgeleri yükle
       const filesToUpload: File[] = [
         ...(data.photos ? Array.from(data.photos) : []),
@@ -86,7 +79,7 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
         <div className="mb-4">
           <label className="block mb-2">Proje *</label>
           <select
-            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            {...register('project_id', { required: 'Proje seçilmelidir' })}
             className="w-full p-2 border rounded"
           >
             <option value="">Proje seçin</option>
@@ -94,8 +87,8 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-          {errors.projectId && (
-            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          {errors.project_id && (
+            <span className="text-red-500 text-sm">{errors.project_id.message}</span>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -103,46 +96,22 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
             <label className="block mb-2">Sevkiyat Tarihi</label>
             <input
               type="date"
-              {...register('date', { required: 'Tarih gereklidir' })}
+              {...register('shipment_date', { required: 'Tarih gereklidir' })}
               defaultValue={new Date().toISOString().split('T')[0]}
               className="w-full p-2 border rounded"
             />
-          </div>
-          <div>
-            <label className="block mb-2">Sevkiyat Türü</label>
-            <select
-              {...register('type', { required: 'Sevkiyat türü gereklidir' })}
-              className="w-full p-2 border rounded"
-            >
-              <option value="material">Malzeme Sevkiyatı</option>
-              <option value="scrap">Hurda İadesi</option>
-              <option value="return">Malzeme İadesi</option>
-            </select>
-          </div>
-          <div>
-            <label className="block mb-2">Firma</label>
-            <input
-              {...register('company', { required: 'Firma adı gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="Firma adı giriniz"
-            />
-          </div>
-          <div>
-            <label className="block mb-2">İrsaliye No</label>
-            <input
-              {...register('waybillNo', { required: 'İrsaliye no gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="İrsaliye numarası giriniz"
-            />
+            {errors.shipment_date && (
+              <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>
+            )}
           </div>
         </div>
         <div>
-          <label className="block mb-2">Açıklama</label>
+          <label className="block mb-2">Notlar</label>
           <textarea
-            {...register('description')}
+            {...register('notes')}
             className="w-full p-2 border rounded"
             rows={3}
-            placeholder="Sevkiyat açıklaması"
+            placeholder="Sevkiyat hakkında notlar..."
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

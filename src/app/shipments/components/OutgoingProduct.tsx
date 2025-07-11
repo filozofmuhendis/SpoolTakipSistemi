@@ -9,20 +9,17 @@ import { useToast } from '@/components/ui/ToastProvider'
 import { storageService } from '@/lib/services/storage'
 
 interface OutgoingProductForm {
-  projectId: string
-  date: string
-  spoolNumber: string
-  transportCompany: string
-  description: string
+  project_id: string
+  shipment_date: string
+  notes: string
   photos: FileList
   documents: FileList
 }
 
 export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<OutgoingProductForm>()
+  const { register, handleSubmit, formState: { errors } } = useForm<OutgoingProductForm>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showScanner, setShowScanner] = useState(false)
   const [projects, setProjects] = useState<any[]>([])
   const { showToast } = useToast()
 
@@ -35,16 +32,12 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
     setError(null)
     try {
       const shipment = await shipmentService.createShipment({
-        number: `PROD-${Date.now()}`,
-        projectId: data.projectId,
+        project_id: data.project_id,
         status: 'pending',
-        priority: 'medium',
-        destination: data.transportCompany || 'Müşteri',
-        scheduledDate: data.date,
-        carrier: data.transportCompany || 'Kendi Araç',
-        trackingNumber: data.spoolNumber,
-        totalWeight: 0
+        shipment_date: data.shipment_date,
+        notes: data.notes
       })
+      
       // Fotoğraf ve belgeleri yükle
       const filesToUpload: File[] = [
         ...(data.photos ? Array.from(data.photos) : []),
@@ -69,11 +62,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const handleBarcodeScan = (result: string) => {
-    setValue('spoolNumber', result)
-    setShowScanner(false)
-  }
-
   return (
     <div className="p-6 bg-black">
       <div className="flex items-center mb-6">
@@ -91,7 +79,7 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
         <div className="mb-4">
           <label className="block mb-2">Proje *</label>
           <select
-            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            {...register('project_id', { required: 'Proje seçilmelidir' })}
             className="w-full p-2 border rounded"
           >
             <option value="">Proje seçin</option>
@@ -99,8 +87,8 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-          {errors.projectId && (
-            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          {errors.project_id && (
+            <span className="text-red-500 text-sm">{errors.project_id.message}</span>
           )}
         </div>
         <div className="space-y-4">
@@ -108,43 +96,21 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
             <label className="block mb-2">Sevkiyat Tarihi</label>
             <input
               type="date"
-              {...register('date', { required: 'Tarih gereklidir' })}
+              {...register('shipment_date', { required: 'Tarih gereklidir' })}
               defaultValue={new Date().toISOString().split('T')[0]}
               className="w-full p-2 border rounded"
             />
+            {errors.shipment_date && (
+              <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>
+            )}
           </div>
           <div>
-            <label className="block mb-2">Spool Numarası</label>
-            <div className="flex gap-2">
-              <input
-                {...register('spoolNumber', { required: 'Spool numarası gereklidir' })}
-                className="flex-1 p-2 border rounded"
-                placeholder="Spool numarası giriniz veya barkod okutunuz"
-              />
-              <button
-                type="button"
-                onClick={() => setShowScanner(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                <Scan className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block mb-2">Taşıyan Firma</label>
-            <input
-              {...register('transportCompany')}
-              className="w-full p-2 border rounded"
-              placeholder="Taşıyan firma adı"
-            />
-          </div>
-          <div>
-            <label className="block mb-2">Açıklama</label>
+            <label className="block mb-2">Notlar</label>
             <textarea
-              {...register('description')}
+              {...register('notes')}
               className="w-full p-2 border rounded"
               rows={3}
-              placeholder="Sevkiyat açıklaması"
+              placeholder="Sevkiyat hakkında notlar..."
             />
           </div>
         </div>
@@ -184,20 +150,6 @@ export default function OutgoingProduct({ onBack }: { onBack: () => void }) {
           {isLoading ? 'Kaydediliyor...' : 'Sevkiyatı Kaydet'}
         </button>
       </form>
-      {showScanner && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Barkod Tarama</h3>
-            {/* Barkod okuyucu komponenti buraya eklenecek */}
-            <button
-              onClick={() => setShowScanner(false)}
-              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded"
-            >
-              Kapat
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

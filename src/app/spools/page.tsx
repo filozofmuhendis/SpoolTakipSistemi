@@ -54,10 +54,9 @@ export default function SpoolsPage() {
   }
 
   const filteredSpools = spools.filter(spool => {
-    const matchesSearch = spool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         spool.projectName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = spool.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
     const matchesStatus = statusFilter === 'all' || spool.status === statusFilter
-    const matchesProject = projectFilter === 'all' || spool.projectId === projectFilter
+    const matchesProject = projectFilter === 'all' || spool.project_id === projectFilter
     
     return matchesSearch && matchesStatus && matchesProject
   })
@@ -80,11 +79,6 @@ export default function SpoolsPage() {
     }
   }
 
-  const getProgressPercentage = (completed: number, total: number) => {
-    if (total === 0) return 0
-    return Math.round((completed / total) * 100)
-  }
-
   const handleDeleteSpool = async (spoolId: string) => {
     if (confirm('Bu spool\'u silmek istediğinizden emin misiniz?')) {
       try {
@@ -94,7 +88,6 @@ export default function SpoolsPage() {
       } catch (error) {
         setError('Spool silinirken bir hata oluştu.')
         showToast({ type: 'error', message: 'Spool silinirken bir hata oluştu.' })
-        console.log('Spool silme hatası:', error)
       }
     }
   }
@@ -126,7 +119,7 @@ export default function SpoolsPage() {
 
       {/* Filtreler */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -159,11 +152,6 @@ export default function SpoolsPage() {
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-
-          <button className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg flex items-center justify-center gap-2">
-            <Filter size={20} />
-            Filtrele
-          </button>
         </div>
       </div>
 
@@ -180,16 +168,22 @@ export default function SpoolsPage() {
                   Proje
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Malzeme
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Çap
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Kalınlık
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Uzunluk
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Ağırlık
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Durum
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  İlerleme
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Atanan
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Başlangıç
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   İşlemler
@@ -197,133 +191,77 @@ export default function SpoolsPage() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredSpools.map((spool) => (
-                <tr key={spool.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {spool.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {spool.projectName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status)}`}>
-                      {getStatusText(spool.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${getProgressPercentage(spool.completedQuantity, spool.quantity)}%` }}
-                        ></div>
+              {filteredSpools.map((spool) => {
+                const project = projects.find(p => p.id === spool.project_id)
+                return (
+                  <tr key={spool.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {spool.name}
                       </div>
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {spool.completedQuantity}/{spool.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {project?.name || 'Bilinmiyor'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {spool.material}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {spool.diameter}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {spool.thickness}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {spool.length}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {spool.weight}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status || 'unknown')}`}>
+                        {getStatusText(spool.status || 'unknown')}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {spool.assignedToName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {new Date(spool.startDate).toLocaleDateString('tr-TR')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link href={`/spools/${spool.id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                        <Eye size={16} />
-                      </Link>
-                      <Link href={`/spools/${spool.id}/edit`} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
-                        <Edit size={16} />
-                      </Link>
-                      <button 
-                        onClick={() => handleDeleteSpool(spool.id)}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/spools/${spool.id}`}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          <Eye size={16} />
+                        </Link>
+                        <Link
+                          href={`/spools/${spool.id}/edit`}
+                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <Edit size={16} />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteSpool(spool.id)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
-        </div>
-        
-        {filteredSpools.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">
-              {searchTerm || statusFilter !== 'all' || projectFilter !== 'all' 
-                ? 'Arama kriterlerinize uygun spool bulunamadı.' 
-                : 'Henüz spool eklenmemiş.'}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* İstatistikler */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <div className="w-6 h-6 bg-blue-600 rounded"></div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Toplam Spool</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{spools.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-              <div className="w-6 h-6 bg-yellow-600 rounded"></div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Beklemede</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {spools.filter(s => s.status === 'pending').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <div className="w-6 h-6 bg-blue-600 rounded"></div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Aktif</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {spools.filter(s => s.status === 'active').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <div className="w-6 h-6 bg-green-600 rounded"></div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tamamlandı</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {spools.filter(s => s.status === 'completed').length}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

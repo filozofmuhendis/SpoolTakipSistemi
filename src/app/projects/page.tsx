@@ -50,7 +50,8 @@ export default function ProjectsPage() {
           ...project,
           spoolCount: projectSpools.length,
           completedSpools,
-          progress
+          progress,
+          priority: project.priority
         }
       })
 

@@ -6,20 +6,10 @@ import { z } from 'zod'
 
 const inventoryUpdateSchema = z.object({
   name: z.string().min(1, 'Malzeme adı gereklidir').optional(),
-  code: z.string().min(1, 'Malzeme kodu gereklidir').optional(),
-  category: z.string().min(1, 'Kategori gereklidir').optional(),
-  type: z.enum(['raw_material', 'finished_product', 'semi_finished', 'consumable']).optional(),
-  quantity: z.number().min(0, 'Miktar 0 veya daha fazla olmalıdır').optional(),
-  unit: z.string().min(1, 'Birim gereklidir').optional(),
-  minStock: z.number().min(0, 'Minimum stok 0 veya daha fazla olmalıdır').optional(),
-  maxStock: z.number().min(0, 'Maksimum stok 0 veya daha fazla olmalıdır').optional(),
-  location: z.string().min(1, 'Konum gereklidir').optional(),
-  supplier: z.string().min(1, 'Tedarikçi gereklidir').optional(),
-  projectId: z.string().optional(),
   description: z.string().optional(),
-  specifications: z.string().optional(),
-  cost: z.number().min(0, 'Maliyet 0 veya daha fazla olmalıdır').optional(),
-  status: z.enum(['active', 'inactive', 'discontinued']).optional()
+  quantity: z.number().min(0, 'Miktar 0 veya daha fazla olmalıdır').optional(),
+  location: z.string().min(1, 'Konum gereklidir').optional(),
+  notes: z.string().optional()
 })
 
 export async function GET(

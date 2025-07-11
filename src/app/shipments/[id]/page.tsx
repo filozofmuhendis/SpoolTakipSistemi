@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { shipmentService } from '@/lib/services/shipments'
-import { Shipment } from '@/types'
+import { projectService } from '@/lib/services/projects'
+import { Shipment, Project } from '@/types'
 import Loading from '@/components/ui/Loading'
 import ErrorState from '@/components/ui/ErrorState'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Truck, Calendar, Package, MapPin, Clock } from 'lucide-react'
+import { ArrowLeft, Edit, Truck, Calendar } from 'lucide-react'
 
 export default function ShipmentDetailPage({ params }: { params: { id: string } }) {
   const [shipment, setShipment] = useState<Shipment | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -29,11 +31,26 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
         setError('Sevkiyat bulunamadı.')
       } else {
         setShipment(data)
+        
+        if (data.project_id) {
+          const projectData = await projectService.getProjectById(data.project_id)
+          setProject(projectData)
+        }
       }
     } catch (err) {
       setError('Sevkiyat yüklenirken bir hata oluştu.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'in_transit': return 'Yolda'
+      case 'delivered': return 'Teslim Edildi'
+      case 'pending': return 'Beklemede'
+      case 'cancelled': return 'İptal Edildi'
+      default: return status
     }
   }
 
@@ -58,43 +75,29 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2 text-lg font-semibold">
               <Truck className="w-5 h-5" />
-              {shipment.number}
+              Sevkiyat #{shipment.id.slice(-6)}
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <MapPin className="w-4 h-4" />
-              {shipment.destination}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <Package className="w-4 h-4" />
-              {shipment.projectName || 'Bilinmiyor'}
+              <span className="font-semibold">Proje:</span>
+              <span>{project?.name || 'Bilinmiyor'}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <Calendar className="w-4 h-4" />
-              Planlanan: {new Date(shipment.scheduledDate).toLocaleDateString('tr-TR')}
-              {shipment.actualDate && (
-                <span className="ml-2">| Teslim: {new Date(shipment.actualDate).toLocaleDateString('tr-TR')}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <Clock className="w-4 h-4" />
-              Takip No: {shipment.trackingNumber || '-'}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <Truck className="w-4 h-4" />
-              Taşıyıcı: {shipment.carrier}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <Package className="w-4 h-4" />
-              Toplam Ağırlık: {shipment.totalWeight} kg
+              <span className="font-semibold">Sevkiyat Tarihi:</span>
+              <span>
+                {shipment.shipment_date ? new Date(shipment.shipment_date).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
               <span className="font-semibold">Durum:</span>
-              <span>{shipment.status}</span>
+              <span>{getStatusText(shipment.status || 'unknown')}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span className="font-semibold">Öncelik:</span>
-              <span>{shipment.priority}</span>
-            </div>
+            {shipment.notes && (
+              <div className="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+                <span className="font-semibold mt-1">Notlar:</span>
+                <span className="whitespace-pre-wrap">{shipment.notes}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

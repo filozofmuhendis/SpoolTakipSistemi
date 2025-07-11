@@ -22,17 +22,29 @@ export const storageService = {
     description?: string
   ): Promise<FileUpload | null> {
     try {
+      console.log('Dosya yükleme başladı:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        entityType,
+        entityId
+      })
+
       const fileExt = file.name.split('.').pop()
       const fileName = `${entityType}/${entityId}/${Date.now()}.${fileExt}`
+      
+      console.log('Dosya yolu:', fileName)
       
       const { data, error } = await supabase.storage
         .from('uploads')
         .upload(fileName, file)
 
       if (error) {
-        console.log('Dosya yükleme hatası:', error)
+        console.error('Dosya yükleme hatası:', error)
         return null
       }
+
+      console.log('Dosya başarıyla yüklendi:', data)
 
       // Dosya URL'ini al
       const { data: urlData } = supabase.storage
@@ -149,14 +161,14 @@ export const storageService = {
         .order('uploadedAt', { ascending: false })
 
       if (error) {
-        console.log('Dosya listesi alma hatası:', error)
-        return []
+        console.error('Dosya listesi alma hatası:', error)
+        throw new Error(`Dosya listesi alınamadı: ${error.message}`)
       }
 
       return data || []
     } catch (error) {
-      console.log('Dosya listesi alma hatası:', error)
-      return []
+      console.error('Dosya listesi alma hatası:', error)
+      throw error
     }
   },
 
@@ -171,11 +183,17 @@ export const storageService = {
 
   // Dosya tipini kontrol et
   isValidFileType(file: File, allowedTypes: string[]): boolean {
-    return allowedTypes.includes(file.type)
+    return allowedTypes.some(type => {
+      if (type.endsWith('/*')) {
+        const baseType = type.replace('/*', '')
+        return file.type.startsWith(baseType)
+      }
+      return file.type === type
+    })
   },
 
   // Maksimum dosya boyutunu kontrol et (5MB)
   isValidFileSize(file: File, maxSize: number = 5 * 1024 * 1024): boolean {
     return file.size <= maxSize
   }
-} 
+}

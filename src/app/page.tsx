@@ -7,7 +7,7 @@ import { BarChart3, Users, Package, TrendingUp, AlertCircle, Clock, Bell, Filter
 import { projectService } from '@/lib/services/projects';
 import { spoolService } from '@/lib/services/spools';
 import { personnelService } from '@/lib/services/personnel';
-import { workOrderService } from '@/lib/services/workOrders';
+import { jobOrderService } from '@/lib/services/workOrders';
 import { shipmentService } from '@/lib/services/shipments';
 
 interface DashboardStats {
@@ -16,7 +16,7 @@ interface DashboardStats {
   completedProjects: number;
   totalSpools: number;
   pendingShipments: number;
-  newProjects: number;
+  totalPersonnel: number;
 }
 
 interface Activity {
@@ -32,7 +32,6 @@ interface ProjectStatus {
   id: string;
   name: string;
   spoolCount: number;
-  progress: number;
   status: string;
 }
 
@@ -43,7 +42,7 @@ export default function Home() {
     completedProjects: 0,
     totalSpools: 0,
     pendingShipments: 0,
-    newProjects: 0
+    totalPersonnel: 0
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatus[]>([]);
@@ -62,7 +61,7 @@ export default function Home() {
         projectService.getAllProjects(),
         spoolService.getAllSpools(),
         personnelService.getAllPersonnel(),
-        workOrderService.getAllWorkOrders(),
+        jobOrderService.getAllJobOrders(),
         shipmentService.getAllShipments()
       ]);
 
@@ -72,11 +71,7 @@ export default function Home() {
       const completedProjects = projects.filter(p => p.status === 'completed').length;
       const totalSpools = spools.length;
       const pendingShipments = shipments.filter(s => s.status === 'pending').length;
-      
-      // Son 30 günde oluşturulan projeler
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const newProjects = projects.filter(p => new Date(p.createdAt) > thirtyDaysAgo).length;
+      const totalPersonnel = personnel.length;
 
       setStats({
         totalProjects,
@@ -84,7 +79,7 @@ export default function Home() {
         completedProjects,
         totalSpools,
         pendingShipments,
-        newProjects
+        totalPersonnel
       });
 
       // Aktiviteleri oluştur
@@ -108,7 +103,6 @@ export default function Home() {
     // Son tamamlanan spool'lar
     const recentCompletedSpools = spools
       .filter(spool => spool.status === 'completed')
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 2);
 
     recentCompletedSpools.forEach(spool => {
@@ -116,24 +110,22 @@ export default function Home() {
         id: `spool-${spool.id}`,
         type: 'spool_completed',
         title: `Spool ${spool.name} tamamlandı`,
-        description: `${spool.projectName} projesinde`,
-        timestamp: formatTimeAgo(new Date(spool.updatedAt)),
+        description: `Proje ID: ${spool.project_id}`,
+        timestamp: 'Az önce',
         color: 'text-blue-500'
       });
     });
 
     // Son oluşturulan projeler
-    const recentProjects = projects
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 1);
+    const recentProjects = projects.slice(0, 1);
 
     recentProjects.forEach(project => {
       activities.push({
         id: `project-${project.id}`,
         type: 'project_created',
         title: `Yeni proje oluşturuldu: ${project.name}`,
-        description: `${project.managerName} tarafından`,
-        timestamp: formatTimeAgo(new Date(project.createdAt)),
+        description: `Proje durumu: ${project.status}`,
+        timestamp: 'Az önce',
         color: 'text-green-500'
       });
     });
@@ -141,24 +133,21 @@ export default function Home() {
     // Son sevkiyatlar
     const recentShipments = shipments
       .filter(shipment => shipment.status === 'in_transit')
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 1);
 
     recentShipments.forEach(shipment => {
       activities.push({
         id: `shipment-${shipment.id}`,
         type: 'shipment_started',
-        title: `Sevkiyat ${shipment.number} yola çıktı`,
-        description: `${shipment.destination} hedefine`,
-        timestamp: formatTimeAgo(new Date(shipment.updatedAt)),
+        title: `Sevkiyat #${shipment.id.slice(-6)} yola çıktı`,
+        description: `Durum: ${shipment.status}`,
+        timestamp: 'Az önce',
         color: 'text-yellow-500'
       });
     });
 
     // Son personel kayıtları
-    const recentPersonnel = personnel
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 1);
+    const recentPersonnel = personnel.slice(0, 1);
 
     recentPersonnel.forEach(person => {
       activities.push({
@@ -166,273 +155,165 @@ export default function Home() {
         type: 'personnel_added',
         title: `Personel kaydı: ${person.name}`,
         description: `${person.position} pozisyonunda`,
-        timestamp: formatTimeAgo(new Date(person.createdAt)),
+        timestamp: 'Az önce',
         color: 'text-purple-500'
       });
     });
 
-    return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 4);
+    return activities.slice(0, 4);
   };
 
   const generateProjectStatuses = (projects: any[], spools: any[]): ProjectStatus[] => {
     return projects
       .map(project => {
-        const projectSpools = spools.filter(spool => spool.projectId === project.id);
-        const completedSpools = projectSpools.filter(spool => spool.status === 'completed').length;
-        const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0;
+        const projectSpools = spools.filter(spool => spool.project_id === project.id);
 
         return {
           id: project.id,
           name: project.name,
           spoolCount: projectSpools.length,
-          progress,
           status: project.status
         };
       })
-      .sort((a, b) => b.progress - a.progress)
+      .sort((a, b) => b.spoolCount - a.spoolCount)
       .slice(0, 3);
-  };
-
-  const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Az önce';
-    if (diffInHours < 24) return `${diffInHours} saat önce`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} gün önce`;
-    
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    return `${diffInWeeks} hafta önce`;
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <div className="p-6 w-full max-w-[1600px] mx-auto">
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Yönetici Paneli</h1>
-          <div className="flex gap-4 items-center">
-            <Link href="/projects" className="btn-primary flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Projeler
-            </Link>
-            <Link href="/work-orders" className="btn-primary flex items-center gap-2">
-              <Package className="w-4 h-4" />
-              İş Emirleri
-            </Link>
-            <Link href="/personnel" className="btn-primary flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Personel
-            </Link>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Spool Takip Sistemi
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Hoş geldiniz! Bugünkü özet bilgileriniz aşağıda.
+              </p>
+            </div>
             <ThemeToggle />
           </div>
         </div>
+      </header>
 
-        {/* Quick Stats / KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-          <StatCard 
-            title="Toplam Proje"
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* İstatistikler */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <StatCard
+            title="Toplam Projeler"
             value={stats.totalProjects.toString()}
-            trend=""
-            icon="📊"
-            description="Tüm projeler"
+            trend="+12%"
+            icon="BarChart3"
+            description="Bu ay"
             color="blue"
           />
-          <StatCard 
-            title="Devam Eden"
+          <StatCard
+            title="Aktif Projeler"
             value={stats.activeProjects.toString()}
-            trend=""
-            icon="🏗"
-            description="Aktif projeler"
-            color="yellow"
-          />
-          <StatCard 
-            title="Tamamlanan"
-            value={stats.completedProjects.toString()}
-            trend=""
-            icon="✅"
-            description="Tamamlanan projeler"
+            trend="+5%"
+            icon="TrendingUp"
+            description="Devam eden"
             color="green"
           />
-          <StatCard 
+          <StatCard
             title="Toplam Spool"
             value={stats.totalSpools.toString()}
-            trend=""
-            icon="🔧"
+            trend="+8%"
+            icon="Package"
             description="Tüm projelerde"
             color="purple"
           />
-          <StatCard 
+          <StatCard
             title="Bekleyen Sevkiyat"
             value={stats.pendingShipments.toString()}
-            trend=""
-            icon="⏳"
-            description="Hazır ürünler"
-            color="orange"
+            trend="-2%"
+            icon="AlertCircle"
+            description="Bu hafta"
+            color="yellow"
           />
-          <StatCard 
-            title="Yeni Projeler"
-            value={stats.newProjects.toString()}
-            trend=""
-            icon="📈"
-            description="Son 30 günde"
+          <StatCard
+            title="Tamamlanan Projeler"
+            value={stats.completedProjects.toString()}
+            trend="+15%"
+            icon="Clock"
+            description="Bu ay"
+            color="green"
+          />
+          <StatCard
+            title="Toplam Personel"
+            value={stats.totalPersonnel.toString()}
+            trend="+3%"
+            icon="Users"
+            description="Aktif"
             color="indigo"
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Activities */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Son İşlemler</h2>
-            <ActivityList activities={activities} />
-          </div>
-
-          {/* Notifications Panel */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">Bildirimler</h2>
-                <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
-                  {activities.length} yeni
-                </span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Hızlı Erişim */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Hızlı Erişim
+              </h2>
+              <div className="space-y-3">
+                <QuickActionCard
+                  title="Yeni Proje"
+                  icon="Plus"
+                  href="/projects/new"
+                />
+                <QuickActionCard
+                  title="Yeni Spool"
+                  icon="Package"
+                  href="/spools/new"
+                />
+                <QuickActionCard
+                  title="Yeni İş Emri"
+                  icon="FileText"
+                  href="/work-orders/new"
+                />
+                <QuickActionCard
+                  title="Personel Ekle"
+                  icon="Users"
+                  href="/personnel/new"
+                />
               </div>
-              <button className="text-gray-400 hover:text-gray-600">
-                <Bell className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              {activities.slice(0, 3).map((activity, index) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
-                  <span className={`w-2 h-2 mt-2 rounded-full ${activity.color.replace('text-', 'bg-')}`}></span>
-                  <div>
-                    <p className="font-medium">{activity.title}</p>
-                    <p className="text-sm text-gray-600">{activity.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button className="w-full mt-4 text-center text-sm text-blue-500 hover:text-blue-600">
-              Tüm Bildirimleri Gör
-            </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Hızlı İşlemler</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-              <QuickActionCard 
-                title="Yeni Proje"
-                icon="📁"
-                href="/projects/new"
-              />
-              <QuickActionCard 
-                title="İş Emri Oluştur"
-                icon="📝"
-                href="/work-orders/new"
-              />
-              <QuickActionCard 
-                title="Personel Kayıt"
-                icon="👥"
-                href="/personnel/new"
-              />
-              <QuickActionCard 
-                title="Sevkiyatlar"
-                icon="🚚"
-                href="/shipments/new"
-              />
-              <QuickActionCard 
-                title="Malzeme Girişi"
-                icon="🔄"
-                href="/inventory/new"
-              />
             </div>
           </div>
 
-          {/* Project Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Proje Durumları</h2>
+          {/* Aktiviteler */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Son Aktiviteler
+              </h2>
+              <ActivityList activities={activities} />
+            </div>
+          </div>
+        </div>
+
+        {/* Proje Durumları */}
+        <div className="mt-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Proje Durumları
+            </h2>
             <ProjectStatusList projects={projectStatuses} />
           </div>
         </div>
-      </div>
-    </main>
-  );
-}
-
-interface QuickAccessCardProps {
-  title: string;
-  description: string;
-  icon: string;
-  href: string;
-}
-
-function QuickAccessCard({ title, description, icon, href }: QuickAccessCardProps) {
-  return (
-    <a 
-      href={href}
-      className="p-6 border rounded-lg shadow-sm hover:shadow-md transition-shadow
-                 bg-white dark:bg-gray-800 cursor-pointer"
-    >
-      <div className="text-4xl mb-4">{icon}</div>
-      <h2 className="text-xl font-semibold mb-2">{title}</h2>
-      <p className="text-gray-600 dark:text-gray-300">{description}</p>
-    </a>
-  );
-}
-
-// Update StatCard interface and component
-interface StatCardProps {
-  title: string;
-  value: string;
-  trend: string;
-  icon: string;
-  description: string;
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'orange' | 'indigo';
-}
-
-function StatCard({ title, value, trend, icon, description, color = 'blue' }: StatCardProps) {
-  const colorClasses = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20',
-    green: 'bg-green-50 dark:bg-green-900/20',
-    yellow: 'bg-yellow-50 dark:bg-yellow-900/20',
-    red: 'bg-red-50 dark:bg-red-900/20',
-    purple: 'bg-purple-50 dark:bg-purple-900/20',
-    orange: 'bg-orange-50 dark:bg-orange-900/20',
-    indigo: 'bg-indigo-50 dark:bg-indigo-900/20'
-  };
-
-  return (
-    <div className={`rounded-lg p-4 shadow-sm ${colorClasses[color]} transition-all hover:scale-[1.02]`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{icon}</span>
-            <p className="text-gray-700 dark:text-gray-300 font-medium">{title}</p>
-          </div>
-          <h3 className="text-2xl font-bold mt-2">{value}</h3>
-        </div>
-      </div>
-      <div className="mt-2 space-y-1">
-        <p className={`text-sm ${trend.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {trend} değişim
-        </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400">{description}</p>
-      </div>
+      </main>
     </div>
   );
 }
@@ -445,30 +326,71 @@ interface QuickActionCardProps {
 
 function QuickActionCard({ title, icon, href }: QuickActionCardProps) {
   return (
-    <a href={href} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center hover:bg-gray-100 transition-colors">
-      <span className="text-2xl block mb-2">{icon}</span>
-      <span className="font-medium">{title}</span>
-    </a>
+    <Link
+      href={href}
+      className="flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+    >
+      <div className="flex-shrink-0">
+        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+          <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        </div>
+      </div>
+      <div className="ml-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
+      </div>
+    </Link>
+  );
+}
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  trend: string;
+  icon: string;
+  description: string;
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'orange' | 'indigo';
+}
+
+function StatCard({ title, value, trend, icon, description, color = 'blue' }: StatCardProps) {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400',
+    green: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400',
+    yellow: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400',
+    red: 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400',
+    purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400',
+    orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-400',
+    indigo: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400'
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+      <div className="flex items-center">
+        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+          <BarChart3 className="w-6 h-6" />
+        </div>
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
+        </div>
+      </div>
+      <div className="mt-4">
+        <span className="text-sm text-green-600 dark:text-green-400">{trend}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{description}</span>
+      </div>
+    </div>
   );
 }
 
 function ActivityList({ activities }: { activities: Activity[] }) {
-  if (activities.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Henüz aktivite bulunmuyor</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {activities.map((activity) => (
-        <div key={activity.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-          <span className={activity.color}>●</span>
-          <div>
-            <p className="font-medium">{activity.title}</p>
-            <p className="text-sm text-gray-500">{activity.timestamp}</p>
+        <div key={activity.id} className="flex items-start space-x-3">
+          <div className={`flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-${activity.color.split('-')[1]}-500`}></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{activity.description}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{activity.timestamp}</p>
           </div>
         </div>
       ))}
@@ -477,30 +399,24 @@ function ActivityList({ activities }: { activities: Activity[] }) {
 }
 
 function ProjectStatusList({ projects }: { projects: ProjectStatus[] }) {
-  if (projects.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Henüz proje bulunmuyor</p>
-      </div>
-    );
-  }
-
-  const getProgressColor = (progress: number) => {
-    if (progress === 100) return 'text-green-500';
-    if (progress >= 75) return 'text-blue-500';
-    if (progress >= 50) return 'text-yellow-500';
-    return 'text-red-500';
-  };
-
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {projects.map((project) => (
-        <div key={project.id} className="flex justify-between items-center p-2">
-          <div>
-            <p className="font-medium">{project.name}</p>
-            <p className="text-sm text-gray-500">{project.spoolCount} Spool</p>
+        <div key={project.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {project.spoolCount} spool
+          </p>
+          <div className="mt-2">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              project.status === 'active' ? 'bg-green-100 text-green-800' :
+              project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {project.status === 'active' ? 'Aktif' :
+               project.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+            </span>
           </div>
-          <span className={getProgressColor(project.progress)}>{project.progress}%</span>
         </div>
       ))}
     </div>

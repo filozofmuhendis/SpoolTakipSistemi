@@ -11,6 +11,13 @@ import ErrorState from '@/components/ui/ErrorState'
 import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 
+interface ShipmentFormData {
+  project_id: string
+  status: string
+  shipment_date: string
+  notes: string
+}
+
 export default function EditShipmentPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -18,7 +25,7 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
   const { showToast } = useToast()
   const router = useRouter()
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<any>()
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ShipmentFormData>()
 
   useEffect(() => {
     loadData()
@@ -38,16 +45,10 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
         return
       }
       setProjects(projectsData)
-      setValue('number', shipment.number)
-      setValue('projectId', shipment.projectId)
-      setValue('status', shipment.status)
-      setValue('priority', shipment.priority)
-      setValue('destination', shipment.destination)
-      setValue('scheduledDate', shipment.scheduledDate?.split('T')[0] || '')
-      setValue('actualDate', shipment.actualDate?.split('T')[0] || '')
-      setValue('carrier', shipment.carrier)
-      setValue('trackingNumber', shipment.trackingNumber)
-      setValue('totalWeight', shipment.totalWeight)
+      setValue('project_id', shipment.project_id || '')
+      setValue('status', shipment.status || 'pending')
+      setValue('shipment_date', shipment.shipment_date?.split('T')[0] || '')
+      setValue('notes', shipment.notes || '')
     } catch (err) {
       setError('Sevkiyat yüklenirken bir hata oluştu.')
     } finally {
@@ -55,21 +56,15 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
     }
   }
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: ShipmentFormData) => {
     try {
       setLoading(true)
       setError(null)
       await shipmentService.updateShipment(params.id, {
-        number: data.number,
-        projectId: data.projectId,
+        project_id: data.project_id,
         status: data.status,
-        priority: data.priority,
-        destination: data.destination,
-        scheduledDate: data.scheduledDate,
-        actualDate: data.actualDate,
-        carrier: data.carrier,
-        trackingNumber: data.trackingNumber,
-        totalWeight: Number(data.totalWeight)
+        shipment_date: data.shipment_date,
+        notes: data.notes
       })
       showToast({ type: 'success', message: 'Sevkiyat güncellendi!' })
       router.push(`/shipments/${params.id}`)
@@ -97,19 +92,14 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block mb-2">Sevkiyat Numarası</label>
-              <input {...register('number', { required: 'Numara gereklidir' })} className="w-full p-2 border rounded" />
-              {errors.number && <span className="text-red-500 text-sm">{errors.number.message}</span>}
-            </div>
-            <div>
               <label className="block mb-2">Proje *</label>
-              <select {...register('projectId', { required: 'Proje seçilmelidir' })} className="w-full p-2 border rounded">
+              <select {...register('project_id', { required: 'Proje seçilmelidir' })} className="w-full p-2 border rounded">
                 <option value="">Proje seçin</option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>{project.name}</option>
                 ))}
               </select>
-              {errors.projectId && <span className="text-red-500 text-sm">{errors.projectId.message}</span>}
+              {errors.project_id && <span className="text-red-500 text-sm">{errors.project_id.message}</span>}
             </div>
             <div>
               <label className="block mb-2">Durum</label>
@@ -121,41 +111,14 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
               </select>
             </div>
             <div>
-              <label className="block mb-2">Öncelik</label>
-              <select {...register('priority', { required: 'Öncelik gereklidir' })} className="w-full p-2 border rounded">
-                <option value="urgent">Acil</option>
-                <option value="high">Yüksek</option>
-                <option value="medium">Orta</option>
-                <option value="low">Düşük</option>
-              </select>
+              <label className="block mb-2">Sevkiyat Tarihi</label>
+              <input type="date" {...register('shipment_date', { required: 'Sevkiyat tarihi gereklidir' })} className="w-full p-2 border rounded" />
+              {errors.shipment_date && <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>}
             </div>
-            <div>
-              <label className="block mb-2">Hedef / Varış Noktası</label>
-              <input {...register('destination', { required: 'Hedef gereklidir' })} className="w-full p-2 border rounded" />
-              {errors.destination && <span className="text-red-500 text-sm">{errors.destination.message}</span>}
-            </div>
-            <div>
-              <label className="block mb-2">Planlanan Tarih</label>
-              <input type="date" {...register('scheduledDate', { required: 'Planlanan tarih gereklidir' })} className="w-full p-2 border rounded" />
-              {errors.scheduledDate && <span className="text-red-500 text-sm">{errors.scheduledDate.message}</span>}
-            </div>
-            <div>
-              <label className="block mb-2">Teslim Tarihi</label>
-              <input type="date" {...register('actualDate')} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-              <label className="block mb-2">Taşıyıcı</label>
-              <input {...register('carrier', { required: 'Taşıyıcı gereklidir' })} className="w-full p-2 border rounded" />
-              {errors.carrier && <span className="text-red-500 text-sm">{errors.carrier.message}</span>}
-            </div>
-            <div>
-              <label className="block mb-2">Takip Numarası</label>
-              <input {...register('trackingNumber')} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-              <label className="block mb-2">Toplam Ağırlık (kg)</label>
-              <input type="number" {...register('totalWeight', { valueAsNumber: true })} className="w-full p-2 border rounded" />
-            </div>
+          </div>
+          <div>
+            <label className="block mb-2">Notlar</label>
+            <textarea {...register('notes')} className="w-full p-2 border rounded" rows={4} placeholder="Sevkiyat hakkında notlar..." />
           </div>
           <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
             <Save className="w-4 h-4" />

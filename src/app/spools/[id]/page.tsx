@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Calendar, User, Package, TrendingUp, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Package } from 'lucide-react'
 import { spoolService } from '@/lib/services/spools'
-import { Spool } from '@/types'
+import { projectService } from '@/lib/services/projects'
+import { Spool, Project } from '@/types'
 import Link from 'next/link'
 
 export default function SpoolDetailPage({ params }: { params: { id: string } }) {
   const [spool, setSpool] = useState<Spool | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -22,6 +24,11 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
       setLoading(true)
       const spoolData = await spoolService.getSpoolById(params.id)
       setSpool(spoolData)
+      
+      if (spoolData?.project_id) {
+        const projectData = await projectService.getProjectById(spoolData.project_id)
+        setProject(projectData)
+      }
     } catch (error) {
       console.log('Spool yüklenirken hata:', error)
       setError('Spool yüklenirken bir hata oluştu')
@@ -58,18 +65,6 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
       case 'completed': return 'Tamamlandı'
       default: return 'Bilinmiyor'
     }
-  }
-
-  const getProgressPercentage = (completed: number, total: number) => {
-    if (total === 0) return 0
-    return Math.round((completed / total) * 100)
-  }
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-green-500'
-    if (percentage >= 75) return 'bg-blue-500'
-    if (percentage >= 50) return 'bg-yellow-500'
-    return 'bg-red-500'
   }
 
   if (loading) {
@@ -111,7 +106,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
           <div>
             <h1 className="text-3xl font-bold">{spool.name}</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Spool detayları ve ilerleme durumu
+              Spool detayları
             </p>
           </div>
         </div>
@@ -148,8 +143,8 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Durum
                 </label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status)}`}>
-                  {getStatusText(spool.status)}
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status || 'unknown')}`}>
+                  {getStatusText(spool.status || 'unknown')}
                 </span>
               </div>
 
@@ -157,84 +152,53 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Proje
                 </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.projectName}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Atanan Personel
-                </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {spool.assignedToName || 'Atanmamış'}
+                  {project?.name || 'Bilinmiyor'}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Başlangıç Tarihi
+                  Malzeme
                 </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {new Date(spool.startDate).toLocaleDateString('tr-TR')}
-                </p>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.material}</p>
               </div>
 
-              {spool.endDate && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Bitiş Tarihi
-                  </label>
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    {new Date(spool.endDate).toLocaleDateString('tr-TR')}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* İlerleme Durumu */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">İlerleme Durumu</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Tamamlanan: {spool.completedQuantity} / {spool.quantity}
-                </span>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  %{getProgressPercentage(spool.completedQuantity, spool.quantity)}
-                </span>
-              </div>
-              
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-                <div 
-                  className={`h-4 rounded-full transition-all duration-300 ${getProgressColor(getProgressPercentage(spool.completedQuantity, spool.quantity))}`}
-                  style={{ width: `${getProgressPercentage(spool.completedQuantity, spool.quantity)}%` }}
-                ></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Çap
+                </label>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.diameter}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {spool.quantity}
-                  </div>
-                  <div className="text-sm text-blue-600 dark:text-blue-400">Toplam Miktar</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {spool.completedQuantity}
-                  </div>
-                  <div className="text-sm text-green-600 dark:text-green-400">Tamamlanan</div>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Kalınlık
+                </label>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.thickness}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Uzunluk
+                </label>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.length}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Ağırlık
+                </label>
+                <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.weight}</p>
               </div>
             </div>
           </div>
 
-          {/* Açıklama */}
-          {spool.description && (
+          {/* Notlar */}
+          {spool.notes && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Açıklama</h2>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {spool.description}
-              </p>
+              <h2 className="text-xl font-semibold mb-4">Notlar</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{spool.notes}</p>
             </div>
           )}
         </div>
@@ -243,77 +207,51 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
         <div className="space-y-6">
           {/* Hızlı İstatistikler */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Hızlı İstatistikler</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Durum</span>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status)}`}>
-                  {getStatusText(spool.status)}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">İlerleme</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  %{getProgressPercentage(spool.completedQuantity, spool.quantity)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Kalan</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {spool.quantity - spool.completedQuantity}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tarih Bilgileri */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Tarih Bilgileri
-            </h3>
+            <h3 className="text-lg font-semibold mb-4">Spool Bilgileri</h3>
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Oluşturulma
-                </label>
-                <p className="text-sm text-gray-900 dark:text-white">
-                  {new Date(spool.createdAt).toLocaleDateString('tr-TR')}
-                </p>
+              <div className="flex items-center gap-3">
+                <Package className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Malzeme</p>
+                  <p className="font-medium">{spool.material}</p>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Son Güncelleme
-                </label>
-                <p className="text-sm text-gray-900 dark:text-white">
-                  {new Date(spool.updatedAt).toLocaleDateString('tr-TR')}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-xs font-bold">Ø</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Çap</p>
+                  <p className="font-medium">{spool.diameter}</p>
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Hızlı İşlemler */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Hızlı İşlemler</h3>
-            <div className="space-y-3">
-              <Link 
-                href={`/spools/${spool.id}/edit`}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                <Edit className="w-4 h-4" />
-                Düzenle
-              </Link>
-              
-              <button 
-                onClick={handleDeleteSpool}
-                className="w-full btn-danger flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Sil
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-xs font-bold">T</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Kalınlık</p>
+                  <p className="font-medium">{spool.thickness}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-xs font-bold">L</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Uzunluk</p>
+                  <p className="font-medium">{spool.length}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <span className="text-xs font-bold">W</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Ağırlık</p>
+                  <p className="font-medium">{spool.weight}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
