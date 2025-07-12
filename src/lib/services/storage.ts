@@ -30,6 +30,7 @@ export const storageService = {
         entityId
       })
 
+      // Dosya yolu entity bazlı oluşturulsun
       const fileExt = file.name.split('.').pop()
       const fileName = `${entityType}/${entityId}/${Date.now()}.${fileExt}`
       

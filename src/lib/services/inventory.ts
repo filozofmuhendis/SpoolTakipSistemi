@@ -2,149 +2,63 @@ import { supabase } from '../supabase'
 import { Inventory } from '@/types'
 
 export const inventoryService = {
-  // Tüm envanter öğelerini getir
-  async getAllInventory(): Promise<Inventory[]> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        projects(name)
-      `)
-      .order('createdAt', { ascending: false })
-
-    if (error) throw error
-    return data?.map(item => ({
-      ...item,
-      projectName: item.projects?.name
-    })) || []
+  // Tüm envanterleri getir
+  async getAllInventory() {
+    try {
+      const { data, error } = await supabase
+        .from('public.inventory')
+        .select('id, name, description, quantity, unit, location, status, notes, created_by')
+        .order('name', { ascending: true })
+      if (error) return [];
+      if (!data || data.length === 0) return [];
+      return data;
+    } catch (error) {
+      return [];
+    }
   },
 
-  // ID'ye göre envanter öğesi getir
-  async getInventoryById(id: string): Promise<Inventory | null> {
+  // Envanter oluştur
+  async createInventory(inventory: Omit<Inventory, 'id'>) {
     const { data, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        projects(name)
-      `)
+      .from('public.inventory')
+      .insert(inventory)
+      .select('id, name, description, quantity, unit, location, status, notes, created_by')
+      .single()
+    if (error) throw new Error(`Envanter oluşturulamadı: ${error.message}`)
+    return data;
+  },
+
+  // Envanter güncelle
+  async updateInventory(id: string, updates: Partial<Inventory>) {
+    const updateData: any = { ...updates };
+    const { data, error } = await supabase
+      .from('public.inventory')
+      .update(updateData)
       .eq('id', id)
+      .select('id, name, description, quantity, unit, location, status, notes, created_by')
       .single()
-
-    if (error) throw error
-    return data ? {
-      ...data,
-      projectName: data.projects?.name
-    } : null
+    if (error) throw new Error(`Envanter güncellenemedi: ${error.message}`)
+    return data;
   },
 
-  // Yeni envanter öğesi oluştur
-  async createInventory(inventory: Omit<Inventory, 'id' | 'createdAt' | 'updatedAt' | 'lastUpdated'>): Promise<Inventory> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .insert({
-        ...inventory,
-        lastUpdated: new Date().toISOString()
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Envanter öğesini güncelle
-  async updateInventory(id: string, updates: Partial<Inventory>): Promise<Inventory> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .update({
-        ...updates,
-        lastUpdated: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Envanter öğesini sil
-  async deleteInventory(id: string): Promise<void> {
+  // Envanter sil
+  async deleteInventory(id: string) {
     const { error } = await supabase
-      .from('inventory')
+      .from('public.inventory')
       .delete()
       .eq('id', id)
-
-    if (error) throw error
+    if (error) throw new Error(`Envanter silinemedi: ${error.message}`)
+    return true;
   },
 
-  // Stok güncelleme
-  async updateStock(id: string, quantity: number): Promise<Inventory> {
+  // Envanter detayını getir
+  async getInventoryById(id: string) {
     const { data, error } = await supabase
-      .from('inventory')
-      .update({
-        quantity,
-        lastUpdated: new Date().toISOString()
-      })
+      .from('public.inventory')
+      .select('id, name, description, quantity, unit, location, status, notes, created_by')
       .eq('id', id)
-      .select()
       .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Kategoriye göre filtrele
-  async getInventoryByCategory(category: string): Promise<Inventory[]> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        projects(name)
-      `)
-      .eq('category', category)
-      .order('name')
-
-    if (error) throw error
-    return data?.map(item => ({
-      ...item,
-      projectName: item.projects?.name
-    })) || []
-  },
-
-  // Düşük stok uyarısı
-  async getLowStockItems(): Promise<Inventory[]> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        projects(name)
-      `)
-      .filter('quantity', 'lte', 'minStock')
-      .order('quantity')
-
-    if (error) throw error
-    return data?.map(item => ({
-      ...item,
-      projectName: item.projects?.name
-    })) || []
-  },
-
-  // Arama
-  async searchInventory(query: string): Promise<Inventory[]> {
-    const { data, error } = await supabase
-      .from('inventory')
-      .select(`
-        *,
-        projects(name)
-      `)
-      .or(`name.ilike.%${query}%,code.ilike.%${query}%,category.ilike.%${query}%`)
-      .order('name')
-
-    if (error) throw error
-    return data?.map(item => ({
-      ...item,
-      projectName: item.projects?.name
-    })) || []
+    if (error) return null;
+    return data;
   }
-} 
+}

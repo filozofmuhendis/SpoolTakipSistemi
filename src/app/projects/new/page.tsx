@@ -78,8 +78,8 @@ export default function NewProjectPage() {
       // 2. Spool dosyası varsa storage'a yükle ve documents tablosuna kaydet
       if (spoolFile && project.id && user?.id) {
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('spool-lists')
-          .upload(`${project.id}/${spoolFile.name}`, spoolFile)
+          .from('uploads')
+          .upload(`project/${project.id}/spool-list/${spoolFile.name}`, spoolFile)
         if (!uploadError && uploadData) {
           await supabase
             .from('documents')
