@@ -19,7 +19,7 @@ export default function Navbar() {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: '🏠' },
     { name: 'Projeler', href: '/projects', icon: '📊' },
-    { name: 'Spoollar', href: '/spools', icon: '🔧' },
+    { name: 'Ürün Alt Kalemleri', href: '/spools', icon: '🔧' },
     { name: 'Personel', href: '/personnel', icon: '👥' },
     { name: 'İş Emirleri', href: '/work-orders', icon: '📋' },
     { name: 'Sevkiyat', href: '/shipments', icon: '🚚' },

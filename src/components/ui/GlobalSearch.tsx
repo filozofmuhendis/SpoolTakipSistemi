@@ -74,7 +74,7 @@ export default function GlobalSearch() {
           icon: <BarChart3 className="w-4 h-4" />
         }))
 
-      // Spool'larda arama
+      // Ürün alt kalemlerinde arama
       const spools = await spoolService.getAllSpools()
       const spoolResults = spools
         .filter(spool => 
@@ -229,7 +229,7 @@ export default function GlobalSearch() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Proje, spool, personel ara..."
+          placeholder="Proje, ürün alt kalemi, personel ara..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}

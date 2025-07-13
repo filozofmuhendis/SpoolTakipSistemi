@@ -12,7 +12,7 @@ import { Project, Spool } from '@/types'
 import Link from 'next/link'
 
 const spoolSchema = z.object({
-  name: z.string().min(1, 'Spool adı gereklidir'),
+  name: z.string().min(1, 'Ürün alt kalemi adı gereklidir'),
   project_id: z.string().min(1, 'Proje seçilmelidir'),
   material: z.string().min(1, 'Malzeme gereklidir'),
   diameter: z.string().min(1, 'Çap gereklidir'),

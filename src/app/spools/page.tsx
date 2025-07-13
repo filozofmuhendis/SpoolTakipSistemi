@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { Spool } from '@/types'
+import { UrunAltKalemi } from '@/types'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
 import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 export default function SpoolsPage() {
   const { data: session, status } = useSession()
-  const [spools, setSpools] = useState<Spool[]>([])
+  const [spools, setSpools] = useState<UrunAltKalemi[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -80,20 +80,20 @@ export default function SpoolsPage() {
   }
 
   const handleDeleteSpool = async (spoolId: string) => {
-    if (confirm('Bu spool\'u silmek istediğinizden emin misiniz?')) {
+    if (confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
       try {
         await spoolService.deleteSpool(spoolId)
         loadData()
-        showToast({ type: 'success', message: 'Spool başarıyla silindi.' })
+        showToast({ type: 'success', message: 'Ürün alt kalemi başarıyla silindi.' })
       } catch (error) {
-        setError('Spool silinirken bir hata oluştu.')
-        showToast({ type: 'error', message: 'Spool silinirken bir hata oluştu.' })
+        setError('Ürün alt kalemi silinirken bir hata oluştu.')
+        showToast({ type: 'error', message: 'Ürün alt kalemi silinirken bir hata oluştu.' })
       }
     }
   }
 
   if (loading) {
-    return <Loading text="Spool'lar yükleniyor..." />
+    return <Loading text="Ürün alt kalemleri yükleniyor..." />
   }
 
   if (error) {
@@ -101,19 +101,19 @@ export default function SpoolsPage() {
   }
 
   if (filteredSpools.length === 0) {
-    return <EmptyState title="Spool bulunamadı" description="Kriterlere uygun spool kaydı yok." />
+    return <EmptyState title="Ürün alt kalemi bulunamadı" description="Kriterlere uygun ürün alt kalemi kaydı yok." />
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Spool Takibi</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Üretim spool&apos;larının durumunu ve ilerlemesini takip edin</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ürün Alt Kalemi Takibi</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Üretim ürün alt kalemlerinin durumunu ve ilerlemesini takip edin</p>
         </div>
         <Link href="/spools/new" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <Plus size={20} />
-          Yeni Spool Ekle
+          Yeni Ürün Alt Kalemi Ekle
         </Link>
       </div>
 
@@ -124,7 +124,7 @@ export default function SpoolsPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Spool ara..."
+              placeholder="Ürün alt kalemi ara..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -162,7 +162,7 @@ export default function SpoolsPage() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Spool Adı
+                  Ürün Alt Kalemi Adı
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Proje

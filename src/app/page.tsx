@@ -100,7 +100,7 @@ export default function Home() {
   const generateActivities = (projects: any[], spools: any[], personnel: any[], workOrders: any[], shipments: any[]): Activity[] => {
     const activities: Activity[] = [];
 
-    // Son tamamlanan spool'lar
+    // Son tamamlanan ürün alt kalemleri
     const recentCompletedSpools = spools
       .filter(spool => spool.status === 'completed')
       .slice(0, 2);
@@ -109,7 +109,7 @@ export default function Home() {
       activities.push({
         id: `spool-${spool.id}`,
         type: 'spool_completed',
-        title: `Spool ${spool.name} tamamlandı`,
+        title: `Ürün Alt Kalemi ${spool.name} tamamlandı`,
         description: `Proje ID: ${spool.project_id}`,
         timestamp: 'Az önce',
         color: 'text-blue-500'
@@ -206,9 +206,9 @@ export default function Home() {
                 href="/projects/new"
               />
               <QuickActionCard
-                title="Yeni Spool"
-                icon="Package"
-                href="/spools/new"
+                        title="Yeni Ürün Alt Kalemi"
+        icon="Package"
+        href="/spools/new"
               />
               <QuickActionCard
                 title="Yeni İş Emri"
@@ -247,7 +247,7 @@ export default function Home() {
             value={stats.activeProjects.toString()}
           />
           <StatCard
-            title="Toplam Spool"
+            title="Toplam Ürün Alt Kalemi"
             value={stats.totalSpools.toString()}
           />
           <StatCard
@@ -376,7 +376,7 @@ function ProjectStatusList({ projects }: { projects: ProjectStatus[] }) {
         <div key={project.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
           <h3 className="font-medium text-gray-900 dark:text-white">{project.name}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {project.spoolCount} spool
+            {project.spoolCount} ürün alt kalemi
           </p>
           <div className="mt-2">
             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

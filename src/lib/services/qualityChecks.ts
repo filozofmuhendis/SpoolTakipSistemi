@@ -54,8 +54,8 @@ export const qualityCheckService = {
     } : null
   },
 
-  // Spool ID'sine göre kalite kontrollerini getir
-  async getQualityChecksBySpoolId(spoolId: string): Promise<QualityCheck[]> {
+      // Ürün alt kalemi ID'sine göre kalite kontrollerini getir
+    async getQualityChecksBySpoolId(spoolId: string): Promise<QualityCheck[]> {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -261,8 +261,8 @@ export const qualityCheckService = {
     return data
   },
 
-  // Spool için son kalite kontrol durumunu getir
-  async getLastQualityCheckForSpool(spoolId: string): Promise<QualityCheck | null> {
+      // Ürün alt kalemi için son kalite kontrol durumunu getir
+    async getLastQualityCheckForSpool(spoolId: string): Promise<QualityCheck | null> {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`

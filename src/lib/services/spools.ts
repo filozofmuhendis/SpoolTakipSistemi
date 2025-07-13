@@ -1,8 +1,8 @@
 import { supabase } from '../supabase'
-import { Spool } from '@/types'
+import { UrunAltKalemi } from '@/types'
 
 export const spoolService = {
-  // Tüm spool'ları getir
+  // Tüm ürün alt kalemlerini getir
   async getAllSpools() {
     try {
       const { data, error } = await supabase
@@ -17,19 +17,19 @@ export const spoolService = {
     }
   },
 
-  // Spool oluştur
-  async createSpool(spool: Omit<Spool, 'id'>) {
+  // Ürün alt kalemi oluştur
+  async createSpool(spool: Omit<UrunAltKalemi, 'id'>) {
     const { data, error } = await supabase
       .from('public.spools')
       .insert(spool)
       .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
       .single()
-    if (error) throw new Error(`Spool oluşturulamadı: ${error.message}`)
+    if (error) throw new Error(`Ürün alt kalemi oluşturulamadı: ${error.message}`)
     return data;
   },
 
-  // Spool güncelle
-  async updateSpool(id: string, updates: Partial<Spool>) {
+  // Ürün alt kalemi güncelle
+  async updateSpool(id: string, updates: Partial<UrunAltKalemi>) {
     const updateData: any = { ...updates };
     const { data, error } = await supabase
       .from('public.spools')
@@ -37,21 +37,21 @@ export const spoolService = {
       .eq('id', id)
       .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
       .single()
-    if (error) throw new Error(`Spool güncellenemedi: ${error.message}`)
+    if (error) throw new Error(`Ürün alt kalemi güncellenemedi: ${error.message}`)
     return data;
   },
 
-  // Spool sil
+  // Ürün alt kalemi sil
   async deleteSpool(id: string) {
     const { error } = await supabase
       .from('public.spools')
       .delete()
       .eq('id', id)
-    if (error) throw new Error(`Spool silinemedi: ${error.message}`)
+    if (error) throw new Error(`Ürün alt kalemi silinemedi: ${error.message}`)
     return true;
   },
 
-  // Spool detayını getir
+  // Ürün alt kalemi detayını getir
   async getSpoolById(id: string) {
     const { data, error } = await supabase
       .from('public.spools')

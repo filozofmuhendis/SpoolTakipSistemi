@@ -174,11 +174,11 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
               )}
             </div>
             <div>
-              <label htmlFor="spool_id" className="block text-sm font-medium mb-2">Spool ID</label>
+              <label htmlFor="spool_id" className="block text-sm font-medium mb-2">Ürün Alt Kalemi ID</label>
               <input
-                {...register('spool_id', { required: 'Spool ID gerekli' })}
+                {...register('spool_id', { required: 'Ürün alt kalemi ID gerekli' })}
                 className="w-full p-2 border rounded-lg"
-                placeholder="Spool ID"
+                placeholder="Ürün Alt Kalemi ID"
               />
               {errors.spool_id && (
                 <span className="text-red-500 text-sm">{errors.spool_id.message}</span>

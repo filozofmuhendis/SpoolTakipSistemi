@@ -12,7 +12,7 @@ import { Project } from '@/types'
 import Link from 'next/link'
 
 const spoolSchema = z.object({
-  name: z.string().min(1, 'Spool adı gereklidir'),
+  name: z.string().min(1, 'Ürün alt kalemi adı gereklidir'),
   project_id: z.string().min(1, 'Proje seçilmelidir'),
   material: z.string().min(1, 'Malzeme gereklidir'),
   diameter: z.string().min(1, 'Çap gereklidir'),
@@ -77,7 +77,7 @@ export default function NewSpoolPage() {
 
       router.push('/spools?success=true')
     } catch (error: any) {
-      setError(error.message || 'Spool oluşturulurken bir hata oluştu')
+      setError(error.message || 'Ürün alt kalemi oluşturulurken bir hata oluştu')
     } finally {
       setLoading(false)
     }
@@ -96,8 +96,8 @@ export default function NewSpoolPage() {
             Geri
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Yeni Spool</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Yeni spool oluşturun</p>
+            <h1 className="text-3xl font-bold">Yeni Ürün Alt Kalemi</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Yeni ürün alt kalemi oluşturun</p>
           </div>
         </div>
       </div>
@@ -112,10 +112,10 @@ export default function NewSpoolPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Spool Adı */}
+            {/* Ürün Alt Kalemi Adı */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Spool Adı *
+                Ürün Alt Kalemi Adı *
               </label>
               <input
                 type="text"

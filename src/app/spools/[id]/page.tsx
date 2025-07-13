@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Edit, Trash2, Package } from 'lucide-react'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
-import { Spool, Project } from '@/types'
+import { UrunAltKalemi, Project } from '@/types'
 import Link from 'next/link'
 
 export default function SpoolDetailPage({ params }: { params: { id: string } }) {
-  const [spool, setSpool] = useState<Spool | null>(null)
+  const [spool, setSpool] = useState<UrunAltKalemi | null>(null)
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,17 +37,17 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
     }
   }
 
-  const handleDeleteSpool = async () => {
-    if (confirm('Bu spool\'u silmek istediğinizden emin misiniz?')) {
-      try {
-        await spoolService.deleteSpool(params.id)
-        router.push('/spools?deleted=true')
-      } catch (error) {
-        console.log('Spool silme hatası:', error)
-        setError('Spool silinirken bir hata oluştu')
+      const handleDeleteSpool = async () => {
+      if (confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
+        try {
+          await spoolService.deleteSpool(params.id)
+          router.push('/spools?deleted=true')
+        } catch (error) {
+          console.log('Ürün alt kalemi silme hatası:', error)
+          setError('Ürün alt kalemi silinirken bir hata oluştu')
+        }
       }
     }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,7 +72,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Spool yükleniyor...</p>
+          <p className="mt-4 text-gray-600">Ürün alt kalemi yükleniyor...</p>
         </div>
       </div>
     )
@@ -82,12 +82,12 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
     return (
       <div className="p-6 w-full max-w-[1600px] mx-auto">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-          {error || 'Spool bulunamadı'}
+          {error || 'Ürün alt kalemi bulunamadı'}
         </div>
         <div className="mt-4">
           <Link href="/spools" className="btn-secondary flex items-center gap-2 w-fit">
             <ArrowLeft className="w-4 h-4" />
-            Spool Listesine Dön
+            Ürün Alt Kalemi Listesine Dön
           </Link>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
           <div>
             <h1 className="text-3xl font-bold">{spool.name}</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Spool detayları
+              Ürün alt kalemi detayları
             </p>
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Spool Adı
+                  Ürün Alt Kalemi Adı
                 </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.name}</p>
               </div>
@@ -207,7 +207,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
         <div className="space-y-6">
           {/* Hızlı İstatistikler */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Spool Bilgileri</h3>
+            <h3 className="text-lg font-semibold mb-4">Ürün Alt Kalemi Bilgileri</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Package className="w-5 h-5 text-blue-500" />

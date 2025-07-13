@@ -28,7 +28,7 @@ export interface Project {
   status?: string;
 }
 
-export interface Spool {
+export interface UrunAltKalemi {
   id: string;
   project_id?: string;
   name?: string;
@@ -45,7 +45,7 @@ export interface Spool {
 export interface JobOrder {
   id: string;
   project_id?: string;
-  spool_id?: string;
+  urun_alt_kalemi_id?: string;
   description?: string;
   status?: string;
   planned_start_date?: string;
