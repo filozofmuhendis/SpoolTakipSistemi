@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Package, MapPin, Calendar, User } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Package, MapPin, Calendar, User, File, Download, Eye } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
+import { storageService } from '@/lib/services/storage'
 import { Inventory } from '@/types'
+import { FileUpload } from '@/lib/services/storage'
 import Link from 'next/link'
 import Loading from '@/components/ui/Loading'
 import ErrorState from '@/components/ui/ErrorState'
@@ -15,6 +17,8 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
   const [inventory, setInventory] = useState<Inventory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [files, setFiles] = useState<FileUpload[]>([])
+  const [loadingFiles, setLoadingFiles] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -30,12 +34,27 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
         return
       }
       setInventory(data)
+      
+      // Dosyaları yükle
+      await loadFiles()
     } catch (error: any) {
       console.error('Envanter yükleme hatası:', error)
       setError(error.message || 'Envanter yüklenirken bir hata oluştu')
       showToast({ type: 'error', message: 'Envanter yüklenirken bir hata oluştu' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadFiles = async () => {
+    try {
+      setLoadingFiles(true)
+      const filesData = await storageService.getFilesByEntity('inventory', params.id)
+      setFiles(filesData)
+    } catch (error) {
+      console.error('Dosya yükleme hatası:', error)
+    } finally {
+      setLoadingFiles(false)
     }
   }
 
@@ -52,6 +71,22 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
       console.error('Silme hatası:', error)
       showToast({ type: 'error', message: 'Silme sırasında bir hata oluştu' })
     }
+  }
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return <File className="w-4 h-4 text-green-500" />
+    if (fileType === 'application/pdf') return <File className="w-4 h-4 text-red-500" />
+    return <File className="w-4 h-4 text-blue-500" />
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   if (loading) return <Loading />
@@ -139,6 +174,69 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
               </p>
             </div>
           )}
+
+          {/* Dosyalar */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4">Dosyalar</h2>
+            {loadingFiles ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <span className="ml-2 text-sm text-gray-600">Dosyalar yükleniyor...</span>
+              </div>
+            ) : files.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        {getFileIcon(file.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {storageService.formatFileSize(file.size)}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {formatDate(file.uploadedAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 btn-secondary flex items-center justify-center gap-1 text-sm"
+                        title="Görüntüle"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Görüntüle
+                      </a>
+                      <a
+                        href={file.url}
+                        download={file.name}
+                        className="flex-1 btn-primary flex items-center justify-center gap-1 text-sm"
+                        title="İndir"
+                      >
+                        <Download className="w-3 h-3" />
+                        İndir
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <File className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                <p>Bu malzeme için henüz dosya yüklenmemiş.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Yan Panel */}
@@ -162,6 +260,15 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
                   <p className="text-sm text-gray-500 dark:text-gray-400">Lokasyon</p>
                   <p className="font-semibold text-gray-900 dark:text-white">
                     {inventory.location || 'Belirtilmemiş'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <File className="w-5 h-5 text-purple-500" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Dosyalar</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {files.length} dosya
                   </p>
                 </div>
               </div>

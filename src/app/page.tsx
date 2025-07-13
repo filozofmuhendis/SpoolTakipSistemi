@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import Link from 'next/link';
-import { BarChart3, Users, Package, TrendingUp, AlertCircle, Clock, Bell, Filter } from 'lucide-react';
+import { BarChart3, Users, Package, TrendingUp, AlertCircle, Clock, Bell, Filter, Plus, FileText, Truck, Box } from 'lucide-react';
 import { projectService } from '@/lib/services/projects';
 import { spoolService } from '@/lib/services/spools';
 import { personnelService } from '@/lib/services/personnel';
@@ -153,7 +153,7 @@ export default function Home() {
       activities.push({
         id: `personnel-${person.id}`,
         type: 'personnel_added',
-        title: `Personel kaydı: ${person.name}`,
+        title: `Personel kaydı: ${person.fullName}`,
         description: `${person.position} pozisyonunda`,
         timestamp: 'Az önce',
         color: 'text-purple-500'
@@ -193,17 +193,44 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Spool Takip Sistemi
-              </h1>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Hoş geldiniz! Bugünkü özet bilgileriniz aşağıda.
-              </p>
+        {/* Hızlı Erişim - Üstte */}
+        <div className="mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Hızlı Erişim
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <QuickActionCard
+                title="Yeni Proje"
+                icon="Plus"
+                href="/projects/new"
+              />
+              <QuickActionCard
+                title="Yeni Spool"
+                icon="Package"
+                href="/spools/new"
+              />
+              <QuickActionCard
+                title="Yeni İş Emri"
+                icon="FileText"
+                href="/work-orders/new"
+              />
+              <QuickActionCard
+                title="Yeni Sevkiyat"
+                icon="Truck"
+                href="/shipments/new"
+              />
+              <QuickActionCard
+                title="Yeni Envanter"
+                icon="Box"
+                href="/inventory/new"
+              />
+              <QuickActionCard
+                title="Personel Ekle"
+                icon="Users"
+                href="/personnel/new"
+              />
             </div>
-            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -214,93 +241,36 @@ export default function Home() {
           <StatCard
             title="Toplam Projeler"
             value={stats.totalProjects.toString()}
-            trend="+12%"
-            icon="BarChart3"
-            description="Bu ay"
-            color="blue"
           />
           <StatCard
             title="Aktif Projeler"
             value={stats.activeProjects.toString()}
-            trend="+5%"
-            icon="TrendingUp"
-            description="Devam eden"
-            color="green"
           />
           <StatCard
             title="Toplam Spool"
             value={stats.totalSpools.toString()}
-            trend="+8%"
-            icon="Package"
-            description="Tüm projelerde"
-            color="purple"
           />
           <StatCard
             title="Bekleyen Sevkiyat"
             value={stats.pendingShipments.toString()}
-            trend="-2%"
-            icon="AlertCircle"
-            description="Bu hafta"
-            color="yellow"
           />
           <StatCard
             title="Tamamlanan Projeler"
             value={stats.completedProjects.toString()}
-            trend="+15%"
-            icon="Clock"
-            description="Bu ay"
-            color="green"
           />
           <StatCard
             title="Toplam Personel"
             value={stats.totalPersonnel.toString()}
-            trend="+3%"
-            icon="Users"
-            description="Aktif"
-            color="indigo"
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Hızlı Erişim */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Hızlı Erişim
-              </h2>
-              <div className="space-y-3">
-                <QuickActionCard
-                  title="Yeni Proje"
-                  icon="Plus"
-                  href="/projects/new"
-                />
-                <QuickActionCard
-                  title="Yeni Spool"
-                  icon="Package"
-                  href="/spools/new"
-                />
-                <QuickActionCard
-                  title="Yeni İş Emri"
-                  icon="FileText"
-                  href="/work-orders/new"
-                />
-                <QuickActionCard
-                  title="Personel Ekle"
-                  icon="Users"
-                  href="/personnel/new"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Aktiviteler */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Son Aktiviteler
-              </h2>
-              <ActivityList activities={activities} />
-            </div>
+        {/* Aktiviteler */}
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Son Aktiviteler
+            </h2>
+            <ActivityList activities={activities} />
           </div>
         </div>
 
@@ -325,6 +295,25 @@ interface QuickActionCardProps {
 }
 
 function QuickActionCard({ title, icon, href }: QuickActionCardProps) {
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'Plus':
+        return <Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      case 'Package':
+        return <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      case 'FileText':
+        return <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      case 'Truck':
+        return <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      case 'Box':
+        return <Box className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      case 'Users':
+        return <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      default:
+        return <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    }
+  }
+
   return (
     <Link
       href={href}
@@ -332,7 +321,7 @@ function QuickActionCard({ title, icon, href }: QuickActionCardProps) {
     >
       <div className="flex-shrink-0">
         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-          <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          {getIcon(icon)}
         </div>
       </div>
       <div className="ml-3">
@@ -345,37 +334,19 @@ function QuickActionCard({ title, icon, href }: QuickActionCardProps) {
 interface StatCardProps {
   title: string;
   value: string;
-  trend: string;
-  icon: string;
-  description: string;
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'orange' | 'indigo';
 }
 
-function StatCard({ title, value, trend, icon, description, color = 'blue' }: StatCardProps) {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400',
-    green: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400',
-    yellow: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400',
-    red: 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400',
-    purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400',
-    orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-400',
-    indigo: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400'
-  };
-
+function StatCard({ title, value }: StatCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
       <div className="flex items-center">
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+        <div className="p-2 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
           <BarChart3 className="w-6 h-6" />
         </div>
         <div className="ml-4">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
           <p className="text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
         </div>
-      </div>
-      <div className="mt-4">
-        <span className="text-sm text-green-600 dark:text-green-400">{trend}</span>
-        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{description}</span>
       </div>
     </div>
   );

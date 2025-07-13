@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { User, Mail, Phone, Building, Calendar, Save, Key, Bell, Shield } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { User, Mail, Phone, Building, Calendar, Save, Key, Bell, Shield, Upload, Camera, X, LogOut, AlertTriangle, Clock, Activity } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
 import { supabase } from '@/lib/supabase'
+import { storageService } from '@/lib/services/storage'
 
 interface UserProfile {
   id: string
@@ -17,13 +18,25 @@ interface UserProfile {
   created_at: string
 }
 
+interface UserActivity {
+  id: string
+  action: string
+  table_name: string
+  record_id: string
+  created_at: string
+  details?: string
+}
+
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, logout, forceLogout } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences | null>(null)
+  const [userActivities, setUserActivities] = useState<UserActivity[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -43,6 +56,7 @@ export default function ProfilePage() {
     if (user) {
       loadProfile()
       loadNotificationPreferences()
+      loadUserActivities()
     }
   }, [user])
 
@@ -84,6 +98,104 @@ export default function ProfilePage() {
       setNotificationPrefs(prefs)
     } catch (error) {
       console.log('Bildirim tercihleri yükleme hatası:', error)
+    }
+  }
+
+  const loadUserActivities = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) {
+        console.log('Kullanıcı aktiviteleri yükleme hatası:', error)
+        return
+      }
+
+      setUserActivities(data || [])
+    } catch (error) {
+      console.log('Kullanıcı aktiviteleri yükleme hatası:', error)
+    }
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    // Dosya tipi kontrolü
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Lütfen geçerli bir resim dosyası seçin.' })
+      return
+    }
+
+    // Dosya boyutu kontrolü (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Dosya boyutu 5MB\'dan küçük olmalıdır.' })
+      return
+    }
+
+    try {
+      setUploadingAvatar(true)
+      
+      // Avatar'ı storage'a yükle
+      const uploadedFile = await storageService.uploadFile(file, 'profiles', user.id)
+      
+      if (uploadedFile) {
+        // Profil tablosunu güncelle
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            avatar_url: uploadedFile.url,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+
+        if (error) {
+          throw error
+        }
+
+        setMessage({ type: 'success', text: 'Profil fotoğrafı başarıyla güncellendi!' })
+        await loadProfile() // Profili yeniden yükle
+      }
+    } catch (error) {
+      console.log('Avatar yükleme hatası:', error)
+      setMessage({ type: 'error', text: 'Profil fotoğrafı yüklenirken hata oluştu.' })
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const removeAvatar = async () => {
+    if (!user || !profile?.avatar_url) return
+
+    try {
+      setUploadingAvatar(true)
+      
+      // Profil tablosundan avatar_url'i kaldır
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        throw error
+      }
+
+      setMessage({ type: 'success', text: 'Profil fotoğrafı kaldırıldı!' })
+      await loadProfile() // Profili yeniden yükle
+    } catch (error) {
+      console.log('Avatar kaldırma hatası:', error)
+      setMessage({ type: 'error', text: 'Profil fotoğrafı kaldırılırken hata oluştu.' })
+    } finally {
+      setUploadingAvatar(false)
     }
   }
 
@@ -208,6 +320,65 @@ export default function ProfilePage() {
           <div className="flex items-center mb-6">
             <User className="w-6 h-6 text-blue-500 mr-2" />
             <h2 className="text-xl font-semibold">Profil Bilgileri</h2>
+          </div>
+
+          {/* Avatar Section */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Profil Fotoğrafı
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt="Profil fotoğrafı"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                    <User className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  </div>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 flex items-center space-x-1"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Fotoğraf Yükle</span>
+                </button>
+                {profile?.avatar_url && (
+                  <button
+                    type="button"
+                    onClick={removeAvatar}
+                    disabled={uploadingAvatar}
+                    className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-gray-400 flex items-center space-x-1"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Kaldır</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              JPG, PNG veya GIF formatında, maksimum 5MB
+            </p>
           </div>
 
           <form onSubmit={handleProfileUpdate} className="space-y-4">
@@ -437,6 +608,86 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* User Activity History */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="flex items-center mb-6">
+          <Activity className="w-6 h-6 text-indigo-500 mr-2" />
+          <h2 className="text-xl font-semibold">Aktivite Geçmişi</h2>
+        </div>
+
+        {userActivities.length > 0 ? (
+          <div className="space-y-3">
+            {userActivities.map((activity) => (
+              <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {activity.action === 'INSERT' && 'Yeni kayıt oluşturuldu'}
+                      {activity.action === 'UPDATE' && 'Kayıt güncellendi'}
+                      {activity.action === 'DELETE' && 'Kayıt silindi'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {activity.table_name} tablosunda
+                    </p>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(activity.created_at).toLocaleString('tr-TR')}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 dark:text-gray-400">Henüz aktivite bulunmuyor</p>
+          </div>
+        )}
+      </div>
+
+      {/* Session Management */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="flex items-center mb-6">
+          <Shield className="w-6 h-6 text-orange-500 mr-2" />
+          <h2 className="text-xl font-semibold">Oturum Yönetimi</h2>
+        </div>
+
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+              Güvenlik Uyarısı
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              Şüpheli aktivite fark ederseniz veya güvenlik endişeniz varsa, tüm oturumlarınızı sonlandırabilirsiniz.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={logout}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Çıkış Yap
+            </button>
+            
+            <button
+              onClick={forceLogout}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              Tüm Oturumları Sonlandır
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            <p>• <strong>Çıkış Yap:</strong> Sadece bu oturumu sonlandırır</p>
+            <p>• <strong>Tüm Oturumları Sonlandır:</strong> Tüm cihazlardaki oturumları sonlandırır</p>
+          </div>
+        </div>
       </div>
     </div>
   )

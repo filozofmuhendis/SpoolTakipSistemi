@@ -1,4 +1,4 @@
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -39,11 +39,45 @@ export function useAuth() {
     router.refresh()
   }
 
+  const logout = async () => {
+    try {
+      await signOut({ redirect: false })
+      router.push('/login')
+    } catch (error) {
+      console.error('Çıkış hatası:', error)
+    }
+  }
+
+  const forceLogout = async () => {
+    try {
+      // Tüm oturumları sonlandır
+      await supabase.auth.signOut()
+      await signOut({ redirect: false })
+      router.push('/login')
+    } catch (error) {
+      console.error('Zorla çıkış hatası:', error)
+    }
+  }
+
+  const getActiveSessions = async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) throw error
+      return session ? [session] : []
+    } catch (error) {
+      console.error('Aktif oturumlar alınamadı:', error)
+      return []
+    }
+  }
+
   return {
     user: session?.user,
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated',
     signUp,
     updateProfile,
+    logout,
+    forceLogout,
+    getActiveSessions,
   }
 }

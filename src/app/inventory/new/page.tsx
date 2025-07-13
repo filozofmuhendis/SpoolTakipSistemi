@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Upload, File, Trash2 } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
 import { projectService } from '@/lib/services/projects'
 import { storageService } from '@/lib/services/storage'
@@ -28,6 +28,9 @@ export default function NewInventoryPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
 
   const {
@@ -60,10 +63,74 @@ export default function NewInventoryPage() {
     loadProjects()
   }, [])
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    
+    // Dosya tipi ve boyut kontrolü
+    const validFiles = files.filter(file => {
+      const allowedTypes = ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      
+      if (!storageService.isValidFileType(file, allowedTypes)) {
+        showToast({ type: 'error', message: `${file.name} dosya tipi desteklenmiyor.` })
+        return false
+      }
+      
+      if (!storageService.isValidFileSize(file, maxSize)) {
+        showToast({ type: 'error', message: `${file.name} dosyası çok büyük. Maksimum 5MB olmalı.` })
+        return false
+      }
+      
+      return true
+    })
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles])
+    }
+  }
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const uploadFiles = async (inventoryId: string) => {
+    const uploadPromises = selectedFiles.map(async (file) => {
+      setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
+      
+      try {
+        const uploadedFile = await storageService.uploadFile(file, 'inventory', inventoryId)
+        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
+        return uploadedFile
+      } catch (error) {
+        console.log('Dosya yükleme hatası:', error)
+        setUploadProgress(prev => ({ ...prev, [file.name]: -1 }))
+        return null
+      }
+    })
+
+    const results = await Promise.all(uploadPromises)
+    const successfulUploads = results.filter(result => result !== null)
+    
+    if (successfulUploads.length > 0) {
+      showToast({ type: 'success', message: `${successfulUploads.length} dosya başarıyla yüklendi.` })
+    }
+    
+    // Progress'i temizle
+    setTimeout(() => {
+      setUploadProgress({})
+    }, 3000)
+  }
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return <File className="w-4 h-4 text-green-500" />
+    if (fileType === 'application/pdf') return <File className="w-4 h-4 text-red-500" />
+    return <File className="w-4 h-4 text-blue-500" />
+  }
+
   const onSubmit: SubmitHandler<InventoryFormData> = async (data) => {
     setLoading(true)
     try {
-      await inventoryService.createInventory({
+      const newInventory = await inventoryService.createInventory({
         name: data.name,
         description: data.description || undefined,
         quantity: data.quantity,
@@ -71,6 +138,12 @@ export default function NewInventoryPage() {
         notes: data.notes || undefined,
         created_by: data.created_by || undefined
       })
+
+      // Malzeme oluşturulduktan sonra dosyaları yükle
+      if (newInventory && selectedFiles.length > 0) {
+        await uploadFiles(newInventory.id)
+      }
+
       showToast({ type: 'success', message: 'Malzeme başarıyla eklendi!' })
       router.push('/inventory')
     } catch (error: any) {
@@ -169,6 +242,96 @@ export default function NewInventoryPage() {
               </div>
             </div>
           </div>
+
+          {/* Dosya Seçme Alanı */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Dosyalar</h3>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-4">
+                <p className="text-sm text-gray-600">
+                  Dosyaları seçmek için{' '}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-blue-600 hover:text-blue-500 font-medium"
+                  >
+                    tıklayın
+                  </button>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Maksimum 10 dosya, 5MB boyutunda (Resim, PDF, Word)
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Seçilen Dosyalar */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-gray-700">
+                Seçilen Dosyalar ({selectedFiles.length})
+              </h4>
+              <div className="space-y-2">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      {getFileIcon(file.type)}
+                      <span className="text-sm font-medium">{file.name}</span>
+                      <span className="text-xs text-gray-500">
+                        ({storageService.formatFileSize(file.size)})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Yükleme İlerlemesi */}
+          {Object.keys(uploadProgress).length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-gray-700">Dosya Yükleme İlerlemesi</h4>
+              {Object.entries(uploadProgress).map(([fileName, progress]) => (
+                <div key={fileName} className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      {fileName}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {progress === -1 ? 'Hata' : `${progress}%`}
+                    </span>
+                  </div>
+                  {progress !== -1 && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Butonlar */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">

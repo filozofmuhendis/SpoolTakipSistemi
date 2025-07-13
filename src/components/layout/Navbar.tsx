@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, User, LogOut, Settings } from 'lucide-react'
+import { Menu, X, User, LogOut, Settings, Bell } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import NotificationBell from '@/components/ui/NotificationBell'
@@ -19,7 +19,7 @@ export default function Navbar() {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: '🏠' },
     { name: 'Projeler', href: '/projects', icon: '📊' },
-    { name: 'Spool\'lar', href: '/spools', icon: '🔧' },
+    { name: 'Spoollar', href: '/spools', icon: '🔧' },
     { name: 'Personel', href: '/personnel', icon: '👥' },
     { name: 'İş Emirleri', href: '/work-orders', icon: '📋' },
     { name: 'Sevkiyat', href: '/shipments', icon: '🚚' },
@@ -47,12 +47,9 @@ export default function Navbar() {
             </button>
 
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
+            <Link href="/" className="flex items-center space-x-10">
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                SpoolTakip
+                AtölyeAkış
               </span>
             </Link>
 
@@ -80,16 +77,16 @@ export default function Navbar() {
 
           {/* Right side - Search, Notifications, Profile */}
           <div className="flex items-center space-x-4">
-            {/* Global Search */}
+            {/* Global Search 
             <div className="hidden md:block">
               <GlobalSearch />
-            </div>
+            </div>*/}
 
             {/* Notifications */}
             <NotificationBell />
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* Theme Toggle 
+            <ThemeToggle />*/}
 
             {/* Profile Dropdown */}
             <div className="relative">
@@ -128,12 +125,21 @@ export default function Navbar() {
                     </Link>
                     
                     <Link
-                      href="/settings"
+                      href="/notifications"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      <Bell className="w-4 h-4 mr-2" />
+                      Bildirimler
+                    </Link>
+                    
+                    <Link
+                      href="/notifications/settings"
                       onClick={() => setIsProfileOpen(false)}
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       <Settings className="w-4 h-4 mr-2" />
-                      Ayarlar
+                      Bildirim Ayarları
                     </Link>
                     
                     <button

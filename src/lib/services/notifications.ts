@@ -6,11 +6,13 @@ export interface Notification {
   message: string
   type: 'info' | 'success' | 'warning' | 'error'
   userId: string
-  entityType?: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment'
+  entityType?: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment' | 'inventory'
   entityId?: string
   read: boolean
   createdAt: string
   actionUrl?: string
+  priority?: 'low' | 'normal' | 'high' | 'urgent'
+  expiresAt?: string
 }
 
 export interface NotificationPreferences {
@@ -23,6 +25,18 @@ export interface NotificationPreferences {
   personnelUpdates: boolean
   workOrderUpdates: boolean
   shipmentUpdates: boolean
+  inventoryAlerts: boolean
+}
+
+export interface NotificationFilters {
+  type?: 'all' | 'unread' | 'read'
+  priority?: 'all' | 'low' | 'normal' | 'high' | 'urgent'
+  entityType?: string
+  dateRange?: {
+    start: string
+    end: string
+  }
+  search?: string
 }
 
 export const notificationService = {
@@ -34,7 +48,8 @@ export const notificationService = {
         .insert({
           ...notification,
           read: false,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          priority: notification.priority || 'normal'
         })
         .select()
         .single()
@@ -52,12 +67,41 @@ export const notificationService = {
   },
 
   // Kullanıcının bildirimlerini getir
-  async getUserNotifications(userId: string, limit = 50): Promise<Notification[]> {
+  async getUserNotifications(userId: string, limit = 50, filters?: NotificationFilters): Promise<Notification[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('notifications')
         .select('*')
         .eq('userId', userId)
+
+      // Filtreler uygula
+      if (filters) {
+        if (filters.type === 'unread') {
+          query = query.eq('read', false)
+        } else if (filters.type === 'read') {
+          query = query.eq('read', true)
+        }
+
+        if (filters.priority && filters.priority !== 'all') {
+          query = query.eq('priority', filters.priority)
+        }
+
+        if (filters.entityType) {
+          query = query.eq('entityType', filters.entityType)
+        }
+
+        if (filters.dateRange) {
+          query = query
+            .gte('createdAt', filters.dateRange.start)
+            .lte('createdAt', filters.dateRange.end)
+        }
+
+        if (filters.search) {
+          query = query.or(`title.ilike.%${filters.search}%,message.ilike.%${filters.search}%`)
+        }
+      }
+
+      const { data, error } = await query
         .order('createdAt', { ascending: false })
         .limit(limit)
 
@@ -115,6 +159,26 @@ export const notificationService = {
     }
   },
 
+  // Toplu okundu işaretleme
+  async markMultipleAsRead(notificationIds: string[]): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .in('id', notificationIds)
+
+      if (error) {
+        console.log('Toplu okundu işaretleme hatası:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.log('Toplu okundu işaretleme hatası:', error)
+      return false
+    }
+  },
+
   // Tüm bildirimleri okundu olarak işaretle
   async markAllAsRead(userId: string): Promise<boolean> {
     try {
@@ -152,6 +216,47 @@ export const notificationService = {
       return true
     } catch (error) {
       console.log('Bildirim silme hatası:', error)
+      return false
+    }
+  },
+
+  // Toplu silme
+  async deleteMultipleNotifications(notificationIds: string[]): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', notificationIds)
+
+      if (error) {
+        console.log('Toplu silme hatası:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.log('Toplu silme hatası:', error)
+      return false
+    }
+  },
+
+  // Süresi dolmuş bildirimleri temizle
+  async cleanupExpiredNotifications(): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .not('expiresAt', 'is', null)
+        .lt('expiresAt', new Date().toISOString())
+
+      if (error) {
+        console.log('Süresi dolmuş bildirimleri temizleme hatası:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.log('Süresi dolmuş bildirimleri temizleme hatası:', error)
       return false
     }
   },
@@ -202,7 +307,8 @@ export const notificationService = {
     entityId: string,
     action: 'created' | 'updated' | 'deleted' | 'status_changed',
     entityName: string,
-    userIds: string[]
+    userIds: string[],
+    priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal'
   ): Promise<void> {
     const messages = {
       created: `${entityName} oluşturuldu`,
@@ -233,7 +339,8 @@ export const notificationService = {
         userId,
         entityType,
         entityId,
-        actionUrl: `/${entityType}s/${entityId}`
+        actionUrl: `/${entityType}s/${entityId}`,
+        priority
       })
     }
   },
@@ -256,6 +363,95 @@ export const notificationService = {
     } catch (error) {
       console.log('Okunmamış bildirim sayısı getirme hatası:', error)
       return 0
+    }
+  },
+
+  // Bildirim istatistiklerini getir
+  async getNotificationStats(userId: string): Promise<{
+    total: number
+    unread: number
+    read: number
+    byType: Record<string, number>
+    byPriority: Record<string, number>
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('userId', userId)
+
+      if (error) {
+        console.log('Bildirim istatistikleri getirme hatası:', error)
+        return {
+          total: 0,
+          unread: 0,
+          read: 0,
+          byType: {},
+          byPriority: {}
+        }
+      }
+
+      const notifications = data || []
+      const byType: Record<string, number> = {}
+      const byPriority: Record<string, number> = {}
+
+      notifications.forEach(notification => {
+        // Tür bazında sayım
+        byType[notification.type] = (byType[notification.type] || 0) + 1
+        
+        // Öncelik bazında sayım
+        const priority = notification.priority || 'normal'
+        byPriority[priority] = (byPriority[priority] || 0) + 1
+      })
+
+      return {
+        total: notifications.length,
+        unread: notifications.filter(n => !n.read).length,
+        read: notifications.filter(n => n.read).length,
+        byType,
+        byPriority
+      }
+    } catch (error) {
+      console.log('Bildirim istatistikleri getirme hatası:', error)
+      return {
+        total: 0,
+        unread: 0,
+        read: 0,
+        byType: {},
+        byPriority: {}
+      }
+    }
+  },
+
+  // Email bildirimi gönder (placeholder)
+  async sendEmailNotification(userId: string, notification: Notification): Promise<boolean> {
+    // Bu fonksiyon email servisi entegrasyonu için placeholder
+    // Gerçek implementasyonda email servisi (SendGrid, Mailgun vb.) kullanılabilir
+    console.log('Email bildirimi gönderiliyor:', { userId, notification })
+    return true
+  },
+
+  // Push notification gönder
+  async sendPushNotification(userId: string, notification: Notification): Promise<boolean> {
+    try {
+      // Service Worker üzerinden push notification gönder
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const registration = await navigator.serviceWorker.ready
+        await registration.showNotification(notification.title, {
+          body: notification.message,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-72x72.png',
+          data: {
+            url: notification.actionUrl,
+            notificationId: notification.id
+          }
+        })
+        return true
+      }
+      return false
+    } catch (error) {
+      console.log('Push notification gönderme hatası:', error)
+      return false
     }
   }
 } 

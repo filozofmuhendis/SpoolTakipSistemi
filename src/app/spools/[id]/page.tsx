@@ -171,13 +171,13 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.diameter}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Kalınlık
-                </label>
+                  </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.thickness}</p>
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Uzunluk
@@ -237,17 +237,17 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                   <span className="text-xs font-bold">L</span>
-                </div>
+            </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Uzunluk</p>
                   <p className="font-medium">{spool.length}</p>
-                </div>
+          </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                   <span className="text-xs font-bold">W</span>
                 </div>
-                <div>
+              <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Ağırlık</p>
                   <p className="font-medium">{spool.weight}</p>
                 </div>

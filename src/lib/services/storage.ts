@@ -8,7 +8,7 @@ export interface FileUpload {
   type: string
   uploadedAt: string
   uploadedBy: string
-  entityType: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment' | 'inventory'
+  entityType: 'spool' | 'project' | 'personnel' | 'workOrder' | 'shipment' | 'inventory' | 'profiles'
   entityId: string
   description?: string
 }

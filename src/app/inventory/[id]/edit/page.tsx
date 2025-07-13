@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Upload, File, Trash2, Download, Eye } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
 import { projectService } from '@/lib/services/projects'
+import { storageService } from '@/lib/services/storage'
 import { Project, Inventory } from '@/types'
+import { FileUpload } from '@/lib/services/storage'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/ToastProvider'
 import Loading from '@/components/ui/Loading'
@@ -30,6 +32,11 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
   const [saving, setSaving] = useState(false)
   const [inventory, setInventory] = useState<Inventory | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
+  const [files, setFiles] = useState<FileUpload[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
+  const [loadingFiles, setLoadingFiles] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
 
   const {
@@ -65,6 +72,9 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
           location: inventoryData.location || '',
           notes: inventoryData.notes || ''
         })
+
+        // Dosyaları yükle
+        await loadFiles()
       } catch (error: any) {
         console.error('Veri yükleme hatası:', error)
         showToast({ type: 'error', message: error.message || 'Veri yüklenirken bir hata oluştu' })
@@ -76,6 +86,109 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
     loadData()
   }, [params.id, reset, showToast])
 
+  const loadFiles = async () => {
+    try {
+      setLoadingFiles(true)
+      const filesData = await storageService.getFilesByEntity('inventory', params.id)
+      setFiles(filesData)
+    } catch (error) {
+      console.error('Dosya yükleme hatası:', error)
+    } finally {
+      setLoadingFiles(false)
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    
+    // Dosya tipi ve boyut kontrolü
+    const validFiles = files.filter(file => {
+      const allowedTypes = ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      
+      if (!storageService.isValidFileType(file, allowedTypes)) {
+        showToast({ type: 'error', message: `${file.name} dosya tipi desteklenmiyor.` })
+        return false
+      }
+      
+      if (!storageService.isValidFileSize(file, maxSize)) {
+        showToast({ type: 'error', message: `${file.name} dosyası çok büyük. Maksimum 5MB olmalı.` })
+        return false
+      }
+      
+      return true
+    })
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles])
+    }
+  }
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const deleteExistingFile = async (fileId: string) => {
+    try {
+      const success = await storageService.deleteFile(fileId)
+      if (success) {
+        setFiles(prev => prev.filter(f => f.id !== fileId))
+        showToast({ type: 'success', message: 'Dosya silindi' })
+      } else {
+        showToast({ type: 'error', message: 'Dosya silinirken hata oluştu' })
+      }
+    } catch (error) {
+      console.error('Dosya silme hatası:', error)
+      showToast({ type: 'error', message: 'Dosya silinirken hata oluştu' })
+    }
+  }
+
+  const uploadFiles = async () => {
+    const uploadPromises = selectedFiles.map(async (file) => {
+      setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
+      
+      try {
+        const uploadedFile = await storageService.uploadFile(file, 'inventory', params.id)
+        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
+        return uploadedFile
+      } catch (error) {
+        console.log('Dosya yükleme hatası:', error)
+        setUploadProgress(prev => ({ ...prev, [file.name]: -1 }))
+        return null
+      }
+    })
+
+    const results = await Promise.all(uploadPromises)
+    const successfulUploads = results.filter(result => result !== null)
+    
+    if (successfulUploads.length > 0) {
+      setFiles(prev => [...prev, ...successfulUploads])
+      setSelectedFiles([])
+      showToast({ type: 'success', message: `${successfulUploads.length} dosya başarıyla yüklendi.` })
+    }
+    
+    // Progress'i temizle
+    setTimeout(() => {
+      setUploadProgress({})
+    }, 3000)
+  }
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return <File className="w-4 h-4 text-green-500" />
+    if (fileType === 'application/pdf') return <File className="w-4 h-4 text-red-500" />
+    return <File className="w-4 h-4 text-blue-500" />
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   const onSubmit = async (data: InventoryFormData) => {
     setSaving(true)
     try {
@@ -86,6 +199,11 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
         location: data.location,
         notes: data.notes || undefined
       })
+
+      // Yeni dosyaları yükle
+      if (selectedFiles.length > 0) {
+        await uploadFiles()
+      }
 
       showToast({ type: 'success', message: 'Malzeme başarıyla güncellendi!' })
       router.push(`/inventory/${params.id}`)
@@ -187,6 +305,162 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
                 />
               </div>
             </div>
+          </div>
+
+          {/* Dosya Yönetimi */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Dosyalar</h3>
+            
+            {/* Mevcut Dosyalar */}
+            {files.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Mevcut Dosyalar ({files.length})</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {files.map((file) => (
+                    <div
+                      key={file.id}
+                      className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          {getFileIcon(file.type)}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {storageService.formatFileSize(file.size)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatDate(file.uploadedAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 btn-secondary flex items-center justify-center gap-1 text-sm"
+                          title="Görüntüle"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Görüntüle
+                        </a>
+                        <a
+                          href={file.url}
+                          download={file.name}
+                          className="flex-1 btn-primary flex items-center justify-center gap-1 text-sm"
+                          title="İndir"
+                        >
+                          <Download className="w-3 h-3" />
+                          İndir
+                        </a>
+                        <button
+                          onClick={() => file.id && deleteExistingFile(file.id)}
+                          className="btn-danger flex items-center justify-center gap-1 text-sm"
+                          title="Sil"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Sil
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Yeni Dosya Ekleme */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Yeni Dosya Ekle</h4>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600">
+                    Dosyaları seçmek için{' '}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-blue-600 hover:text-blue-500 font-medium"
+                    >
+                      tıklayın
+                    </button>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maksimum 10 dosya, 5MB boyutunda (Resim, PDF, Word)
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Seçilen Dosyalar */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">
+                  Seçilen Dosyalar ({selectedFiles.length})
+                </h4>
+                <div className="space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        {getFileIcon(file.type)}
+                        <span className="text-sm font-medium">{file.name}</span>
+                        <span className="text-xs text-gray-500">
+                          ({storageService.formatFileSize(file.size)})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedFile(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Yükleme İlerlemesi */}
+            {Object.keys(uploadProgress).length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">Dosya Yükleme İlerlemesi</h4>
+                {Object.entries(uploadProgress).map(([fileName, progress]) => (
+                  <div key={fileName} className="bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        {fileName}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {progress === -1 ? 'Hata' : `${progress}%`}
+                      </span>
+                    </div>
+                    {progress !== -1 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Butonlar */}
