@@ -20,7 +20,9 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-    getAllPersonnelBasic().then(setPersonnelList).catch(() => {});
+    getAllPersonnelBasic()
+      .then(list => setPersonnelList(list.map(p => ({ id: p.id, name: p.name ?? "" }))))
+      .catch(() => {});
     // eslint-disable-next-line
   }, [filter]);
 

@@ -8,20 +8,19 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
-import { personnelService } from '@/lib/services/personnel'
-import { Project, Personnel } from '@/types'
+import { Project } from '@/types'
 import Link from 'next/link'
 
 const spoolSchema = z.object({
-  name: z.string().min(1, 'Spool adı gereklidir'),
-  projectId: z.string().min(1, 'Proje seçilmelidir'),
-  status: z.enum(['pending', 'active', 'completed']).default('pending'),
-  assignedTo: z.string().optional(),
-  quantity: z.number().min(1, 'Miktar en az 1 olmalıdır'),
-  completedQuantity: z.number().min(0, 'Tamamlanan miktar 0 veya daha fazla olmalıdır').default(0),
-  startDate: z.string().min(1, 'Başlangıç tarihi gereklidir'),
-  endDate: z.string().optional(),
-  description: z.string().optional()
+  name: z.string().min(1, 'Ürün alt kalemi adı gereklidir'),
+  project_id: z.string().min(1, 'Proje seçilmelidir'),
+  material: z.string().min(1, 'Malzeme gereklidir'),
+  diameter: z.string().min(1, 'Çap gereklidir'),
+  thickness: z.string().min(1, 'Kalınlık gereklidir'),
+  length: z.string().min(1, 'Uzunluk gereklidir'),
+  weight: z.string().min(1, 'Ağırlık gereklidir'),
+  status: z.enum(['pending', 'active', 'completed']),
+  notes: z.string().optional()
 })
 
 type SpoolFormData = z.infer<typeof spoolSchema>
@@ -29,7 +28,6 @@ type SpoolFormData = z.infer<typeof spoolSchema>
 export default function NewSpoolPage() {
   const [loading, setLoading] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
-  const [personnel, setPersonnel] = useState<Personnel[]>([])
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -42,8 +40,7 @@ export default function NewSpoolPage() {
   } = useForm<SpoolFormData>({
     resolver: zodResolver(spoolSchema),
     defaultValues: {
-      status: 'pending',
-      completedQuantity: 0
+      status: 'pending'
     }
   })
 
@@ -53,12 +50,8 @@ export default function NewSpoolPage() {
 
   const loadData = async () => {
     try {
-      const [projectsData, personnelData] = await Promise.all([
-        projectService.getAllProjects(),
-        personnelService.getAllPersonnel()
-      ])
+      const projectsData = await projectService.getAllProjects()
       setProjects(projectsData)
-      setPersonnel(personnelData)
     } catch (error) {
       console.log('Veri yüklenirken hata:', error)
       setError('Veriler yüklenirken bir hata oluştu')
@@ -72,25 +65,25 @@ export default function NewSpoolPage() {
 
       await spoolService.createSpool({
         name: data.name,
-        projectId: data.projectId,
+        project_id: data.project_id,
+        material: data.material,
+        diameter: parseFloat(data.diameter) || 0,
+        thickness: parseFloat(data.thickness) || 0,
+        length: parseFloat(data.length) || 0,
+        weight: parseFloat(data.weight) || 0,
         status: data.status,
-        assignedTo: data.assignedTo,
-        quantity: data.quantity,
-        completedQuantity: data.completedQuantity,
-        startDate: data.startDate,
-        endDate: data.endDate || undefined,
-        description: data.description
+        notes: data.notes
       })
 
       router.push('/spools?success=true')
     } catch (error: any) {
-      setError(error.message || 'Spool oluşturulurken bir hata oluştu')
+      setError(error.message || 'Ürün alt kalemi oluşturulurken bir hata oluştu')
     } finally {
       setLoading(false)
     }
   }
 
-  const selectedProjectId = watch('projectId')
+  const selectedProjectId = watch('project_id')
   const selectedProject = projects.find(p => p.id === selectedProjectId)
 
   return (
@@ -103,8 +96,8 @@ export default function NewSpoolPage() {
             Geri
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Yeni Spool</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Yeni spool oluşturun</p>
+            <h1 className="text-3xl font-bold">Yeni Ürün Alt Kalemi</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Yeni ürün alt kalemi oluşturun</p>
           </div>
         </div>
       </div>
@@ -119,10 +112,10 @@ export default function NewSpoolPage() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Spool Adı */}
+            {/* Ürün Alt Kalemi Adı */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Spool Adı *
+                Ürün Alt Kalemi Adı *
               </label>
               <input
                 type="text"
@@ -141,18 +134,98 @@ export default function NewSpoolPage() {
                 Proje *
               </label>
               <select
-                {...register('projectId')}
+                {...register('project_id')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="">Proje seçin</option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
-                    {project.name} - {project.status === 'active' ? 'Aktif' : project.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
+                    {project.name}
                   </option>
                 ))}
               </select>
-              {errors.projectId && (
-                <p className="mt-1 text-sm text-red-600">{errors.projectId.message}</p>
+              {errors.project_id && (
+                <p className="mt-1 text-sm text-red-600">{errors.project_id.message}</p>
+              )}
+            </div>
+
+            {/* Malzeme */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Malzeme *
+              </label>
+              <input
+                type="text"
+                {...register('material')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Örn: Çelik, Paslanmaz Çelik"
+              />
+              {errors.material && (
+                <p className="mt-1 text-sm text-red-600">{errors.material.message}</p>
+              )}
+            </div>
+
+            {/* Çap */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Çap *
+              </label>
+              <input
+                type="text"
+                {...register('diameter')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Örn: 50mm, 2 inch"
+              />
+              {errors.diameter && (
+                <p className="mt-1 text-sm text-red-600">{errors.diameter.message}</p>
+              )}
+            </div>
+
+            {/* Kalınlık */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Kalınlık *
+              </label>
+              <input
+                type="text"
+                {...register('thickness')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Örn: 3mm, 0.125 inch"
+              />
+              {errors.thickness && (
+                <p className="mt-1 text-sm text-red-600">{errors.thickness.message}</p>
+              )}
+            </div>
+
+            {/* Uzunluk */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Uzunluk *
+              </label>
+              <input
+                type="text"
+                {...register('length')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Örn: 5m, 16.4 ft"
+              />
+              {errors.length && (
+                <p className="mt-1 text-sm text-red-600">{errors.length.message}</p>
+              )}
+            </div>
+
+            {/* Ağırlık */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Ağırlık *
+              </label>
+              <input
+                type="text"
+                {...register('weight')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Örn: 25kg, 55 lbs"
+              />
+              {errors.weight && (
+                <p className="mt-1 text-sm text-red-600">{errors.weight.message}</p>
               )}
             </div>
 
@@ -170,139 +243,27 @@ export default function NewSpoolPage() {
                 <option value="completed">Tamamlandı</option>
               </select>
             </div>
-
-            {/* Atanan Personel */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Atanan Personel
-              </label>
-              <select
-                {...register('assignedTo')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="">Personel seçin</option>
-                {personnel.filter(p => p.status === 'active').map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name} - {person.position}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Miktar */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Toplam Miktar *
-              </label>
-              <input
-                type="number"
-                {...register('quantity', { valueAsNumber: true })}
-                min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="1"
-              />
-              {errors.quantity && (
-                <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>
-              )}
-            </div>
-
-            {/* Tamamlanan Miktar */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tamamlanan Miktar
-              </label>
-              <input
-                type="number"
-                {...register('completedQuantity', { valueAsNumber: true })}
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="0"
-              />
-              {errors.completedQuantity && (
-                <p className="mt-1 text-sm text-red-600">{errors.completedQuantity.message}</p>
-              )}
-            </div>
-
-            {/* Başlangıç Tarihi */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Başlangıç Tarihi *
-              </label>
-              <input
-                type="date"
-                {...register('startDate')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-              {errors.startDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-              )}
-            </div>
-
-            {/* Bitiş Tarihi */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Bitiş Tarihi
-              </label>
-              <input
-                type="date"
-                {...register('endDate')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
-            </div>
           </div>
 
-          {/* Açıklama */}
+          {/* Notlar */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Açıklama
+              Notlar
             </label>
             <textarea
-              {...register('description')}
+              {...register('notes')}
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Spool hakkında detaylı açıklama..."
+              placeholder="Spool hakkında ek bilgiler..."
             />
           </div>
 
-          {/* Seçili Proje Bilgileri */}
-          {selectedProject && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                Seçili Proje Bilgileri
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-blue-600 dark:text-blue-400">Proje:</span>
-                  <p className="text-blue-800 dark:text-blue-200 font-medium">{selectedProject.name}</p>
-                </div>
-                <div>
-                  <span className="text-blue-600 dark:text-blue-400">Durum:</span>
-                  <p className="text-blue-800 dark:text-blue-200 font-medium">
-                    {selectedProject.status === 'active' ? 'Aktif' : 
-                     selectedProject.status === 'completed' ? 'Tamamlandı' : 'Beklemede'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-blue-600 dark:text-blue-400">Başlangıç:</span>
-                  <p className="text-blue-800 dark:text-blue-200 font-medium">
-                    {new Date(selectedProject.startDate).toLocaleDateString('tr-TR')}
-                  </p>
-                </div>
-                {selectedProject.endDate && (
-                  <div>
-                    <span className="text-blue-600 dark:text-blue-400">Bitiş:</span>
-                    <p className="text-blue-800 dark:text-blue-200 font-medium">
-                      {new Date(selectedProject.endDate).toLocaleDateString('tr-TR')}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Buttons */}
+          {/* Butonlar */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Link href="/spools" className="btn-secondary flex items-center gap-2">
+            <Link
+              href="/spools"
+              className="btn-secondary flex items-center gap-2"
+            >
               <X className="w-4 h-4" />
               İptal
             </Link>
@@ -311,12 +272,8 @@ export default function NewSpoolPage() {
               disabled={loading}
               className="btn-primary flex items-center gap-2"
             >
-              {loading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
                 <Save className="w-4 h-4" />
-              )}
-              Spool Oluştur
+              {loading ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>

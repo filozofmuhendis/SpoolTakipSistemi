@@ -4,23 +4,32 @@ import { QualityCheck } from '@/types'
 export const qualityCheckService = {
   // Tüm kalite kontrollerini getir
   async getAllQualityChecks(): Promise<QualityCheck[]> {
-    const { data, error } = await supabase
-      .from('quality_checks')
-      .select(`
-        *,
-        spools:spool_id(name),
-        work_orders:work_order_id(number),
-        personnel:inspector_id(name)
-      `)
-      .order('check_date', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('quality_checks')
+        .select(`
+          *,
+          spools:spool_id(name),
+          work_orders:work_order_id(number),
+          personnel:inspector_id(name)
+        `)
+        .order('check_date', { ascending: false })
 
-    if (error) throw error
-    return data?.map(item => ({
-      ...item,
-      spoolName: item.spools?.name,
-      workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
-    })) || []
+      if (error) {
+        console.error('Kalite kontrol listesi alma hatası:', error)
+        throw new Error(`Kalite kontrol listesi alınamadı: ${error.message}`)
+      }
+
+      return data?.map(item => ({
+        ...item,
+        spoolName: item.spools?.name,
+        workOrderNumber: item.work_orders?.number,
+        inspectorName: item.personnel?.name
+      })) || []
+    } catch (error) {
+      console.error('Kalite kontrol listesi alma hatası:', error)
+      throw error
+    }
   },
 
   // ID'ye göre kalite kontrol getir
@@ -45,8 +54,8 @@ export const qualityCheckService = {
     } : null
   },
 
-  // Spool ID'sine göre kalite kontrollerini getir
-  async getQualityChecksBySpoolId(spoolId: string): Promise<QualityCheck[]> {
+      // Ürün alt kalemi ID'sine göre kalite kontrollerini getir
+    async getQualityChecksBySpoolId(spoolId: string): Promise<QualityCheck[]> {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -252,8 +261,8 @@ export const qualityCheckService = {
     return data
   },
 
-  // Spool için son kalite kontrol durumunu getir
-  async getLastQualityCheckForSpool(spoolId: string): Promise<QualityCheck | null> {
+      // Ürün alt kalemi için son kalite kontrol durumunu getir
+    async getLastQualityCheckForSpool(spoolId: string): Promise<QualityCheck | null> {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -306,4 +315,4 @@ export const qualityCheckService = {
       passRate: total > 0 ? ((passed + conditional) / total) * 100 : 0
     }
   }
-} 
+}

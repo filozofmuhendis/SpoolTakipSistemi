@@ -6,14 +6,12 @@ import { ArrowLeft, Camera, Upload } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
 import { useToast } from '@/components/ui/ToastProvider'
-import { storageService } from '@/lib/services/storage'
+import { storageService, FileUpload } from '@/lib/services/storage'
 
 interface IncomingMaterialForm {
-  projectId: string
-  date: string
-  company: string
-  waybillNo: string
-  description: string
+  project_id: string
+  shipment_date: string
+  notes: string
   photos: FileList
   documents: FileList
 }
@@ -23,42 +21,46 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<any[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<FileUpload[]>([])
   const { showToast } = useToast()
 
   useEffect(() => {
     projectService.getAllProjects().then(setProjects)
   }, [])
 
+  const uploadFiles = async (files: File[], shipmentId: string) => {
+    const uploaded: FileUpload[] = []
+    for (const file of files) {
+      const result = await storageService.uploadFile(file, 'shipment', shipmentId)
+      if (result) {
+        uploaded.push(result)
+        showToast({ type: 'success', message: `${file.name} yüklendi!` })
+      } else {
+        showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
+      }
+    }
+    return uploaded
+  }
+
   const onSubmit = async (data: IncomingMaterialForm) => {
     setIsLoading(true)
     setError(null)
-    
+    setUploadedFiles([])
     try {
       const shipment = await shipmentService.createShipment({
-        number: `IN-${Date.now()}`,
-        projectId: data.projectId,
+        project_id: data.project_id,
         status: 'pending',
-        priority: 'medium',
-        destination: data.company,
-        scheduledDate: data.date,
-        carrier: data.company,
-        trackingNumber: data.waybillNo,
-        totalWeight: 0
+        shipment_date: data.shipment_date,
+        notes: data.notes
       })
       // Fotoğraf ve belgeleri yükle
       const filesToUpload: File[] = [
         ...(data.photos ? Array.from(data.photos) : []),
         ...(data.documents ? Array.from(data.documents) : [])
       ]
-      for (const file of filesToUpload) {
-        const uploaded = await storageService.uploadFile(file, 'shipment', shipment.id)
-        if (uploaded) {
-          showToast({ type: 'success', message: `${file.name} yüklendi!` })
-        } else {
-          showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
-        }
-      }
-      showToast({ type: 'success', message: 'Gelen malzeme kaydedildi!' })
+      const uploaded = await uploadFiles(filesToUpload, shipment.id)
+      setUploadedFiles(uploaded)
+      showToast({ type: 'success', message: 'Gelen malzeme kaydedildi ve dosyalar yüklendi!' })
       onBack()
     } catch (error: any) {
       console.log('Gelen malzeme kaydetme hatası:', error)
@@ -77,7 +79,6 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
         </button>
         <h2 className="text-2xl font-semibold">Gelen Malzeme Girişi</h2>
       </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -87,7 +88,7 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
         <div className="mb-4">
           <label className="block mb-2">Proje *</label>
           <select
-            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            {...register('project_id', { required: 'Proje seçilmelidir' })}
             className="w-full p-2 border rounded"
           >
             <option value="">Proje seçin</option>
@@ -95,59 +96,32 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-          {errors.projectId && (
-            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          {errors.project_id && (
+            <span className="text-red-500 text-sm">{errors.project_id.message}</span>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block mb-2">Tarih</label>
+            <label className="block mb-2">Sevkiyat Tarihi</label>
             <input
               type="date"
-              {...register('date', { required: 'Tarih gereklidir' })}
-              defaultValue={new Date().toISOString().split('T')[0]}
+              {...register('shipment_date', { required: 'Tarih gereklidir' })}
               className="w-full p-2 border rounded"
             />
-            {errors.date && (
-              <span className="text-red-500 text-sm">{errors.date.message}</span>
-            )}
-          </div>
-
-          <div>
-            <label className="block mb-2">Geldiği Firma</label>
-            <input
-              {...register('company', { required: 'Firma adı gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="Firma adı giriniz"
-            />
-            {errors.company && (
-              <span className="text-red-500 text-sm">{errors.company.message}</span>
-            )}
-          </div>
-
-          <div>
-            <label className="block mb-2">İrsaliye No</label>
-            <input
-              {...register('waybillNo', { required: 'İrsaliye no gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="İrsaliye numarası giriniz"
-            />
-            {errors.waybillNo && (
-              <span className="text-red-500 text-sm">{errors.waybillNo.message}</span>
+            {errors.shipment_date && (
+              <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>
             )}
           </div>
         </div>
-
         <div>
-          <label className="block mb-2">Açıklama</label>
+          <label className="block mb-2">Notlar</label>
           <textarea
-            {...register('description')}
+            {...register('notes')}
             className="w-full p-2 border rounded"
             rows={3}
-            placeholder="Opsiyonel açıklama"
+            placeholder="Sevkiyat hakkında notlar..."
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-2">
@@ -162,7 +136,6 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
               className="w-full p-2 border rounded"
             />
           </div>
-
           <div>
             <label className="block mb-2">
               <Upload className="w-4 h-4 inline mr-2" />
@@ -177,7 +150,6 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
             />
           </div>
         </div>
-
         <button
           type="submit"
           disabled={isLoading}
@@ -186,6 +158,21 @@ export default function IncomingMaterial({ onBack }: { onBack: () => void }) {
           {isLoading ? 'Kaydediliyor...' : 'Kaydet'}
         </button>
       </form>
+      {uploadedFiles.length > 0 && (
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">Yüklenen Dosyalar</h3>
+          <ul className="space-y-2">
+            {uploadedFiles.map((file) => (
+              <li key={file.id} className="flex items-center gap-2">
+                <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {file.name}
+                </a>
+                <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

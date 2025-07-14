@@ -6,15 +6,12 @@ import { ArrowLeft, Camera, Upload } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
 import { useToast } from '@/components/ui/ToastProvider'
-import { storageService } from '@/lib/services/storage'
+import { storageService, FileUpload } from '@/lib/services/storage'
 
 interface OutgoingMaterialForm {
-  projectId: string
-  date: string
-  type: 'material' | 'scrap' | 'return'
-  company: string
-  waybillNo: string
-  description: string
+  project_id: string
+  shipment_date: string
+  notes: string
   photos: FileList
   documents: FileList
 }
@@ -24,41 +21,46 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<any[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<FileUpload[]>([])
   const { showToast } = useToast()
 
   useEffect(() => {
     projectService.getAllProjects().then(setProjects)
   }, [])
 
+  const uploadFiles = async (files: File[], shipmentId: string) => {
+    const uploaded: FileUpload[] = []
+    for (const file of files) {
+      const result = await storageService.uploadFile(file, 'shipment', shipmentId)
+      if (result) {
+        uploaded.push(result)
+        showToast({ type: 'success', message: `${file.name} yüklendi!` })
+      } else {
+        showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
+      }
+    }
+    return uploaded
+  }
+
   const onSubmit = async (data: OutgoingMaterialForm) => {
     setIsLoading(true)
     setError(null)
+    setUploadedFiles([])
     try {
       const shipment = await shipmentService.createShipment({
-        number: `OUT-${Date.now()}`,
-        projectId: data.projectId,
+        project_id: data.project_id,
         status: 'pending',
-        priority: 'medium',
-        destination: data.company,
-        scheduledDate: data.date,
-        carrier: data.company,
-        trackingNumber: data.waybillNo,
-        totalWeight: 0
+        shipment_date: data.shipment_date,
+        notes: data.notes
       })
       // Fotoğraf ve belgeleri yükle
       const filesToUpload: File[] = [
         ...(data.photos ? Array.from(data.photos) : []),
         ...(data.documents ? Array.from(data.documents) : [])
       ]
-      for (const file of filesToUpload) {
-        const uploaded = await storageService.uploadFile(file, 'shipment', shipment.id)
-        if (uploaded) {
-          showToast({ type: 'success', message: `${file.name} yüklendi!` })
-        } else {
-          showToast({ type: 'error', message: `${file.name} yüklenemedi!` })
-        }
-      }
-      showToast({ type: 'success', message: 'Giden malzeme kaydedildi!' })
+      const uploaded = await uploadFiles(filesToUpload, shipment.id)
+      setUploadedFiles(uploaded)
+      showToast({ type: 'success', message: 'Giden malzeme kaydedildi ve dosyalar yüklendi!' })
       onBack()
     } catch (error: any) {
       console.log('Giden malzeme kaydetme hatası:', error)
@@ -86,7 +88,7 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
         <div className="mb-4">
           <label className="block mb-2">Proje *</label>
           <select
-            {...register('projectId', { required: 'Proje seçilmelidir' })}
+            {...register('project_id', { required: 'Proje seçilmelidir' })}
             className="w-full p-2 border rounded"
           >
             <option value="">Proje seçin</option>
@@ -94,8 +96,8 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
-          {errors.projectId && (
-            <span className="text-red-500 text-sm">{errors.projectId.message}</span>
+          {errors.project_id && (
+            <span className="text-red-500 text-sm">{errors.project_id.message}</span>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -103,46 +105,21 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
             <label className="block mb-2">Sevkiyat Tarihi</label>
             <input
               type="date"
-              {...register('date', { required: 'Tarih gereklidir' })}
-              defaultValue={new Date().toISOString().split('T')[0]}
+              {...register('shipment_date', { required: 'Tarih gereklidir' })}
               className="w-full p-2 border rounded"
             />
-          </div>
-          <div>
-            <label className="block mb-2">Sevkiyat Türü</label>
-            <select
-              {...register('type', { required: 'Sevkiyat türü gereklidir' })}
-              className="w-full p-2 border rounded"
-            >
-              <option value="material">Malzeme Sevkiyatı</option>
-              <option value="scrap">Hurda İadesi</option>
-              <option value="return">Malzeme İadesi</option>
-            </select>
-          </div>
-          <div>
-            <label className="block mb-2">Firma</label>
-            <input
-              {...register('company', { required: 'Firma adı gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="Firma adı giriniz"
-            />
-          </div>
-          <div>
-            <label className="block mb-2">İrsaliye No</label>
-            <input
-              {...register('waybillNo', { required: 'İrsaliye no gereklidir' })}
-              className="w-full p-2 border rounded"
-              placeholder="İrsaliye numarası giriniz"
-            />
+            {errors.shipment_date && (
+              <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>
+            )}
           </div>
         </div>
         <div>
-          <label className="block mb-2">Açıklama</label>
+          <label className="block mb-2">Notlar</label>
           <textarea
-            {...register('description')}
+            {...register('notes')}
             className="w-full p-2 border rounded"
             rows={3}
-            placeholder="Sevkiyat açıklaması"
+            placeholder="Sevkiyat hakkında notlar..."
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -176,11 +153,26 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:bg-yellow-300"
+          className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300"
         >
           {isLoading ? 'Kaydediliyor...' : 'Sevkiyatı Kaydet'}
         </button>
       </form>
+      {uploadedFiles.length > 0 && (
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">Yüklenen Dosyalar</h3>
+          <ul className="space-y-2">
+            {uploadedFiles.map((file) => (
+              <li key={file.id} className="flex items-center gap-2">
+                <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {file.name}
+                </a>
+                <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

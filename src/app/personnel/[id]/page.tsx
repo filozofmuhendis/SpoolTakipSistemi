@@ -3,23 +3,19 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, UserCircle, Building, Mail, Phone, Calendar, Briefcase, Edit, Trash, Activity } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Loading from '@/components/ui/Loading'
 import ErrorState from '@/components/ui/ErrorState'
 import EmptyState from '@/components/ui/EmptyState'
-import { personnelService } from '@/lib/services/personnel'
-import { useToast } from '@/components/ui/ToastProvider'
-import EditPersonnelModal from '../components/EditPersonnelModal'
+import { personnelService, Personnel } from '@/lib/services/personnel'
 import DeletePersonnelModal from '../components/DeletePersonnelModal'
-import { Personnel } from '@/types'
 
 export default function PersonnelDetail({ params }: { params: { id: string } }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'history'>('overview')
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const router = useRouter()
   const [personnel, setPersonnel] = useState<Personnel | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { showToast } = useToast()
+  const [deleteModal, setDeleteModal] = useState(false)
 
   useEffect(() => {
     const fetchPersonnel = async () => {
@@ -37,6 +33,25 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
     fetchPersonnel()
   }, [params.id])
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR')
+  }
+
+  const handleDelete = async () => {
+    if (!personnel) return
+    
+    try {
+      const success = await personnelService.deletePersonnel(personnel.id)
+      if (success) {
+        router.push('/personnel?deleted=true')
+      } else {
+        setError('Personel silinirken bir hata oluştu')
+      }
+    } catch (error) {
+      setError('Personel silinirken bir hata oluştu')
+    }
+  }
+
   if (loading) {
     return <Loading text="Personel yükleniyor..." />
   }
@@ -48,154 +63,195 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Link href="/personnel" className="text-gray-600 hover:text-gray-800">
+            <Link 
+              href="/personnel" 
+              className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            >
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Ahmet Yılmaz</h1>
-              <p className="text-gray-500">Üretim Mühendisi</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {personnel.fullName}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">{personnel.position || 'Pozisyon belirtilmemiş'}</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setShowEditModal(true)}
-              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
+            <Link
+              href={`/personnel/${personnel.id}/edit`}
+              className="px-4 py-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Edit className="w-4 h-4" />
               Düzenle
-            </button>
+            </Link>
             <button 
-              onClick={() => setShowDeleteModal(true)}
-              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
+              onClick={() => setDeleteModal(true)}
+              className="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Trash className="w-4 h-4" />
-              Pasife Al
+              Sil
             </button>
           </div>
         </div>
 
         {/* Personnel Info Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
           <div className="flex items-start gap-6">
-            <div className="bg-gray-100 p-4 rounded-full">
-              <UserCircle className="w-24 h-24 text-gray-500" />
+            <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-full">
+              <UserCircle className="w-24 h-24 text-gray-500 dark:text-gray-400" />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
               <div>
-                <p className="text-sm text-gray-500">Departman</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Departman</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Building className="w-4 h-4 text-gray-400" />
-                  <p className="font-medium">Üretim Departmanı</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {personnel.department || 'Belirtilmemiş'}
+                  </p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Email</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Mail className="w-4 h-4 text-gray-400" />
-                  <p className="font-medium">ahmet.yilmaz@firma.com</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{personnel.email}</p>
                 </div>
               </div>
+              {personnel.phone && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Telefon</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <p className="font-medium text-gray-900 dark:text-white">{personnel.phone}</p>
+                  </div>
+                </div>
+              )}
               <div>
-                <p className="text-sm text-gray-500">Telefon</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pozisyon</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <p className="font-medium">+90 555 123 4567</p>
+                  <Briefcase className="w-4 h-4 text-gray-400" />
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {personnel.position || 'Belirtilmemiş'}
+                  </p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500">İşe Başlama Tarihi</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Kayıt Tarihi</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Calendar className="w-4 h-4 text-gray-400" />
-                  <p className="font-medium">01.01.2023</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {formatDate(personnel.createdAt)}
+                  </p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Durum</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Durum</p>
                 <div className="flex items-center gap-2 mt-1">
                   <Activity className="w-4 h-4 text-green-500" />
-                  <p className="font-medium text-green-600">Aktif</p>
+                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                    Aktif
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg">
-          <div className="border-b">
-            <nav className="flex">
-              {['overview', 'projects', 'history'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as any)}
-                  className={`px-6 py-4 text-sm font-medium ${
-                    activeTab === tab
-                      ? 'border-b-2 border-blue-500 text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
+        {/* Additional Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Work History */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Briefcase className="w-5 h-5" />
+              İş Bilgileri
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Aktif Projeler</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium">Test Projesi 1</h4>
-                      <p className="text-sm text-gray-500">PRJ-001</p>
-                      <div className="mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: '60%' }}></div>
-                        </div>
-                        <span className="text-xs text-gray-500">60% tamamlandı</span>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="font-medium text-gray-900 dark:text-white">{personnel.position || 'Pozisyon belirtilmemiş'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{personnel.department || 'Departman belirtilmemiş'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatDate(personnel.createdAt)} - Günümüz
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {Math.floor((new Date().getTime() - new Date(personnel.createdAt).getTime()) / (1000 * 60 * 60 * 24))} gün
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              İletişim Bilgileri
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">E-posta</p>
+                <p className="font-medium text-gray-900 dark:text-white">{personnel.email}</p>
+              </div>
+              {personnel.phone && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Telefon</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{personnel.phone}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Departman</p>
+                <p className="font-medium text-gray-900 dark:text-white">{personnel.department || 'Belirtilmemiş'}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {showEditModal && (
-        <EditPersonnelModal
-          personnel={personnel}
-          onClose={() => setShowEditModal(false)}
-          onSave={(updated) => {
-            setPersonnel(updated)
-            setShowEditModal(false)
-            showToast({ type: 'success', title: 'Başarılı', message: 'Personel güncellendi.' })
-          }}
-        />
-      )}
-      {showDeleteModal && (
-        <DeletePersonnelModal
-          onClose={() => setShowDeleteModal(false)}
-          onConfirm={async () => {
-            try {
-              await personnelService.deletePersonnel(personnel.id)
-              showToast({ type: 'success', title: 'Başarılı', message: 'Personel pasife alındı.' })
-              setShowDeleteModal(false)
-              // Yönlendirme veya sayfa güncelleme
-            } catch (err: any) {
-              showToast({ type: 'error', title: 'Hata', message: err.message || 'Personel pasife alınamadı.' })
-            }
-          }}
-          mode="deactivate"
-        />
-      )}
+        {/* Quick Actions */}
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Hızlı İşlemler
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href={`/personnel/${personnel.id}/edit`}
+              className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Edit className="w-6 h-6 text-blue-600 mb-2" />
+              <p className="font-medium text-gray-900 dark:text-white">Düzenle</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Personel bilgilerini güncelle</p>
+            </Link>
+            <button className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
+              <Activity className="w-6 h-6 text-green-600 mb-2" />
+              <p className="font-medium text-gray-900 dark:text-white">Şifre Değiştir</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Kullanıcı şifresini güncelle</p>
+            </button>
+            <button 
+              onClick={() => setDeleteModal(true)}
+              className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
+            >
+              <Trash className="w-6 h-6 text-red-600 mb-2" />
+              <p className="font-medium text-gray-900 dark:text-white">Sil</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Personeli sistemden kaldır</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Delete Modal */}
+        {deleteModal && (
+          <DeletePersonnelModal
+            onClose={() => setDeleteModal(false)}
+            onConfirm={handleDelete}
+            mode="delete"
+          />
+        )}
+      </div>
     </div>
   )
 }

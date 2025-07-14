@@ -42,7 +42,7 @@ export default function ProjectsPage() {
 
       // Her proje için spool istatistiklerini hesapla
       const projectsWithStats = projectsData.map(project => {
-        const projectSpools = spoolsData.filter(spool => spool.projectId === project.id)
+        const projectSpools = spoolsData.filter(spool => spool.project_id === project.id)
         const completedSpools = projectSpools.filter(spool => spool.status === 'completed').length
         const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0
 
@@ -50,7 +50,8 @@ export default function ProjectsPage() {
           ...project,
           spoolCount: projectSpools.length,
           completedSpools,
-          progress
+          progress,
+          priority: project.priority
         }
       })
 
@@ -66,7 +67,7 @@ export default function ProjectsPage() {
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.managerName?.toLowerCase().includes(searchTerm.toLowerCase())
+                         project.manager_id?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -156,13 +157,13 @@ export default function ProjectsPage() {
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <User className="h-4 w-4 mr-2" />
-                {project.managerName || 'Atanmamış'}
+                {project.manager_id || 'Atanmamış'}
               </div>
               
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <Calendar className="h-4 w-4 mr-2" />
-                {new Date(project.startDate).toLocaleDateString('tr-TR')}
-                {project.endDate && ` - ${new Date(project.endDate).toLocaleDateString('tr-TR')}`}
+                {project.start_date ? new Date(project.start_date).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}
+                {project.end_date && ` - ${new Date(project.end_date).toLocaleDateString('tr-TR')}`}
               </div>
               
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">

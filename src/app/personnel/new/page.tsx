@@ -3,96 +3,78 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
-import { personnelService } from '@/lib/services/personnel'
-import { supabase } from '@/lib/supabase'
+import { personnelService, Personnel } from '@/lib/services/personnel'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface PersonnelForm {
   fullName: string
-  role: string
-  isActive: boolean
   email: string
   password: string
-  hire_date?: string
-  permissions: {
-    projects: boolean
-    manufacturing: boolean
-    quality: boolean
-    reports: boolean
-    admin: boolean
-    inventory: boolean
-  }
+  confirmPassword: string
+  phone: string
+  department: string
+  position: string
 }
 
-const roleOptions = [
-  { value: 'manufacturer', label: 'İmalatçı' },
-  { value: 'argon_welder', label: 'Argon Kaynakçı' },
-  { value: 'gas_welder', label: 'Gazaltı Kaynakçı' },
-  { value: 'quality', label: 'Kontrol Personeli' },
-  { value: 'project_manager', label: 'Proje Takipçi' },
-  { value: 'admin', label: 'Yönetici' }
+const departmentOptions = [
+  { value: 'İmalat', label: 'İmalat' },
+  { value: 'Kalite Kontrol', label: 'Kalite Kontrol' },
+  { value: 'Proje Yönetimi', label: 'Proje Yönetimi' },
+  { value: 'Satış', label: 'Satış' },
+  { value: 'Muhasebe', label: 'Muhasebe' },
+  { value: 'İnsan Kaynakları', label: 'İnsan Kaynakları' },
+  { value: 'Bilgi Teknolojileri', label: 'Bilgi Teknolojileri' },
+  { value: 'Güvenlik', label: 'Güvenlik' },
+  { value: 'Temizlik', label: 'Temizlik' },
+  { value: 'Diğer', label: 'Diğer' }
+]
+
+const positionOptions = [
+  { value: 'İmalat Ustası', label: 'İmalat Ustası' },
+  { value: 'Kaynakçı', label: 'Kaynakçı' },
+  { value: 'Kalite Kontrol Uzmanı', label: 'Kalite Kontrol Uzmanı' },
+  { value: 'Proje Müdürü', label: 'Proje Müdürü' },
+  { value: 'Satış Temsilcisi', label: 'Satış Temsilcisi' },
+  { value: 'Muhasebe Uzmanı', label: 'Muhasebe Uzmanı' },
+  { value: 'İK Uzmanı', label: 'İK Uzmanı' },
+  { value: 'Sistem Yöneticisi', label: 'Sistem Yöneticisi' },
+  { value: 'Güvenlik Görevlisi', label: 'Güvenlik Görevlisi' },
+  { value: 'Temizlik Görevlisi', label: 'Temizlik Görevlisi' },
+  { value: 'Stajyer', label: 'Stajyer' },
+  { value: 'Diğer', label: 'Diğer' }
 ]
 
 export default function NewPersonnel() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<PersonnelForm>({
-    defaultValues: {
-      isActive: true,
-      hire_date: '',
-      permissions: {
-        projects: false,
-        manufacturing: false,
-        quality: false,
-        reports: false,
-        admin: false,
-        inventory: false
-      }
-    }
-  })
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<PersonnelForm>()
+
+  const password = watch('password')
 
   const onSubmit = async (data: PersonnelForm) => {
-    setIsLoading(true)
-    setError(null)
-    
     try {
-      // Önce Supabase Auth ile kullanıcı oluştur
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      setIsLoading(true)
+      setError(null)
+      
+      const personnelData = {
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-            role: data.role
-          }
-        }
-      })
-
-      if (authError) {
-        throw new Error(authError.message)
+        fullName: data.fullName,
+        phone: data.phone || undefined,
+        department: data.department,
+        position: data.position
       }
 
-      if (authData.user) {
-        // Profil tablosuna personel bilgilerini ekle
-        const personnelData = {
-          name: data.fullName,
-          email: data.email,
-          phone: '', // Form'da telefon alanı yok, boş bırakıyoruz
-          position: data.role,
-          department: 'Üretim', // Varsayılan departman
-          status: (data.isActive ? 'active' : 'inactive') as 'active' | 'inactive' | 'on_leave',
-          hireDate: data.hire_date && data.hire_date !== '' ? data.hire_date : new Date().toISOString().split('T')[0]
-        }
-
-        try {
-          await personnelService.createPersonnel(personnelData)
-          router.push('/personnel?success=true')
-        } catch (profileError: any) {
-          // Eğer profil oluşturulamazsa, auth kullanıcısını da sil
-          await supabase.auth.admin.deleteUser(authData.user.id)
-          throw new Error(profileError.message)
-        }
+      const result = await personnelService.createPersonnel(personnelData)
+      
+      if (result) {
+        router.push('/personnel?success=true')
+      } else {
+        setError('Personel oluşturulamadı')
       }
     } catch (error: any) {
       console.log('Personel ekleme hatası:', error)
@@ -102,188 +84,201 @@ export default function NewPersonnel() {
     }
   }
 
-  const selectedRole = watch('role')
-
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <h1 className="text-2xl font-bold mb-6">Yeni Personel Kaydı</h1>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Yeni Personel Ekle
+          </h1>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-              {error}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                {error}
+              </div>
+            )}
+
+            {/* Temel Bilgiler */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ad Soyad *
+                </label>
+                <input
+                  {...register('fullName', { required: 'Ad Soyad gereklidir' })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Örn: Ahmet Demir"
+                />
+                {errors.fullName && (
+                  <span className="text-red-500 text-sm">{errors.fullName.message}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  E-posta *
+                </label>
+                <input
+                  {...register('email', { 
+                    required: 'E-posta gereklidir',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Geçerli bir e-posta adresi giriniz'
+                    }
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  type="email"
+                  placeholder="ornek@firma.com"
+                />
+                {errors.email && (
+                  <span className="text-red-500 text-sm">{errors.email.message}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Şifre *
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('password', { 
+                      required: 'Şifre gereklidir',
+                      minLength: {
+                        value: 6,
+                        message: 'Şifre en az 6 karakter olmalıdır'
+                      }
+                    })}
+                    type={showPassword ? 'text' : 'password'}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="En az 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <span className="text-red-500 text-sm">{errors.password.message}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Şifre Tekrar *
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('confirmPassword', { 
+                      required: 'Şifre tekrarı gereklidir',
+                      validate: value => value === password || 'Şifreler eşleşmiyor'
+                    })}
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Şifrenizi tekrar girin"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <span className="text-red-500 text-sm">{errors.confirmPassword.message}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Telefon
+                </label>
+                <input
+                  {...register('phone')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="0555 123 45 67"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Departman *
+                </label>
+                <select
+                  {...register('department', { required: 'Departman seçilmelidir' })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Departman seçiniz...</option>
+                  {departmentOptions.map(dept => (
+                    <option key={dept.value} value={dept.value}>
+                      {dept.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.department && (
+                  <span className="text-red-500 text-sm">{errors.department.message}</span>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Pozisyon *
+                </label>
+                <select
+                  {...register('position', { required: 'Pozisyon seçilmelidir' })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Pozisyon seçiniz...</option>
+                  {positionOptions.map(pos => (
+                    <option key={pos.value} value={pos.value}>
+                      {pos.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.position && (
+                  <span className="text-red-500 text-sm">{errors.position.message}</span>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Temel Bilgiler */}
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-2">Ad Soyad</label>
-              <input
-                {...register('fullName', { required: 'Ad Soyad gereklidir' })}
-                className="w-full p-2 border rounded"
-                placeholder="Örn: Ahmet Demir"
-              />
-              {errors.fullName && (
-                <span className="text-red-500 text-sm">{errors.fullName.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="block mb-2">Görev Türü</label>
-              <select
-                {...register('role', { required: 'Görev türü seçilmelidir' })}
-                className="w-full p-2 border rounded"
+            {/* Buttons */}
+            <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
               >
-                <option value="">Seçiniz...</option>
-                {roleOptions.map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
-              {errors.role && (
-                <span className="text-red-500 text-sm">{errors.role.message}</span>
-              )}
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Kaydediliyor...</span>
+                  </>
+                ) : (
+                  <span>Personel Ekle</span>
+                )}
+              </button>
             </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                {...register('isActive')}
-                className="w-4 h-4"
-              />
-              <label>Aktif Personel</label>
-            </div>
-
-            {/* İşe Başlama Tarihi Alanı */}
-            <div>
-              <label className="block mb-2">İşe Başlama Tarihi</label>
-              <input
-                type="date"
-                {...register('hire_date')}
-                className="w-full p-2 border rounded"
-              />
-              {errors.hire_date && (
-                <span className="text-red-500 text-sm">{errors.hire_date.message}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Kullanıcı Girişi */}
-          <div className="space-y-4 pt-4 border-t">
-            <h2 className="text-xl font-semibold">Kullanıcı Girişi Bilgileri</h2>
-            
-            <div>
-              <label className="block mb-2">E-posta / Kullanıcı Adı</label>
-              <input
-                {...register('email', { 
-                  required: 'E-posta gereklidir',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Geçerli bir e-posta adresi giriniz'
-                  }
-                })}
-                className="w-full p-2 border rounded"
-                type="email"
-              />
-              {errors.email && (
-                <span className="text-red-500 text-sm">{errors.email.message}</span>
-              )}
-            </div>
-
-            <div>
-              <label className="block mb-2">Şifre</label>
-              <input
-                {...register('password', { 
-                  required: 'Şifre gereklidir',
-                  minLength: {
-                    value: 6,
-                    message: 'Şifre en az 6 karakter olmalıdır'
-                  }
-                })}
-                type="password"
-                className="w-full p-2 border rounded"
-              />
-              {errors.password && (
-                <span className="text-red-500 text-sm">{errors.password.message}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Yetkiler */}
-          <div className="space-y-4 pt-4 border-t">
-            <h2 className="text-xl font-semibold">Erişim Yetkileri</h2>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.projects')}
-                  className="w-4 h-4"
-                />
-                <label>Projeler</label>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.manufacturing')}
-                  className="w-4 h-4"
-                />
-                <label>İmalat</label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.quality')}
-                  className="w-4 h-4"
-                />
-                <label>Kalite Kontrol</label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.reports')}
-                  className="w-4 h-4"
-                />
-                <label>Raporlar</label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.inventory')}
-                  className="w-4 h-4"
-                />
-                <label>Stok/Envanter</label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('permissions.admin')}
-                  className="w-4 h-4"
-                />
-                <label>Yönetici Paneli</label>
-              </div>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-6">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
-            >
-              {isLoading ? 'Kaydediliyor...' : 'Personel Kaydını Oluştur'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )

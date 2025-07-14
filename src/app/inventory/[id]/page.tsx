@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Package, MapPin, DollarSign, AlertTriangle, TrendingUp, Calendar, User } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Package, MapPin, Calendar, User, File, Download, Eye } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
+import { storageService } from '@/lib/services/storage'
 import { Inventory } from '@/types'
+import { FileUpload } from '@/lib/services/storage'
 import Link from 'next/link'
 import Loading from '@/components/ui/Loading'
 import ErrorState from '@/components/ui/ErrorState'
@@ -15,6 +17,8 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
   const [inventory, setInventory] = useState<Inventory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [files, setFiles] = useState<FileUpload[]>([])
+  const [loadingFiles, setLoadingFiles] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -30,12 +34,27 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
         return
       }
       setInventory(data)
+      
+      // Dosyaları yükle
+      await loadFiles()
     } catch (error: any) {
       console.error('Envanter yükleme hatası:', error)
       setError(error.message || 'Envanter yüklenirken bir hata oluştu')
       showToast({ type: 'error', message: 'Envanter yüklenirken bir hata oluştu' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadFiles = async () => {
+    try {
+      setLoadingFiles(true)
+      const filesData = await storageService.getFilesByEntity('inventory', params.id)
+      setFiles(filesData)
+    } catch (error) {
+      console.error('Dosya yükleme hatası:', error)
+    } finally {
+      setLoadingFiles(false)
     }
   }
 
@@ -54,48 +73,20 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'inactive': return 'bg-gray-100 text-gray-800'
-      case 'discontinued': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return <File className="w-4 h-4 text-green-500" />
+    if (fileType === 'application/pdf') return <File className="w-4 h-4 text-red-500" />
+    return <File className="w-4 h-4 text-blue-500" />
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'raw_material': return 'bg-blue-100 text-blue-800'
-      case 'finished_product': return 'bg-green-100 text-green-800'
-      case 'semi_finished': return 'bg-yellow-100 text-yellow-800'
-      case 'consumable': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStockStatus = (quantity: number, minStock: number) => {
-    if (quantity <= minStock) return 'bg-red-100 text-red-800'
-    if (quantity <= minStock * 1.5) return 'bg-yellow-100 text-yellow-800'
-    return 'bg-green-100 text-green-800'
-  }
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'raw_material': return 'Hammadde'
-      case 'finished_product': return 'Bitmiş Ürün'
-      case 'semi_finished': return 'Yarı Mamul'
-      case 'consumable': return 'Sarf Malzemesi'
-      default: return type
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'Aktif'
-      case 'inactive': return 'Pasif'
-      case 'discontinued': return 'Kullanımdan Kaldırıldı'
-      default: return status
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   if (loading) return <Loading />
@@ -139,216 +130,168 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Malzeme Kodu
+                  Malzeme Adı
                 </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {inventory.code}
+                  {inventory.name}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Kategori
+                  Lokasyon
                 </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {inventory.category}
+                  {inventory.location || 'Belirtilmemiş'}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Malzeme Türü
+                  Mevcut Miktar
                 </label>
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getTypeColor(inventory.type)}`}>
-                  {getTypeLabel(inventory.type)}
-                </span>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Durum
-                </label>
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(inventory.status)}`}>
-                  {getStatusLabel(inventory.status)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stok Bilgileri */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Stok Bilgileri</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Mevcut Stok
-                </label>
-                <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {inventory.quantity} {inventory.unit}
-                  </p>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStockStatus(inventory.quantity, inventory.minStock)}`}>
-                    {inventory.quantity <= inventory.minStock ? 'Düşük' : 'Normal'}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Stok Aralığı
-                </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {inventory.minStock} - {inventory.maxStock} {inventory.unit}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Birim Maliyet
-                </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  ₺{inventory.cost.toLocaleString()}/{inventory.unit}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Toplam Değer
-                </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  ₺{(inventory.quantity * inventory.cost).toLocaleString()}
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {inventory.quantity?.toLocaleString() || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Konum ve Tedarikçi */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Konum ve Tedarikçi</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Depo Konumu
-                </label>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-400" />
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    {inventory.location}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Tedarikçi
-                </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {inventory.supplier}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Açıklamalar */}
-          {(inventory.description || inventory.specifications) && (
+          {/* Açıklama */}
+          {inventory.description && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Açıklamalar</h2>
-              <div className="space-y-4">
-                {inventory.description && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Genel Açıklama
-                    </label>
-                    <p className="text-gray-900 dark:text-white">
-                      {inventory.description}
-                    </p>
-                  </div>
-                )}
-                {inventory.specifications && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Teknik Özellikler
-                    </label>
-                    <p className="text-gray-900 dark:text-white">
-                      {inventory.specifications}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <h2 className="text-xl font-semibold mb-4">Açıklama</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                {inventory.description}
+              </p>
             </div>
           )}
+
+          {/* Notlar */}
+          {inventory.notes && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-semibold mb-4">Notlar</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                {inventory.notes}
+              </p>
+            </div>
+          )}
+
+          {/* Dosyalar */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4">Dosyalar</h2>
+            {loadingFiles ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <span className="ml-2 text-sm text-gray-600">Dosyalar yükleniyor...</span>
+              </div>
+            ) : files.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        {getFileIcon(file.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {storageService.formatFileSize(file.size)}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {formatDate(file.uploadedAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 btn-secondary flex items-center justify-center gap-1 text-sm"
+                        title="Görüntüle"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Görüntüle
+                      </a>
+                      <a
+                        href={file.url}
+                        download={file.name}
+                        className="flex-1 btn-primary flex items-center justify-center gap-1 text-sm"
+                        title="İndir"
+                      >
+                        <Download className="w-3 h-3" />
+                        İndir
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <File className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                <p>Bu malzeme için henüz dosya yüklenmemiş.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Yan Panel */}
         <div className="space-y-6">
-          {/* Proje Bilgisi */}
-          {inventory.projectId && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">Proje Bilgisi</h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Proje
-                </label>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">
-                  {inventory.projectName || 'Bilinmeyen Proje'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* İstatistikler */}
+          {/* Hızlı İstatistikler */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">İstatistikler</h3>
+            <h3 className="text-lg font-semibold mb-4">Hızlı Bilgiler</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Stok Oranı</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {((inventory.quantity / inventory.maxStock) * 100).toFixed(1)}%
-                </span>
+              <div className="flex items-center gap-3">
+                <Package className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Miktar</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {inventory.quantity?.toLocaleString() || 0}
+                  </p>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: `${Math.min((inventory.quantity / inventory.maxStock) * 100, 100)}%` }}
-                ></div>
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Lokasyon</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {inventory.location || 'Belirtilmemiş'}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Güvenlik Stoku</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {inventory.minStock} {inventory.unit}
-                </span>
+              <div className="flex items-center gap-3">
+                <File className="w-5 h-5 text-purple-500" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Dosyalar</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {files.length} dosya
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Tarih Bilgileri */}
+          {/* İşlemler */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Tarih Bilgileri</h3>
+            <h3 className="text-lg font-semibold mb-4">İşlemler</h3>
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Son Güncelleme
-                </label>
-                <p className="text-sm text-gray-900 dark:text-white">
-                  {new Date(inventory.lastUpdated).toLocaleDateString('tr-TR')}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Oluşturulma Tarihi
-                </label>
-                <p className="text-sm text-gray-900 dark:text-white">
-                  {new Date(inventory.createdAt).toLocaleDateString('tr-TR')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Hızlı İşlemler */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Hızlı İşlemler</h3>
-            <div className="space-y-2">
-              <button className="w-full btn-secondary text-sm">
-                Stok Güncelle
-              </button>
-              <button className="w-full btn-secondary text-sm">
-                Tedarik Talebi Oluştur
-              </button>
-              <button className="w-full btn-secondary text-sm">
-                Hareket Geçmişi
+              <Link
+                href={`/inventory/${inventory.id}/edit`}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Düzenle
+              </Link>
+              <button
+                onClick={handleDelete}
+                className="w-full btn-danger flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Sil
               </button>
             </div>
           </div>

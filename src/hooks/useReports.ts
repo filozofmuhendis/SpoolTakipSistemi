@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import * as XLSX from 'xlsx'
 

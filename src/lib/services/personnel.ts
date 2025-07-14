@@ -1,207 +1,305 @@
 import { supabase } from '../supabase'
-import { Personnel } from '@/types'
+
+export interface Personnel {
+  id: string
+  email: string
+  fullName: string
+  phone?: string
+  department?: string
+  position?: string
+  avatarUrl?: string
+  createdAt: string
+  updatedAt: string
+}
 
 export const personnelService = {
   // Tüm personeli getir
-  async getAllPersonnel() {
+  async getAllPersonnel(): Promise<Personnel[]> {
     try {
       const { data, error } = await supabase
-        .from('personnel')
+        .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false })
-
+        .order('full_name', { ascending: true })
+      
       if (error) {
-        console.log('Personel listesi getirilemedi:', error)
+        console.log('Personel getirme hatası:', error)
         return []
       }
-
-      // Veri yoksa boş array döndür
-      if (!data || data.length === 0) {
-        return []
-      }
-
-      return data.map(person => ({
-        id: person.id,
-        name: person.name,
-        email: person.email,
-        phone: person.phone,
-        position: person.position,
-        department: person.department,
-        status: person.status,
-        hireDate: person.hire_date,
-        createdAt: person.created_at,
-        updatedAt: person.updated_at
-      }))
+      
+      return data || []
     } catch (error) {
-      console.log('Personel listesi getirilemedi:', error)
+      console.log('Personel getirme hatası:', error)
       return []
     }
   },
 
-  // Personel oluştur
-  async createPersonnel(personnel: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) {
-    const { data, error } = await supabase
-      .from('personnel')
-      .insert({
-        name: personnel.name,
-        email: personnel.email,
-        phone: personnel.phone,
-        position: personnel.position,
-        department: personnel.department,
-        status: personnel.status,
-        hire_date: personnel.hireDate
-      })
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Personel oluşturulamadı: ${error.message}`)
-    }
-
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      position: data.position,
-      department: data.department,
-      status: data.status,
-      hireDate: data.hire_date,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    }
-  },
-
-  // Personel güncelle
-  async updatePersonnel(id: string, updates: Partial<Personnel>) {
-    const updateData: any = {}
-    
-    if (updates.name) updateData.name = updates.name
-    if (updates.email) updateData.email = updates.email
-    if (updates.phone) updateData.phone = updates.phone
-    if (updates.position) updateData.position = updates.position
-    if (updates.department) updateData.department = updates.department
-    if (updates.status) updateData.status = updates.status
-    if (updates.hireDate) updateData.hire_date = updates.hireDate
-    
-    updateData.updated_at = new Date().toISOString()
-
-    const { data, error } = await supabase
-      .from('personnel')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Personel güncellenemedi: ${error.message}`)
-    }
-
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      position: data.position,
-      department: data.department,
-      status: data.status,
-      hireDate: data.hire_date,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
-    }
-  },
-
-  // Personel sil
-  async deletePersonnel(id: string) {
-    const { error } = await supabase
-      .from('personnel')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      throw new Error(`Personel silinemedi: ${error.message}`)
-    }
-
-    return true
-  },
-
-  // Personel detayını getir
-  async getPersonnelById(id: string) {
+  // Aktif personeli getir (auth.users'dan aktif kullanıcıları)
+  async getActivePersonnel(): Promise<Personnel[]> {
     try {
       const { data, error } = await supabase
-        .from('personnel')
+        .from('profiles')
         .select('*')
-        .eq('id', id)
-        .single()
-
+        .order('full_name', { ascending: true })
+      
       if (error) {
-        console.log('Personel bulunamadı:', error)
-        return null
+        console.log('Aktif personel getirme hatası:', error)
+        return []
       }
-
-      if (!data) {
-        return null
-      }
-
-      return {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        position: data.position,
-        department: data.department,
-        status: data.status,
-        hireDate: data.hire_date,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      }
+      
+      return data || []
     } catch (error) {
-      console.log('Personel bulunamadı:', error)
+      console.log('Aktif personel getirme hatası:', error)
+      return []
+    }
+  },
+
+  // Belirli departmandaki personeli getir
+  async getPersonnelByDepartment(department: string): Promise<Personnel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('department', department)
+        .order('full_name', { ascending: true })
+      
+      if (error) {
+        console.log('Departman personeli getirme hatası:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.log('Departman personeli getirme hatası:', error)
+      return []
+    }
+  },
+
+  // Personel oluştur (auth.users ile birlikte)
+  async createPersonnel(personnel: {
+    email: string
+    password: string
+    fullName: string
+    phone?: string
+    department?: string
+    position?: string
+  }): Promise<Personnel | null> {
+    try {
+      // Önce auth.users'a kullanıcı oluştur
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: personnel.email,
+        password: personnel.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: personnel.fullName,
+          department: personnel.department,
+          position: personnel.position
+        }
+      })
+
+      if (authError) {
+        console.log('Auth kullanıcı oluşturma hatası:', authError)
+        return null
+      }
+
+      if (!authData.user) {
+        console.log('Auth kullanıcı oluşturulamadı')
+        return null
+      }
+
+      // Sonra profiles tablosuna ekle
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: personnel.email,
+          full_name: personnel.fullName,
+          phone: personnel.phone,
+          department: personnel.department,
+          position: personnel.position
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.log('Profil oluşturma hatası:', error)
+        // Auth kullanıcısını sil
+        await supabase.auth.admin.deleteUser(authData.user.id)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.log('Personel oluşturma hatası:', error)
       return null
     }
   },
 
-  // Departman bazlı personel getir
-  async getPersonnelByDepartment(department: string) {
-    const { data, error } = await supabase
-      .from('personnel')
-      .select('*')
-      .eq('department', department)
-      .order('name', { ascending: true })
+  // Personel güncelle
+  async updatePersonnel(id: string, updates: Partial<Personnel>): Promise<Personnel | null> {
+    try {
+      const updateData: any = {}
+      if (updates.fullName) updateData.full_name = updates.fullName
+      if (updates.email) updateData.email = updates.email
+      if (updates.phone) updateData.phone = updates.phone
+      if (updates.department) updateData.department = updates.department
+      if (updates.position) updateData.position = updates.position
+      if (updates.avatarUrl) updateData.avatar_url = updates.avatarUrl
 
-    if (error) {
-      throw new Error(`Departman personeli getirilemedi: ${error.message}`)
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.log('Personel güncelleme hatası:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.log('Personel güncelleme hatası:', error)
+      return null
     }
+  },
 
-    return data.map(person => ({
-      id: person.id,
-      name: person.name,
-      email: person.email,
-      phone: person.phone,
-      position: person.position,
-      department: person.department,
-      status: person.status,
-      hireDate: person.hire_date,
-      createdAt: person.created_at,
-      updatedAt: person.updated_at
-    }))
+  // Personel sil (auth.users'dan da sil)
+  async deletePersonnel(id: string): Promise<boolean> {
+    try {
+      // Önce auth.users'dan sil
+      const { error: authError } = await supabase.auth.admin.deleteUser(id)
+      
+      if (authError) {
+        console.log('Auth kullanıcı silme hatası:', authError)
+        return false
+      }
+
+      // Profiles tablosundan otomatik silinir (CASCADE)
+      return true
+    } catch (error) {
+      console.log('Personel silme hatası:', error)
+      return false
+    }
+  },
+
+  // Personel detayını getir
+  async getPersonnelById(id: string): Promise<Personnel | null> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error) {
+        console.log('Personel detay getirme hatası:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.log('Personel detay getirme hatası:', error)
+      return null
+    }
+  },
+
+  // Email ile personel ara
+  async getPersonnelByEmail(email: string): Promise<Personnel | null> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single()
+      
+      if (error) {
+        console.log('Email ile personel arama hatası:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.log('Email ile personel arama hatası:', error)
+      return null
+    }
+  },
+
+  // Personel istatistiklerini getir
+  async getPersonnelStats(): Promise<{
+    total: number
+    byDepartment: Record<string, number>
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+      
+      if (error) {
+        console.log('Personel istatistikleri getirme hatası:', error)
+        return {
+          total: 0,
+          byDepartment: {}
+        }
+      }
+
+      const personnel = data || []
+      const byDepartment: Record<string, number> = {}
+
+      personnel.forEach(person => {
+        const dept = person.department || 'Belirtilmemiş'
+        byDepartment[dept] = (byDepartment[dept] || 0) + 1
+      })
+
+      return {
+        total: personnel.length,
+        byDepartment
+      }
+    } catch (error) {
+      console.log('Personel istatistikleri getirme hatası:', error)
+      return {
+        total: 0,
+        byDepartment: {}
+      }
+    }
+  },
+
+  // Şifre değiştir
+  async updatePassword(userId: string, newPassword: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.auth.admin.updateUserById(userId, {
+        password: newPassword
+      })
+
+      if (error) {
+        console.log('Şifre güncelleme hatası:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.log('Şifre güncelleme hatası:', error)
+      return false
+    }
   }
 }
 
-export async function getAllPersonnelBasic(): Promise<Pick<Personnel, 'id' | 'name'>[]> {
+// Basit personel listesi için yardımcı fonksiyon
+export async function getAllPersonnelBasic() {
   try {
     const { data, error } = await supabase
-      .from('personnel')
-      .select('id, name')
+      .from('profiles')
+      .select('id, full_name')
+      .order('full_name', { ascending: true })
     
     if (error) {
-      console.log('Personel listesi getirilemedi:', error)
+      console.log('Basit personel listesi getirme hatası:', error)
       return []
     }
-
+    
     return data || []
   } catch (error) {
-    console.log('Personel listesi getirilemedi:', error)
+    console.log('Basit personel listesi getirme hatası:', error)
     return []
   }
 } 

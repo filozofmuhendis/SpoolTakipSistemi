@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff } from 'lucide-react'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -113,6 +114,15 @@ export default function LoginPage() {
             >
               {isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/reset-password"
+              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Şifrenizi mi unuttunuz?
+            </Link>
           </div>
 
           <div className="text-center">

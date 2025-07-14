@@ -5,7 +5,7 @@ import { Search, X, Package, Users, BarChart3, Truck, FileText } from 'lucide-re
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
 import { personnelService } from '@/lib/services/personnel'
-import { workOrderService } from '@/lib/services/workOrders'
+import { jobOrderService } from '@/lib/services/workOrders'
 import { shipmentService } from '@/lib/services/shipments'
 import { useRouter } from 'next/navigation'
 
@@ -74,18 +74,17 @@ export default function GlobalSearch() {
           icon: <BarChart3 className="w-4 h-4" />
         }))
 
-      // Spool'larda arama
+      // Ürün alt kalemlerinde arama
       const spools = await spoolService.getAllSpools()
       const spoolResults = spools
         .filter(spool => 
-          spool.name.toLowerCase().includes(query.toLowerCase()) ||
-          spool.description?.toLowerCase().includes(query.toLowerCase())
+          spool.name?.toLowerCase().includes(query.toLowerCase())
         )
         .map(spool => ({
           id: spool.id,
           type: 'spool' as const,
-          title: spool.name,
-          subtitle: spool.projectName || 'Proje bilgisi yok',
+          title: spool.name || 'İsimsiz',
+          subtitle: 'Proje bilgisi yok',
           status: spool.status,
           url: `/spools/${spool.id}`,
           icon: <Package className="w-4 h-4" />
@@ -110,7 +109,7 @@ export default function GlobalSearch() {
         }))
 
       // İş emirlerinde arama
-      const workOrders = await workOrderService.getAllWorkOrders()
+      const workOrders = await jobOrderService.getAllJobOrders()
       const workOrderResults = workOrders
         .filter(wo => 
           wo.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -229,7 +228,7 @@ export default function GlobalSearch() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Proje, spool, personel ara..."
+          placeholder="Proje, ürün alt kalemi, personel ara..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}

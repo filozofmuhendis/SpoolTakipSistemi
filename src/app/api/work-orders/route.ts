@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { workOrderService } from '@/lib/services/workOrders';
+import { jobOrderService } from '@/lib/services/workOrders';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ const workOrderSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const workOrders = await workOrderService.getAllWorkOrders();
+    const workOrders = await jobOrderService.getAllJobOrders();
     return NextResponse.json({ success: true, data: workOrders });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (!parse.success) {
       return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
     }
-    const workOrder = await workOrderService.createWorkOrder(parse.data);
+    const workOrder = await jobOrderService.createJobOrder(parse.data);
     return NextResponse.json({ success: true, data: workOrder }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
