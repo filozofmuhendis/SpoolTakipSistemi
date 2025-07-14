@@ -1,62 +1,92 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { spoolService } from '@/lib/services/spools';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { spoolService } from '@/lib/services/spools'
+import { z } from 'zod'
 
-const spoolSchema = z.object({
-  name: z.string().min(1, 'Makara adı zorunlu.'),
-  projectId: z.string().min(1, 'Proje zorunlu.'),
-  status: z.enum(['pending', 'active', 'completed'], { required_error: 'Durum zorunlu.' }),
-  quantity: z.number().min(1, 'Adet zorunlu ve en az 1 olmalı.'),
-  completedQuantity: z.number().min(0, 'Tamamlanan miktar 0 veya daha fazla olmalı.'),
-  startDate: z.string().min(1, 'Başlangıç tarihi zorunlu.'),
-  endDate: z.string().optional(),
-  assignedTo: z.string().optional()
-});
+const urunAltKalemiUpdateSchema = z.object({
+  name: z.string().min(1, 'Ürün alt kalemi adı gereklidir').optional(),
+  description: z.string().optional(),
+  material: z.string().optional(),
+  diameter: z.number().positive('Çap pozitif olmalıdır').optional(),
+  thickness: z.number().positive('Kalınlık pozitif olmalıdır').optional(),
+  length: z.number().positive('Uzunluk pozitif olmalıdır').optional(),
+  weight: z.number().positive('Ağırlık pozitif olmalıdır').optional(),
+  status: z.enum(['draft', 'in_progress', 'completed', 'shipped']).optional(),
+  notes: z.string().optional()
+})
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 401 })
+  }
+
   try {
-    const { id } = params;
-    const spool = await spoolService.getSpoolById(id);
-    if (!spool) {
-      return NextResponse.json({ success: false, error: 'Makara bulunamadı.' }, { status: 404 });
+    const { id } = await params
+    const urunAltKalemi = await spoolService.getSpoolById(id)
+    
+    if (!urunAltKalemi) {
+      return NextResponse.json(
+        { success: false, error: 'Ürün alt kalemi bulunamadı.' },
+        { status: 404 }
+      )
     }
-    return NextResponse.json({ success: true, data: spool });
+
+    return NextResponse.json({ success: true, data: urunAltKalemi })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Ürün alt kalemi detay hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
+
   try {
-    const { id } = params;
-    const body = await req.json();
-    const parse = spoolSchema.safeParse(body);
+    const { id } = await params
+    const body = await req.json()
+    const parse = urunAltKalemiUpdateSchema.safeParse(body)
+    
     if (!parse.success) {
-      return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parse.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
-    const updated = await spoolService.updateSpool(id, parse.data);
-    return NextResponse.json({ success: true, data: updated });
+
+    const updated = await spoolService.updateSpool(id, parse.data)
+    return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Ürün alt kalemi güncelleme hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.role !== 'admin') {
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
+
   try {
-    const { id } = params;
-    await spoolService.deleteSpool(id);
-    return NextResponse.json({ success: true });
+    const { id } = await params
+    await spoolService.deleteSpool(id)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Ürün alt kalemi silme hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 } 

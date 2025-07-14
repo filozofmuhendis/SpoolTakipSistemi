@@ -1,64 +1,86 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { shipmentService } from '@/lib/services/shipments';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { shipmentService } from '@/lib/services/shipments'
+import { z } from 'zod'
 
-const shipmentSchema = z.object({
-  number: z.string().min(1, 'Sevkiyat numarası zorunlu.'),
-  projectId: z.string().min(1, 'Proje zorunlu.'),
-  status: z.enum(['pending', 'in_transit', 'delivered', 'cancelled'], { required_error: 'Durum zorunlu.' }),
-  priority: z.enum(['low', 'medium', 'high', 'urgent'], { required_error: 'Öncelik zorunlu.' }),
-  destination: z.string().min(1, 'Varış noktası zorunlu.'),
-  scheduledDate: z.string().min(1, 'Planlanan tarih zorunlu.'),
-  actualDate: z.string().optional(),
-  carrier: z.string().min(1, 'Taşıyıcı zorunlu.'),
-  trackingNumber: z.string().optional(),
-  totalWeight: z.number().min(0, 'Toplam ağırlık zorunlu ve 0 veya daha fazla olmalı.')
-});
+const shipmentUpdateSchema = z.object({
+  shipment_date: z.string().optional(),
+  status: z.enum(['pending', 'in_transit', 'delivered', 'cancelled']).optional(),
+  notes: z.string().optional()
+})
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 401 })
+  }
+
   try {
-    const { id } = params;
-    const shipment = await shipmentService.getShipmentById(id);
+    const { id } = await params
+    const shipment = await shipmentService.getShipmentById(id)
+    
     if (!shipment) {
-      return NextResponse.json({ success: false, error: 'Sevkiyat bulunamadı.' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Sevkiyat bulunamadı.' },
+        { status: 404 }
+      )
     }
-    return NextResponse.json({ success: true, data: shipment });
+
+    return NextResponse.json({ success: true, data: shipment })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Sevkiyat detay hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
+
   try {
-    const { id } = params;
-    const body = await req.json();
-    const parse = shipmentSchema.safeParse(body);
+    const { id } = await params
+    const body = await req.json()
+    const parse = shipmentUpdateSchema.safeParse(body)
+    
     if (!parse.success) {
-      return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parse.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
-    const updated = await shipmentService.updateShipment(id, parse.data);
-    return NextResponse.json({ success: true, data: updated });
+
+    const updated = await shipmentService.updateShipment(id, parse.data)
+    return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Sevkiyat güncelleme hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.role !== 'admin') {
+    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
+
   try {
-    const { id } = params;
-    await shipmentService.deleteShipment(id);
-    return NextResponse.json({ success: true });
+    const { id } = await params
+    await shipmentService.deleteShipment(id)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    console.error('Sevkiyat silme hatası:', error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    )
   }
 } 

@@ -14,7 +14,7 @@ const inventoryUpdateSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session) {
@@ -22,7 +22,7 @@ export async function GET(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const inventory = await inventoryService.getInventoryById(id)
     
     if (!inventory) {
@@ -44,7 +44,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
@@ -52,7 +52,7 @@ export async function PUT(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const body = await req.json()
     const parse = inventoryUpdateSchema.safeParse(body)
     
@@ -76,7 +76,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'admin') {
@@ -84,7 +84,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     await inventoryService.deleteInventory(id)
     return NextResponse.json({ success: true })
   } catch (error) {
