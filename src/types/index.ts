@@ -22,6 +22,7 @@ export interface Project {
   start_date?: string;
   delivery_date?: string;
   created_by?: string;
+  manager_id?: string;
   client_name?: string;
   description?: string;
   end_date?: string;
@@ -32,6 +33,7 @@ export interface UrunAltKalemi {
   id: string;
   project_id?: string;
   name?: string;
+  description?: string;
   material?: string;
   diameter?: number;
   thickness?: number;

@@ -78,14 +78,13 @@ export default function GlobalSearch() {
       const spools = await spoolService.getAllSpools()
       const spoolResults = spools
         .filter(spool => 
-          spool.name.toLowerCase().includes(query.toLowerCase()) ||
-          spool.description?.toLowerCase().includes(query.toLowerCase())
+          spool.name?.toLowerCase().includes(query.toLowerCase())
         )
         .map(spool => ({
           id: spool.id,
           type: 'spool' as const,
-          title: spool.name,
-          subtitle: spool.projectName || 'Proje bilgisi yok',
+          title: spool.name || 'İsimsiz',
+          subtitle: 'Proje bilgisi yok',
           status: spool.status,
           url: `/spools/${spool.id}`,
           icon: <Package className="w-4 h-4" />

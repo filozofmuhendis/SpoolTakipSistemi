@@ -1,4 +1,4 @@
--- Spool Takip Sistemi - Tam Supabase Şeması
+-- Ürün Alt Kalemi Takip Sistemi - Tam Supabase Şeması
 -- Bu dosya projenin tüm veritabanı yapısını içerir
 
 -- Enable necessary extensions
@@ -49,10 +49,7 @@ CREATE TABLE IF NOT EXISTS projects (
 -- PERSONNEL MANAGEMENT
 -- ========================================
 
--- Drop personnel table
-DROP TABLE IF EXISTS personnel CASCADE;
-
--- Create personnel table
+-- Create personnel table (profiles tablosu ile ayrı - eski sistem için)
 CREATE TABLE IF NOT EXISTS personnel (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -72,11 +69,11 @@ CREATE TABLE IF NOT EXISTS personnel (
 );
 
 -- ========================================
--- SPOOL MANAGEMENT
+-- ÜRÜN ALT KALEMİ MANAGEMENT
 -- ========================================
 
--- Create spools table
-CREATE TABLE IF NOT EXISTS spools (
+-- Create urun_alt_kalemi table (eski spools tablosu)
+CREATE TABLE IF NOT EXISTS urun_alt_kalemi (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -108,7 +105,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
   title TEXT NOT NULL,
   description TEXT,
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  spool_id UUID REFERENCES spools(id) ON DELETE CASCADE,
+  urun_alt_kalemi_id UUID REFERENCES urun_alt_kalemi(id) ON DELETE CASCADE,
   assigned_to UUID REFERENCES personnel(id),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
@@ -199,54 +196,49 @@ CREATE TABLE IF NOT EXISTS inventory_transactions (
 );
 
 -- ========================================
--- FILE MANAGEMENT
+-- FILE UPLOADS
 -- ========================================
 
 -- Create file_uploads table
 CREATE TABLE IF NOT EXISTS file_uploads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  url TEXT NOT NULL,
-  size INTEGER NOT NULL,
-  type TEXT NOT NULL,
-  uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  uploaded_by UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment', 'inventory')),
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  mime_type TEXT NOT NULL,
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('urun_alt_kalemi', 'project', 'personnel', 'work_order', 'shipment', 'inventory')),
   entity_id UUID NOT NULL,
+  uploaded_by UUID REFERENCES profiles(id),
   description TEXT,
+  tags TEXT[],
   is_public BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- NOTIFICATION SYSTEM
+-- NOTIFICATIONS
 -- ========================================
 
 -- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error')),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  entity_type TEXT CHECK (entity_type IN ('spool', 'project', 'personnel', 'workOrder', 'shipment', 'inventory')),
-  entity_id UUID,
+  type TEXT DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error')),
   read BOOLEAN DEFAULT FALSE,
   action_url TEXT,
-  priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
-  expires_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create notification_preferences table
 CREATE TABLE IF NOT EXISTS notification_preferences (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   email_notifications BOOLEAN DEFAULT TRUE,
   push_notifications BOOLEAN DEFAULT TRUE,
-  spool_updates BOOLEAN DEFAULT TRUE,
   project_updates BOOLEAN DEFAULT TRUE,
-  personnel_updates BOOLEAN DEFAULT TRUE,
+  urun_alt_kalemi_updates BOOLEAN DEFAULT TRUE,
   work_order_updates BOOLEAN DEFAULT TRUE,
   shipment_updates BOOLEAN DEFAULT TRUE,
   inventory_alerts BOOLEAN DEFAULT TRUE,
@@ -255,55 +247,56 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 );
 
 -- ========================================
--- AUDIT SYSTEM
+-- AUDIT LOGS
 -- ========================================
 
 -- Create audit_logs table
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   table_name TEXT NOT NULL,
-  record_id TEXT,
+  record_id UUID NOT NULL,
   action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
+  old_values JSONB,
+  new_values JSONB,
   user_id UUID REFERENCES profiles(id),
-  old_data JSONB,
-  new_data JSONB,
   ip_address INET,
   user_agent TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- REPORTING & ANALYTICS
+-- REPORTS
 -- ========================================
 
 -- Create reports table
 CREATE TABLE IF NOT EXISTS reports (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('production', 'personnel', 'shipment', 'inventory', 'financial', 'custom')),
+  description TEXT,
+  report_type TEXT NOT NULL CHECK (report_type IN ('project', 'urun_alt_kalemi', 'personnel', 'inventory', 'shipment', 'work_order')),
   parameters JSONB,
-  generated_by UUID REFERENCES profiles(id),
-  file_url TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+  created_by UUID REFERENCES profiles(id),
+  is_public BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- WORK HOURS TRACKING
+-- WORK HOURS
 -- ========================================
 
 -- Create work_hours table
 CREATE TABLE IF NOT EXISTS work_hours (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   personnel_id UUID REFERENCES personnel(id) ON DELETE CASCADE,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  spool_id UUID REFERENCES spools(id) ON DELETE SET NULL,
-  work_order_id UUID REFERENCES work_orders(id) ON DELETE SET NULL,
-  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  end_time TIMESTAMP WITH TIME ZONE,
+  project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  urun_alt_kalemi_id UUID REFERENCES urun_alt_kalemi(id) ON DELETE SET NULL,
+  work_date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME,
   hours_worked DECIMAL(4,2),
+  break_time DECIMAL(3,2) DEFAULT 0,
   description TEXT,
-  is_overtime BOOLEAN DEFAULT FALSE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   approved_by UUID REFERENCES profiles(id),
   approved_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -319,12 +312,12 @@ CREATE TABLE IF NOT EXISTS material_requests (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   request_number TEXT UNIQUE NOT NULL,
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  spool_id UUID REFERENCES spools(id) ON DELETE SET NULL,
+  urun_alt_kalemi_id UUID REFERENCES urun_alt_kalemi(id) ON DELETE SET NULL,
   requested_by UUID REFERENCES profiles(id),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'fulfilled')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
-  requested_date DATE NOT NULL,
-  needed_by_date DATE,
+  request_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  required_date DATE,
   approved_by UUID REFERENCES profiles(id),
   approved_at TIMESTAMP WITH TIME ZONE,
   notes TEXT,
@@ -337,61 +330,60 @@ CREATE TABLE IF NOT EXISTS material_request_items (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   request_id UUID REFERENCES material_requests(id) ON DELETE CASCADE,
   inventory_id UUID REFERENCES inventory(id),
-  quantity_requested DECIMAL(10,2) NOT NULL,
-  quantity_approved DECIMAL(10,2),
-  quantity_issued DECIMAL(10,2),
-  unit_cost DECIMAL(10,2),
+  quantity DECIMAL(10,2) NOT NULL,
+  unit TEXT NOT NULL,
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- QUALITY CONTROL
+-- QUALITY CHECKS
 -- ========================================
 
 -- Create quality_checks table
 CREATE TABLE IF NOT EXISTS quality_checks (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  spool_id UUID REFERENCES spools(id) ON DELETE CASCADE,
+  urun_alt_kalemi_id UUID REFERENCES urun_alt_kalemi(id) ON DELETE CASCADE,
   work_order_id UUID REFERENCES work_orders(id) ON DELETE SET NULL,
-  inspector_id UUID REFERENCES personnel(id),
-  check_date DATE NOT NULL,
+  inspector_id UUID REFERENCES profiles(id),
+  check_date DATE NOT NULL DEFAULT CURRENT_DATE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'passed', 'failed', 'conditional')),
   notes TEXT,
-  defects_found TEXT,
-  corrective_actions TEXT,
+  measurements JSONB,
+  photos TEXT[],
   next_check_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- MAINTENANCE & EQUIPMENT
+-- EQUIPMENT
 -- ========================================
 
 -- Create equipment table
 CREATE TABLE IF NOT EXISTS equipment (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
   code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
   type TEXT NOT NULL,
   model TEXT,
-  manufacturer TEXT,
   serial_number TEXT,
-  location TEXT,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'maintenance', 'inactive', 'retired')),
+  manufacturer TEXT,
   purchase_date DATE,
   warranty_expiry DATE,
+  status TEXT DEFAULT 'available' CHECK (status IN ('available', 'in_use', 'maintenance', 'retired')),
+  assigned_to UUID REFERENCES personnel(id),
+  location TEXT,
   last_maintenance DATE,
   next_maintenance DATE,
-  assigned_to UUID REFERENCES personnel(id),
-  notes TEXT,
+  maintenance_notes TEXT,
+  specifications JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ========================================
--- INDEXES FOR PERFORMANCE
+-- INDEXES
 -- ========================================
 
 -- Profiles indexes
@@ -408,13 +400,13 @@ CREATE INDEX IF NOT EXISTS idx_personnel_department ON personnel(department);
 CREATE INDEX IF NOT EXISTS idx_personnel_status ON personnel(status);
 CREATE INDEX IF NOT EXISTS idx_personnel_email ON personnel(email);
 
--- Spools indexes
-CREATE INDEX IF NOT EXISTS idx_spools_project_id ON spools(project_id);
-CREATE INDEX IF NOT EXISTS idx_spools_assigned_to ON spools(assigned_to);
-CREATE INDEX IF NOT EXISTS idx_spools_status ON spools(status);
-CREATE INDEX IF NOT EXISTS idx_spools_start_date ON spools(start_date);
+-- Ürün Alt Kalemi indexes
+CREATE INDEX IF NOT EXISTS idx_urun_alt_kalemi_project_id ON urun_alt_kalemi(project_id);
+CREATE INDEX IF NOT EXISTS idx_urun_alt_kalemi_assigned_to ON urun_alt_kalemi(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_urun_alt_kalemi_status ON urun_alt_kalemi(status);
+CREATE INDEX IF NOT EXISTS idx_urun_alt_kalemi_start_date ON urun_alt_kalemi(start_date);
 
--- Work orders indexes
+-- Work Orders indexes
 CREATE INDEX IF NOT EXISTS idx_work_orders_project_id ON work_orders(project_id);
 CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_to ON work_orders(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
@@ -435,12 +427,12 @@ CREATE INDEX IF NOT EXISTS idx_inventory_status ON inventory(status);
 CREATE INDEX IF NOT EXISTS idx_inventory_code ON inventory(code);
 CREATE INDEX IF NOT EXISTS idx_inventory_quantity ON inventory(quantity);
 
--- Inventory transactions indexes
+-- Inventory Transactions indexes
 CREATE INDEX IF NOT EXISTS idx_inventory_transactions_inventory_id ON inventory_transactions(inventory_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_transactions_type ON inventory_transactions(transaction_type);
 CREATE INDEX IF NOT EXISTS idx_inventory_transactions_date ON inventory_transactions(transaction_date);
 
--- File uploads indexes
+-- File Uploads indexes
 CREATE INDEX IF NOT EXISTS idx_file_uploads_entity ON file_uploads(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_file_uploads_uploaded_by ON file_uploads(uploaded_by);
 
@@ -449,24 +441,24 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
 
--- Audit logs indexes
+-- Audit Logs indexes
 CREATE INDEX IF NOT EXISTS idx_audit_logs_table_name ON audit_logs(table_name);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 
--- Work hours indexes
+-- Work Hours indexes
 CREATE INDEX IF NOT EXISTS idx_work_hours_personnel_id ON work_hours(personnel_id);
 CREATE INDEX IF NOT EXISTS idx_work_hours_project_id ON work_hours(project_id);
 CREATE INDEX IF NOT EXISTS idx_work_hours_start_time ON work_hours(start_time);
 
--- Material requests indexes
+-- Material Requests indexes
 CREATE INDEX IF NOT EXISTS idx_material_requests_project_id ON material_requests(project_id);
 CREATE INDEX IF NOT EXISTS idx_material_requests_status ON material_requests(status);
 CREATE INDEX IF NOT EXISTS idx_material_requests_requested_by ON material_requests(requested_by);
 
--- Quality checks indexes
-CREATE INDEX IF NOT EXISTS idx_quality_checks_spool_id ON quality_checks(spool_id);
+-- Quality Checks indexes
+CREATE INDEX IF NOT EXISTS idx_quality_checks_urun_alt_kalemi_id ON quality_checks(urun_alt_kalemi_id);
 CREATE INDEX IF NOT EXISTS idx_quality_checks_status ON quality_checks(status);
 CREATE INDEX IF NOT EXISTS idx_quality_checks_check_date ON quality_checks(check_date);
 
@@ -483,7 +475,7 @@ CREATE INDEX IF NOT EXISTS idx_equipment_code ON equipment(code);
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personnel ENABLE ROW LEVEL SECURITY;
-ALTER TABLE spools ENABLE ROW LEVEL SECURITY;
+ALTER TABLE urun_alt_kalemi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shipments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
@@ -499,21 +491,30 @@ ALTER TABLE material_request_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quality_checks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
 
+-- ========================================
+-- RLS POLICIES
+-- ========================================
+
 -- Profiles policies
-CREATE POLICY "Users can view own profile" ON profiles
+CREATE POLICY "Users can view their own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile" ON profiles
+CREATE POLICY "Users can update their own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Users can insert own profile" ON profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Admins can view all profiles" ON profiles
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE id = auth.uid() AND position = 'admin'
+    )
+  );
 
 -- Projects policies
 CREATE POLICY "Users can view projects" ON projects
   FOR SELECT USING (true);
 
-CREATE POLICY "Admin and managers can manage projects" ON projects
+CREATE POLICY "Managers and admins can manage projects" ON projects
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -525,7 +526,7 @@ CREATE POLICY "Admin and managers can manage projects" ON projects
 CREATE POLICY "Users can view personnel" ON personnel
   FOR SELECT USING (true);
 
-CREATE POLICY "Admin and managers can manage personnel" ON personnel
+CREATE POLICY "Managers and admins can manage personnel" ON personnel
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -533,14 +534,14 @@ CREATE POLICY "Admin and managers can manage personnel" ON personnel
     )
   );
 
--- Spools policies
-CREATE POLICY "Users can view spools" ON spools
+-- Ürün Alt Kalemi policies
+CREATE POLICY "Users can view urun_alt_kalemi" ON urun_alt_kalemi
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can manage spools" ON spools
+CREATE POLICY "Users can manage urun_alt_kalemi" ON urun_alt_kalemi
   FOR ALL USING (true);
 
--- Work orders policies
+-- Work Orders policies
 CREATE POLICY "Users can view work orders" ON work_orders
   FOR SELECT USING (true);
 
@@ -561,45 +562,36 @@ CREATE POLICY "Users can view inventory" ON inventory
 CREATE POLICY "Users can manage inventory" ON inventory
   FOR ALL USING (true);
 
--- Inventory transactions policies
+-- Inventory Transactions policies
 CREATE POLICY "Users can view inventory transactions" ON inventory_transactions
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can create inventory transactions" ON inventory_transactions
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can manage inventory transactions" ON inventory_transactions
+  FOR ALL USING (true);
 
--- File uploads policies
+-- File Uploads policies
 CREATE POLICY "Users can view file uploads" ON file_uploads
   FOR SELECT USING (true);
 
-CREATE POLICY "Users can upload files" ON file_uploads
-  FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
-
-CREATE POLICY "Users can delete own files" ON file_uploads
-  FOR DELETE USING (auth.uid() = uploaded_by);
+CREATE POLICY "Users can manage file uploads" ON file_uploads
+  FOR ALL USING (true);
 
 -- Notifications policies
-CREATE POLICY "Users can view own notifications" ON notifications
+CREATE POLICY "Users can view their own notifications" ON notifications
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own notifications" ON notifications
+CREATE POLICY "Users can update their own notifications" ON notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "System can create notifications" ON notifications
-  FOR INSERT WITH CHECK (true);
-
--- Notification preferences policies
-CREATE POLICY "Users can view own preferences" ON notification_preferences
+-- Notification Preferences policies
+CREATE POLICY "Users can view their own notification preferences" ON notification_preferences
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own preferences" ON notification_preferences
-  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own notification preferences" ON notification_preferences
+  FOR ALL USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own preferences" ON notification_preferences
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Audit logs policies (admin only)
-CREATE POLICY "Admin can view audit logs" ON audit_logs
+-- Audit Logs policies (read-only for admins)
+CREATE POLICY "Admins can view audit logs" ON audit_logs
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM profiles 
@@ -608,34 +600,34 @@ CREATE POLICY "Admin can view audit logs" ON audit_logs
   );
 
 -- Reports policies
-CREATE POLICY "Users can view own reports" ON reports
-  FOR SELECT USING (auth.uid() = generated_by);
+CREATE POLICY "Users can view public reports" ON reports
+  FOR SELECT USING (is_public = true OR created_by = auth.uid());
 
-CREATE POLICY "Users can create reports" ON reports
-  FOR INSERT WITH CHECK (auth.uid() = generated_by);
+CREATE POLICY "Users can manage their own reports" ON reports
+  FOR ALL USING (created_by = auth.uid());
 
--- Work hours policies
+-- Work Hours policies
 CREATE POLICY "Users can view work hours" ON work_hours
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage work hours" ON work_hours
   FOR ALL USING (true);
 
--- Material requests policies
+-- Material Requests policies
 CREATE POLICY "Users can view material requests" ON material_requests
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage material requests" ON material_requests
   FOR ALL USING (true);
 
--- Material request items policies
+-- Material Request Items policies
 CREATE POLICY "Users can view material request items" ON material_request_items
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can manage material request items" ON material_request_items
   FOR ALL USING (true);
 
--- Quality checks policies
+-- Quality Checks policies
 CREATE POLICY "Users can view quality checks" ON quality_checks
   FOR SELECT USING (true);
 
@@ -646,19 +638,14 @@ CREATE POLICY "Users can manage quality checks" ON quality_checks
 CREATE POLICY "Users can view equipment" ON equipment
   FOR SELECT USING (true);
 
-CREATE POLICY "Admin and managers can manage equipment" ON equipment
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND position IN ('admin', 'manager')
-    )
-  );
+CREATE POLICY "Users can manage equipment" ON equipment
+  FOR ALL USING (true);
 
 -- ========================================
--- FUNCTIONS & TRIGGERS
+-- FUNCTIONS
 -- ========================================
 
--- Function to update updated_at timestamp
+-- Function to update updated_at column
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -667,101 +654,80 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Function to handle new user registration
+-- Function to handle new user creation
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO profiles (id, email, full_name)
-  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email));
-  
-  INSERT INTO notification_preferences (user_id)
-  VALUES (NEW.id);
-  
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ language 'plpgsql';
 
 -- Function to log audit events
 CREATE OR REPLACE FUNCTION log_audit_event() RETURNS trigger AS $$
-DECLARE
-    v_user_id uuid := null;
 BEGIN
-    -- Get user ID from JWT claims
-    IF current_setting('request.jwt.claim.sub', true) IS NOT NULL THEN
-        v_user_id := current_setting('request.jwt.claim.sub', true)::uuid;
-    END IF;
-
-    IF (TG_OP = 'INSERT') THEN
-        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
-        VALUES (TG_TABLE_NAME, NEW.id::text, 'INSERT', v_user_id, NULL, row_to_json(NEW));
-        RETURN NEW;
-    ELSIF (TG_OP = 'UPDATE') THEN
-        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
-        VALUES (TG_TABLE_NAME, NEW.id::text, 'UPDATE', v_user_id, row_to_json(OLD), row_to_json(NEW));
-        RETURN NEW;
-    ELSIF (TG_OP = 'DELETE') THEN
-        INSERT INTO audit_logs(table_name, record_id, action, user_id, old_data, new_data)
-        VALUES (TG_TABLE_NAME, OLD.id::text, 'DELETE', v_user_id, row_to_json(OLD), NULL);
-        RETURN OLD;
-    END IF;
-    RETURN NULL;
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO audit_logs (table_name, record_id, action, new_values, user_id)
+    VALUES (TG_TABLE_NAME, NEW.id, 'INSERT', to_jsonb(NEW), auth.uid());
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, user_id)
+    VALUES (TG_TABLE_NAME, NEW.id, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW), auth.uid());
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO audit_logs (table_name, record_id, action, old_values, user_id)
+    VALUES (TG_TABLE_NAME, OLD.id, 'DELETE', to_jsonb(OLD), auth.uid());
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ language 'plpgsql';
 
 -- Function to update inventory quantity
 CREATE OR REPLACE FUNCTION update_inventory_quantity()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        -- Update inventory quantity based on transaction type
-        IF NEW.transaction_type = 'in' THEN
-            UPDATE inventory 
-            SET quantity = quantity + NEW.quantity,
-                last_updated = NOW()
-            WHERE id = NEW.inventory_id;
-        ELSIF NEW.transaction_type = 'out' THEN
-            UPDATE inventory 
-            SET quantity = quantity - NEW.quantity,
-                last_updated = NOW()
-            WHERE id = NEW.inventory_id;
-        END IF;
-        RETURN NEW;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.transaction_type = 'in' THEN
+      UPDATE inventory 
+      SET quantity = quantity + NEW.quantity,
+          last_updated = NOW()
+      WHERE id = NEW.inventory_id;
+    ELSIF NEW.transaction_type = 'out' THEN
+      UPDATE inventory 
+      SET quantity = quantity - NEW.quantity,
+          last_updated = NOW()
+      WHERE id = NEW.inventory_id;
     END IF;
-    RETURN NULL;
+  END IF;
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ language 'plpgsql';
 
--- Function to create notification for low stock
+-- Function to check low stock
 CREATE OR REPLACE FUNCTION check_low_stock()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Check if inventory is below minimum stock
-    IF NEW.quantity <= NEW.min_stock THEN
-        INSERT INTO notifications (title, message, type, user_id, entity_type, entity_id, priority)
-        SELECT 
-            'Düşük Stok Uyarısı',
-            'Malzeme ' || NEW.name || ' minimum stok seviyesinin altına düştü. Mevcut: ' || NEW.quantity || ' ' || NEW.unit,
-            'warning',
-            p.id,
-            'inventory',
-            NEW.id,
-            'high'
-        FROM profiles p
-        WHERE p.position IN ('admin', 'manager')
-        AND EXISTS (
-            SELECT 1 FROM notification_preferences np 
-            WHERE np.user_id = p.id AND np.inventory_alerts = true
-        );
-    END IF;
-    RETURN NEW;
+  IF NEW.quantity <= NEW.min_stock THEN
+    INSERT INTO notifications (user_id, title, message, type)
+    SELECT 
+      p.id,
+      'Düşük Stok Uyarısı',
+      'Ürün ' || NEW.name || ' stok seviyesi kritik seviyede: ' || NEW.quantity || ' ' || NEW.unit,
+      'warning'
+    FROM profiles p
+    WHERE p.position IN ('admin', 'manager');
+  END IF;
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ language 'plpgsql';
 
 -- ========================================
 -- TRIGGERS
 -- ========================================
 
--- Updated_at triggers
+-- Update triggers for updated_at column
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -771,7 +737,7 @@ CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
 CREATE TRIGGER update_personnel_updated_at BEFORE UPDATE ON personnel
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_spools_updated_at BEFORE UPDATE ON spools
+CREATE TRIGGER update_urun_alt_kalemi_updated_at BEFORE UPDATE ON urun_alt_kalemi
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON work_orders
@@ -798,7 +764,7 @@ CREATE TRIGGER update_quality_checks_updated_at BEFORE UPDATE ON quality_checks
 CREATE TRIGGER update_equipment_updated_at BEFORE UPDATE ON equipment
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- New user registration trigger
+-- Auth user creation trigger
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -816,8 +782,8 @@ CREATE TRIGGER trg_audit_personnel
 AFTER INSERT OR UPDATE OR DELETE ON personnel
 FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
-CREATE TRIGGER trg_audit_spools
-AFTER INSERT OR UPDATE OR DELETE ON spools
+CREATE TRIGGER trg_audit_urun_alt_kalemi
+AFTER INSERT OR UPDATE OR DELETE ON urun_alt_kalemi
 FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
 CREATE TRIGGER trg_audit_work_orders
@@ -856,71 +822,40 @@ CREATE TRIGGER trg_audit_equipment
 AFTER INSERT OR UPDATE OR DELETE ON equipment
 FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
--- Inventory transaction trigger
+-- Inventory triggers
 CREATE TRIGGER trg_update_inventory_quantity
 AFTER INSERT ON inventory_transactions
 FOR EACH ROW EXECUTE FUNCTION update_inventory_quantity();
 
--- Low stock notification trigger
 CREATE TRIGGER trg_check_low_stock
 AFTER UPDATE ON inventory
 FOR EACH ROW EXECUTE FUNCTION check_low_stock();
 
 -- ========================================
--- STORAGE CONFIGURATION
+-- VIEWS
 -- ========================================
 
--- Create storage bucket for file uploads
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
-VALUES (
-  'uploads', 
-  'uploads', 
-  true, 
-  52428800, -- 50MB limit
-  ARRAY['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Storage policies
-CREATE POLICY "Public Access" ON storage.objects
-  FOR SELECT USING (bucket_id = 'uploads');
-
-CREATE POLICY "Authenticated users can upload files" ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id = 'uploads' AND 
-    auth.role() = 'authenticated'
-  );
-
-CREATE POLICY "Users can delete own files" ON storage.objects
-  FOR DELETE USING (
-    bucket_id = 'uploads' AND 
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
--- ========================================
--- VIEWS FOR REPORTING
--- ========================================
-
--- Create view for spool progress
-CREATE OR REPLACE VIEW spool_progress AS
+-- Create view for urun_alt_kalemi progress
+CREATE OR REPLACE VIEW urun_alt_kalemi_progress AS
 SELECT 
-  s.id,
-  s.name,
-  s.project_id,
-  p.name as project_name,
-  s.status,
-  s.quantity,
-  s.completed_quantity,
+  uak.id,
+  uak.name,
+  uak.status,
+  uak.quantity,
+  uak.completed_quantity,
   CASE 
-    WHEN s.quantity > 0 THEN ROUND((s.completed_quantity::decimal / s.quantity) * 100, 2)
+    WHEN uak.quantity > 0 THEN 
+      ROUND((uak.completed_quantity::DECIMAL / uak.quantity::DECIMAL) * 100, 2)
     ELSE 0 
   END as progress_percentage,
-  s.start_date,
-  s.end_date,
-  per.name as assigned_to_name
-FROM spools s
-LEFT JOIN projects p ON s.project_id = p.id
-LEFT JOIN personnel per ON s.assigned_to = per.id;
+  p.name as project_name,
+  per.name as assigned_personnel,
+  uak.start_date,
+  uak.end_date,
+  uak.created_at
+FROM urun_alt_kalemi uak
+LEFT JOIN projects p ON uak.project_id = p.id
+LEFT JOIN personnel per ON uak.assigned_to = per.id;
 
 -- Create view for inventory summary
 CREATE OR REPLACE VIEW inventory_summary AS
@@ -934,15 +869,14 @@ SELECT
   i.unit,
   i.min_stock,
   i.max_stock,
-  i.cost,
-  (i.quantity * i.cost) as total_value,
-  CASE 
-    WHEN i.quantity <= i.min_stock THEN 'low'
-    WHEN i.quantity <= (i.min_stock * 1.5) THEN 'warning'
-    ELSE 'normal'
-  END as stock_status,
   i.location,
-  i.supplier,
+  i.status,
+  CASE 
+    WHEN i.quantity <= i.min_stock THEN 'Low Stock'
+    WHEN i.quantity >= i.max_stock THEN 'Overstocked'
+    ELSE 'Normal'
+  END as stock_status,
+  i.last_updated,
   p.name as project_name
 FROM inventory i
 LEFT JOIN projects p ON i.project_id = p.id;
@@ -953,21 +887,20 @@ SELECT
   wo.id,
   wo.number,
   wo.title,
-  wo.project_id,
-  p.name as project_name,
   wo.status,
   wo.priority,
   wo.start_date,
   wo.due_date,
   wo.completed_date,
-  per.name as assigned_to_name,
-  s.name as spool_name,
   wo.estimated_hours,
-  wo.actual_hours
+  wo.actual_hours,
+  p.name as project_name,
+  uak.name as urun_alt_kalemi_name,
+  per.name as assigned_personnel
 FROM work_orders wo
 LEFT JOIN projects p ON wo.project_id = p.id
-LEFT JOIN personnel per ON wo.assigned_to = per.id
-LEFT JOIN spools s ON wo.spool_id = s.id;
+LEFT JOIN urun_alt_kalemi uak ON wo.urun_alt_kalemi_id = uak.id
+LEFT JOIN personnel per ON wo.assigned_to = per.id;
 
 -- Create view for personnel workload
 CREATE OR REPLACE VIEW personnel_workload AS
@@ -976,37 +909,54 @@ SELECT
   per.name,
   per.department,
   per.position,
-  COUNT(DISTINCT s.id) as assigned_spools,
+  COUNT(DISTINCT uak.id) as assigned_urun_alt_kalemi,
   COUNT(DISTINCT wo.id) as assigned_work_orders,
   SUM(wh.hours_worked) as total_hours_worked,
   AVG(wh.hours_worked) as avg_hours_per_day
 FROM personnel per
-LEFT JOIN spools s ON per.id = s.assigned_to
+LEFT JOIN urun_alt_kalemi uak ON per.id = uak.assigned_to
 LEFT JOIN work_orders wo ON per.id = wo.assigned_to
 LEFT JOIN work_hours wh ON per.id = wh.personnel_id
-WHERE per.status = 'active'
 GROUP BY per.id, per.name, per.department, per.position;
 
 -- ========================================
 -- COMMENTS
 -- ========================================
 
-COMMENT ON TABLE profiles IS 'Kullanıcı profilleri ve yetki bilgileri';
-COMMENT ON TABLE projects IS 'Proje bilgileri ve yönetimi';
-COMMENT ON TABLE personnel IS 'Personel bilgileri ve departman yönetimi';
-COMMENT ON TABLE spools IS 'Spool takibi ve üretim süreçleri';
+COMMENT ON TABLE profiles IS 'Kullanıcı profilleri ve kimlik doğrulama bilgileri';
+COMMENT ON TABLE projects IS 'Proje yönetimi ve takibi';
+COMMENT ON TABLE personnel IS 'Personel bilgileri ve yönetimi';
+COMMENT ON TABLE urun_alt_kalemi IS 'Ürün alt kalemi takibi ve üretim süreçleri';
 COMMENT ON TABLE work_orders IS 'İş emirleri ve görev yönetimi';
-COMMENT ON TABLE shipments IS 'Sevkiyat takibi ve lojistik';
-COMMENT ON TABLE inventory IS 'Envanter yönetimi ve stok takibi';
-COMMENT ON TABLE inventory_transactions IS 'Envanter hareketleri ve işlem geçmişi';
+COMMENT ON TABLE shipments IS 'Sevkiyat ve lojistik yönetimi';
+COMMENT ON TABLE inventory IS 'Envanter ve stok yönetimi';
+COMMENT ON TABLE inventory_transactions IS 'Envanter hareketleri ve işlemleri';
 COMMENT ON TABLE file_uploads IS 'Dosya yükleme ve belge yönetimi';
 COMMENT ON TABLE notifications IS 'Bildirim sistemi';
-COMMENT ON TABLE audit_logs IS 'Sistem audit logları ve güvenlik';
+COMMENT ON TABLE notification_preferences IS 'Bildirim tercihleri';
+COMMENT ON TABLE audit_logs IS 'Sistem denetim kayıtları';
+COMMENT ON TABLE reports IS 'Rapor yönetimi';
 COMMENT ON TABLE work_hours IS 'Çalışma saatleri takibi';
-COMMENT ON TABLE material_requests IS 'Malzeme talep sistemi';
+COMMENT ON TABLE material_requests IS 'Malzeme talepleri';
+COMMENT ON TABLE material_request_items IS 'Malzeme talep detayları';
 COMMENT ON TABLE quality_checks IS 'Kalite kontrol süreçleri';
 COMMENT ON TABLE equipment IS 'Ekipman ve makine yönetimi';
 
 -- ========================================
--- END OF SCHEMA
--- ======================================== 
+-- SAMPLE DATA (Optional)
+-- ========================================
+
+-- Insert sample project
+INSERT INTO projects (name, description, status, start_date, client_name, priority) 
+VALUES ('Örnek Proje', 'Test projesi', 'active', CURRENT_DATE, 'Test Müşteri', 'medium')
+ON CONFLICT DO NOTHING;
+
+-- Insert sample personnel
+INSERT INTO personnel (name, email, department, position, status) 
+VALUES ('Test Personel', 'test@example.com', 'Üretim', 'Teknisyen', 'active')
+ON CONFLICT DO NOTHING;
+
+-- Insert sample inventory
+INSERT INTO inventory (name, code, category, type, quantity, unit, min_stock, max_stock, location, supplier, cost, status) 
+VALUES ('Test Malzeme', 'TM001', 'Hammadde', 'raw_material', 100, 'adet', 10, 200, 'Depo A', 'Test Tedarikçi', 50.00, 'active')
+ON CONFLICT DO NOTHING; 
