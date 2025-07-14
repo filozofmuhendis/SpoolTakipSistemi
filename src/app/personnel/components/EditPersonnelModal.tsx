@@ -23,15 +23,16 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
     
     try {
       const updatedPersonnel = await personnelService.updatePersonnel(personnel.id, {
-        name: formData.name,
+        fullName: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         position: formData.position,
-        department: formData.department,
-        status: formData.status
+        department: formData.department
       })
       
-      onSave(updatedPersonnel)
+      if (updatedPersonnel) {
+        onSave(updatedPersonnel)
+      }
       onClose()
     } catch (error: any) {
       console.log('Personel güncelleme hatası:', error)
@@ -63,8 +64,8 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Ad Soyad</label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
               />

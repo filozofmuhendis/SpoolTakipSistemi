@@ -94,16 +94,16 @@ export default function GlobalSearch() {
       const personnel = await personnelService.getAllPersonnel()
       const personnelResults = personnel
         .filter(person => 
-          person.name.toLowerCase().includes(query.toLowerCase()) ||
-          person.email.toLowerCase().includes(query.toLowerCase()) ||
-          person.department.toLowerCase().includes(query.toLowerCase())
+          person.fullName?.toLowerCase().includes(query.toLowerCase()) ||
+          person.email?.toLowerCase().includes(query.toLowerCase()) ||
+          person.department?.toLowerCase().includes(query.toLowerCase())
         )
         .map(person => ({
           id: person.id,
           type: 'personnel' as const,
-          title: person.name,
-          subtitle: `${person.department} - ${person.position}`,
-          status: person.status,
+          title: person.fullName || 'İsimsiz',
+          subtitle: `${person.department || 'Departman yok'} - ${person.position || 'Pozisyon yok'}`,
+          status: 'active',
           url: `/personnel/${person.id}`,
           icon: <Users className="w-4 h-4" />
         }))
@@ -112,14 +112,13 @@ export default function GlobalSearch() {
       const workOrders = await jobOrderService.getAllJobOrders()
       const workOrderResults = workOrders
         .filter(wo => 
-          wo.title.toLowerCase().includes(query.toLowerCase()) ||
           wo.description?.toLowerCase().includes(query.toLowerCase())
         )
         .map(wo => ({
           id: wo.id,
           type: 'workOrder' as const,
-          title: wo.title,
-          subtitle: wo.projectName || 'Proje bilgisi yok',
+          title: wo.description || 'Açıklama yok',
+          subtitle: 'Proje bilgisi yok',
           status: wo.status,
           url: `/work-orders/${wo.id}`,
           icon: <FileText className="w-4 h-4" />
@@ -129,14 +128,13 @@ export default function GlobalSearch() {
       const shipments = await shipmentService.getAllShipments()
       const shipmentResults = shipments
         .filter(shipment => 
-          shipment.number.toLowerCase().includes(query.toLowerCase()) ||
-          shipment.destination.toLowerCase().includes(query.toLowerCase())
+          shipment.id.toLowerCase().includes(query.toLowerCase())
         )
         .map(shipment => ({
           id: shipment.id,
           type: 'shipment' as const,
-          title: shipment.number,
-          subtitle: shipment.destination,
+          title: `Sevkiyat ${shipment.id.slice(-6)}`,
+          subtitle: shipment.notes || 'Açıklama yok',
           status: shipment.status,
           url: `/shipments/${shipment.id}`,
           icon: <Truck className="w-4 h-4" />

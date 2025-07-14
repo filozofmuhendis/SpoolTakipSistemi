@@ -66,16 +66,16 @@ export const inventoryTransactionService = {
     const { data, error } = await supabase
       .from('inventory_transactions')
       .insert({
-        inventory_id: transaction.inventoryId,
-        transaction_type: transaction.transactionType,
+        inventory_id: transaction.inventory_id,
+        transaction_type: transaction.transaction_type,
         quantity: transaction.quantity,
-        unit_cost: transaction.unitCost,
-        total_cost: transaction.totalCost,
-        reference_type: transaction.referenceType,
-        reference_id: transaction.referenceId,
+        unit_cost: transaction.unit_cost,
+        total_cost: transaction.total_cost,
+        reference_type: transaction.reference_type,
+        reference_id: transaction.reference_id,
         notes: transaction.notes,
-        performed_by: transaction.performedBy,
-        transaction_date: transaction.transactionDate
+        performed_by: transaction.performed_by,
+        transaction_date: transaction.transaction_date
       })
       .select()
       .single()
@@ -173,42 +173,42 @@ export const inventoryTransactionService = {
     const totalCost = unitCost ? quantity * unitCost : undefined
     
     return this.createTransaction({
-      inventoryId,
-      transactionType: 'in',
+      inventory_id: inventoryId,
+      transaction_type: 'in',
       quantity,
-      unitCost,
-      totalCost,
-      referenceType: 'purchase',
+      unit_cost: unitCost,
+      total_cost: totalCost,
+      reference_type: 'purchase',
       notes,
-      performedBy: (await supabase.auth.getUser()).data.user?.id || '',
-      transactionDate: new Date().toISOString()
+      performed_by: (await supabase.auth.getUser()).data.user?.id || '',
+      transaction_date: new Date().toISOString()
     })
   },
 
   // Envanter çıkış işlemi
   async createOutTransaction(inventoryId: string, quantity: number, referenceType?: 'production' | 'shipment', referenceId?: string, notes?: string): Promise<InventoryTransaction> {
     return this.createTransaction({
-      inventoryId,
-      transactionType: 'out',
+      inventory_id: inventoryId,
+      transaction_type: 'out',
       quantity,
-      referenceType,
-      referenceId,
+      reference_type: referenceType,
+      reference_id: referenceId,
       notes,
-      performedBy: (await supabase.auth.getUser()).data.user?.id || '',
-      transactionDate: new Date().toISOString()
+      performed_by: (await supabase.auth.getUser()).data.user?.id || '',
+      transaction_date: new Date().toISOString()
     })
   },
 
   // Stok düzeltme işlemi
   async createAdjustmentTransaction(inventoryId: string, quantity: number, notes?: string): Promise<InventoryTransaction> {
     return this.createTransaction({
-      inventoryId,
-      transactionType: 'adjustment',
+      inventory_id: inventoryId,
+      transaction_type: 'adjustment',
       quantity,
-      referenceType: 'adjustment',
+      reference_type: 'adjustment',
       notes,
-      performedBy: (await supabase.auth.getUser()).data.user?.id || '',
-      transactionDate: new Date().toISOString()
+      performed_by: (await supabase.auth.getUser()).data.user?.id || '',
+      transaction_date: new Date().toISOString()
     })
   }
 } 

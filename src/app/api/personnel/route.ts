@@ -5,14 +5,12 @@ import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 
 const personnelSchema = z.object({
-  name: z.string().min(1, 'Personel adı zorunlu.'),
-  role: z.string().min(1, 'Rol zorunlu.'),
   email: z.string().email('Geçerli bir email giriniz.'),
-  phone: z.string().min(1, 'Telefon zorunlu.'),
-  position: z.string().min(1, 'Pozisyon zorunlu.'),
-  department: z.string().min(1, 'Departman zorunlu.'),
-  status: z.enum(['active', 'inactive', 'on_leave'], { required_error: 'Durum zorunlu.' }),
-  hireDate: z.string().min(1, 'İşe giriş tarihi zorunlu.')
+  password: z.string().min(6, 'Şifre en az 6 karakter olmalı.'),
+  fullName: z.string().min(1, 'Ad soyad zorunlu.'),
+  phone: z.string().optional(),
+  department: z.string().optional(),
+  position: z.string().optional()
 });
 
 export async function GET(req: NextRequest) {

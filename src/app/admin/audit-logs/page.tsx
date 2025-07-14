@@ -21,7 +21,7 @@ export default function AuditLogsPage() {
   useEffect(() => {
     fetchLogs();
     getAllPersonnelBasic()
-      .then(list => setPersonnelList(list.map(p => ({ id: p.id, name: p.name ?? "" }))))
+      .then(list => setPersonnelList(list.map(p => ({ id: p.id, name: p.full_name ?? "" }))))
       .catch(() => {});
     // eslint-disable-next-line
   }, [filter]);

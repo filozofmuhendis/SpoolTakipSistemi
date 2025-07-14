@@ -281,6 +281,27 @@ export const personnelService = {
       console.log('Şifre güncelleme hatası:', error)
       return false
     }
+  },
+
+  // Yöneticileri getir
+  async getManagers(): Promise<Personnel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('position', 'manager')
+        .order('full_name', { ascending: true })
+      
+      if (error) {
+        console.log('Yönetici getirme hatası:', error)
+        return []
+      }
+      
+      return data || []
+    } catch (error) {
+      console.log('Yönetici getirme hatası:', error)
+      return []
+    }
   }
 }
 

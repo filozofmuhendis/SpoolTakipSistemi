@@ -69,11 +69,11 @@ export default function NewProjectPage() {
       const project = await projectService.createProject({
         name: data.name,
         description: data.description,
-        startDate: data.startDate,
-        endDate: data.endDate || undefined,
-        managerId: data.managerId,
+        start_date: data.startDate,
+        end_date: data.endDate || undefined,
+        manager_id: data.managerId,
         status: data.status ?? 'pending',
-        priority: 'medium'
+        // priority: 'medium'
       })
       // 2. Spool dosyası varsa storage'a yükle ve documents tablosuna kaydet
       if (spoolFile && project.id && user?.id) {

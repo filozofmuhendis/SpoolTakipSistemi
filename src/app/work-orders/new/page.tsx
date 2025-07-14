@@ -111,7 +111,7 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
       // İş emrini oluştur
       const newJobOrder = await jobOrderService.createJobOrder({
         project_id: data.project_id,
-        spool_id: data.spool_id,
+        urun_alt_kalemi_id: data.spool_id,
         description: data.description,
         status: data.status,
         planned_start_date: data.planned_start_date,

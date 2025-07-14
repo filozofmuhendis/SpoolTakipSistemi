@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
-import { Project, Spool } from '@/types'
+import { Project, UrunAltKalemi } from '@/types'
 import Link from 'next/link'
 
 const spoolSchema = z.object({
@@ -29,7 +29,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [projects, setProjects] = useState<Project[]>([])
-  const [spool, setSpool] = useState<Spool | null>(null)
+  const [spool, setSpool] = useState<UrunAltKalemi | null>(null)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 

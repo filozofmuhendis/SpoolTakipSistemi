@@ -103,15 +103,15 @@ export const qualityCheckService = {
     const { data, error } = await supabase
       .from('quality_checks')
       .insert({
-        spool_id: qualityCheck.spoolId,
-        work_order_id: qualityCheck.workOrderId,
-        inspector_id: qualityCheck.inspectorId,
-        check_date: qualityCheck.checkDate,
+        urun_alt_kalemi_id: qualityCheck.urun_alt_kalemi_id,
+        work_order_id: qualityCheck.work_order_id,
+        inspector_id: qualityCheck.inspector_id,
+        check_date: qualityCheck.check_date,
         status: qualityCheck.status,
         notes: qualityCheck.notes,
-        defects_found: qualityCheck.defectsFound,
-        corrective_actions: qualityCheck.correctiveActions,
-        next_check_date: qualityCheck.nextCheckDate
+        measurements: qualityCheck.measurements,
+        photos: qualityCheck.photos,
+        next_check_date: qualityCheck.next_check_date
       })
       .select()
       .single()

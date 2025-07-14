@@ -72,14 +72,14 @@ export const materialRequestService = {
     const { data, error } = await supabase
       .from('material_requests')
       .insert({
-        request_number: request.requestNumber,
-        project_id: request.projectId,
-        spool_id: request.spoolId,
-        requested_by: request.requestedBy,
+        request_number: request.request_number,
+        project_id: request.project_id,
+        urun_alt_kalemi_id: request.urun_alt_kalemi_id,
+        requested_by: request.requested_by,
         status: request.status,
         priority: request.priority,
-        requested_date: request.requestedDate,
-        needed_by_date: request.neededByDate,
+        request_date: request.request_date,
+        required_date: request.required_date,
         notes: request.notes
       })
       .select()
@@ -248,12 +248,10 @@ export const materialRequestService = {
     const { data, error } = await supabase
       .from('material_request_items')
       .insert({
-        request_id: item.requestId,
-        inventory_id: item.inventoryId,
-        quantity_requested: item.quantityRequested,
-        quantity_approved: item.quantityApproved,
-        quantity_issued: item.quantityIssued,
-        unit_cost: item.unitCost,
+        request_id: item.request_id,
+        inventory_id: item.inventory_id,
+        quantity: item.quantity,
+        unit: item.unit,
         notes: item.notes
       })
       .select()

@@ -60,5 +60,50 @@ export const inventoryService = {
       .single()
     if (error) return null;
     return data;
+  },
+
+  // Düşük stoklu ürünleri getir
+  async getLowStockItems() {
+    try {
+      const { data, error } = await supabase
+        .from('public.inventory')
+        .select('id, name, description, quantity, unit, location, status, notes, created_by')
+        .lt('quantity', 10) // 10'dan az stok
+        .order('quantity', { ascending: true })
+      if (error) return [];
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  },
+
+  // Kategoriye göre envanter getir
+  async getInventoryByCategory(category: string) {
+    try {
+      const { data, error } = await supabase
+        .from('public.inventory')
+        .select('id, name, description, quantity, unit, location, status, notes, created_by')
+        .eq('category', category)
+        .order('name', { ascending: true })
+      if (error) return [];
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  },
+
+  // Envanter arama
+  async searchInventory(search: string) {
+    try {
+      const { data, error } = await supabase
+        .from('public.inventory')
+        .select('id, name, description, quantity, unit, location, status, notes, created_by')
+        .or(`name.ilike.%${search}%,description.ilike.%${search}%`)
+        .order('name', { ascending: true })
+      if (error) return [];
+      return data || [];
+    } catch (error) {
+      return [];
+    }
   }
 }
