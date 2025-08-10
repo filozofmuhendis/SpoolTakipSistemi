@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Mail, Smartphone, Save, X, Check } from 'lucide-react'
+import { Mail, Smartphone, Save, X, Check } from 'lucide-react'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -335,4 +335,4 @@ export default function NotificationSettingsPage() {
       </div>
     </div>
   )
-} 
+}

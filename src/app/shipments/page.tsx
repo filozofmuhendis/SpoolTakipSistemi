@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Truck, Calendar, Package, MapPin, Clock } from 'lucide-react'
+import { Plus, Search, Calendar } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
 import { Shipment, Project } from '@/types'
@@ -17,7 +17,7 @@ interface ShipmentWithProject extends Shipment {
 
 export default function ShipmentsPage() {
   const [shipments, setShipments] = useState<ShipmentWithProject[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
+
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -40,16 +40,15 @@ export default function ShipmentsPage() {
       ])
 
       // Her sevkiyat için proje bilgisini ekle
-      const shipmentsWithProjects = shipmentsData.map(shipment => {
+      const shipmentsWithProjects: ShipmentWithProject[] = shipmentsData.map(shipment => {
         const project = projectsData.find(p => p.id === shipment.project_id)
         return {
           ...shipment,
           project
-        }
+        } as ShipmentWithProject
       })
 
       setShipments(shipmentsWithProjects)
-      setProjects(projectsData)
     } catch (error) {
       setError('Sevkiyatlar yüklenirken bir hata oluştu.')
       showToast({ type: 'error', message: 'Sevkiyatlar yüklenirken bir hata oluştu.' })

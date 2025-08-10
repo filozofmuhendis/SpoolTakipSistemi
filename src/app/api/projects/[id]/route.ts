@@ -13,14 +13,14 @@ const projectUpdateSchema = z.object({
   manager_id: z.string().optional()
 })
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 401 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     const project = await projectService.getProjectById(id)
     
     if (!project) {
@@ -40,14 +40,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     const body = await req.json()
     const parse = projectUpdateSchema.safeParse(body)
     
@@ -58,7 +58,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       )
     }
 
-    const updated = await projectService.updateProject(id, parse.data)
+    // Filter out undefined values
+    const updateData = Object.fromEntries(
+      Object.entries(parse.data).filter(([_, value]) => value !== undefined)
+    )
+    
+    const updated = await projectService.updateProject(id, updateData)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
     console.error('Proje güncelleme hatası:', error)
@@ -69,14 +74,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     await projectService.deleteProject(id)
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -86,4 +91,4 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       { status: 500 }
     )
   }
-} 
+}

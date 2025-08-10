@@ -34,9 +34,7 @@ export default function NewSpoolPage() {
   const {
     register,
     handleSubmit,
-    watch,
-    formState: { errors },
-    reset
+    formState: { errors }
   } = useForm<SpoolFormData>({
     resolver: zodResolver(spoolSchema),
     defaultValues: {
@@ -72,7 +70,7 @@ export default function NewSpoolPage() {
         length: parseFloat(data.length) || 0,
         weight: parseFloat(data.weight) || 0,
         status: data.status,
-        notes: data.notes
+        notes: data.notes || ''
       })
 
       router.push('/spools?success=true')
@@ -83,8 +81,7 @@ export default function NewSpoolPage() {
     }
   }
 
-  const selectedProjectId = watch('project_id')
-  const selectedProject = projects.find(p => p.id === selectedProjectId)
+
 
   return (
     <div className="p-6 w-full max-w-[1600px] mx-auto">
@@ -280,4 +277,4 @@ export default function NewSpoolPage() {
       </div>
     </div>
   )
-} 
+}

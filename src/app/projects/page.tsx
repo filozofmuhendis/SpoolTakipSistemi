@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Package, Calendar, User } from 'lucide-react'
+import { Plus, Search, Package, Calendar, User } from 'lucide-react'
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
 import { Project } from '@/types'

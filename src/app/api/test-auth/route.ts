@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
+
+export async function POST(request: NextRequest) {
+  try {
+    const { email, password, fullName } = await request.json()
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email ve şifre gereklidir' },
+        { status: 400 }
+      )
+    }
+
+    // Kullanıcı oluşturmayı dene
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || email.split('@')[0]
+        }
+      }
+    })
+
+    if (error) {
+      console.error('Supabase Auth Error:', error)
+      return NextResponse.json(
+        { 
+          error: 'Kullanıcı oluşturulamadı',
+          details: error.message,
+          code: error.status
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Kullanıcı başarıyla oluşturuldu',
+      user: {
+        id: data.user?.id,
+        email: data.user?.email,
+        created_at: data.user?.created_at
+      }
+    })
+
+  } catch (error: any) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { 
+        error: 'Sunucu hatası',
+        details: error.message
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Mevcut kullanıcıları listele
+export async function GET() {
+  try {
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, position, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Profiles fetch error:', error)
+      return NextResponse.json(
+        { 
+          error: 'Kullanıcılar getirilemedi',
+          details: error.message
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      profiles: profiles || []
+    })
+
+  } catch (error: any) {
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { 
+        error: 'Sunucu hatası',
+        details: error.message
+      },
+      { status: 500 }
+    )
+  }
+}

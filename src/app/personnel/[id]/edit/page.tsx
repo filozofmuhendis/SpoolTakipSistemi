@@ -89,14 +89,15 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
       setSaving(true)
       setError(null)
       
-      const updateData = {
+      const updateData: any = {
         fullName: data.fullName,
         email: data.email,
-        phone: data.phone || undefined,
         department: data.department,
         position: data.position
       }
-
+      
+      if (data.phone) updateData.phone = data.phone
+      
       const result = await personnelService.updatePersonnel(personnel.id, updateData)
       
       if (result) {
@@ -276,4 +277,4 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
       </div>
     </div>
   )
-} 
+}

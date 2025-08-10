@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Upload, X, File, Image, FileText, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, File, Image, FileText, Trash2, CheckCircle } from 'lucide-react'
 import { storageService, FileUpload } from '@/lib/services/storage'
 
 interface FileUploadProps {
@@ -267,4 +267,4 @@ export default function FileUploadComponent({
       )}
     </div>
   )
-} 
+}

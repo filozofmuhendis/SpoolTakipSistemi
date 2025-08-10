@@ -13,7 +13,7 @@ const personnelSchema = z.object({
   position: z.string().optional()
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const personnel = await personnelService.getAllPersonnel();
     return NextResponse.json({ success: true, data: personnel });
@@ -33,9 +33,19 @@ export async function POST(req: NextRequest) {
     if (!parse.success) {
       return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
     }
-    const person = await personnelService.createPersonnel(parse.data);
+    // Cast to the expected type for createPersonnel
+    const personnelData = parse.data as {
+      email: string
+      password: string
+      fullName: string
+      phone?: string
+      department?: string
+      position?: string
+    };
+    
+    const person = await personnelService.createPersonnel(personnelData);
     return NextResponse.json({ success: true, data: person }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
-} 
+}

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { User, Mail, Phone, Building, Calendar, Save, Key, Bell, Shield, Upload, Camera, X, LogOut, AlertTriangle, Clock, Activity } from 'lucide-react'
+import { User, Save, Key, Bell, Shield, Camera, X, LogOut, AlertTriangle, Clock,
+ Activity } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
 import { supabase } from '@/lib/supabase'
@@ -691,4 +692,4 @@ export default function ProfilePage() {
       </div>
     </div>
   )
-} 
+}

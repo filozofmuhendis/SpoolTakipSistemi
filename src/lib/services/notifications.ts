@@ -337,9 +337,9 @@ export const notificationService = {
         message: messages[action],
         type: types[action],
         userId,
-        entityType,
+        entityType: entityType || 'spool',
         entityId,
-        actionUrl: `/${entityType}s/${entityId}`,
+        actionUrl: `/${entityType || 'spool'}s/${entityId}`,
         priority
       })
     }
@@ -432,7 +432,7 @@ export const notificationService = {
   },
 
   // Push notification gönder
-  async sendPushNotification(userId: string, notification: Notification): Promise<boolean> {
+  async sendPushNotification(notification: Notification): Promise<boolean> {
     try {
       // Service Worker üzerinden push notification gönder
       if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -454,4 +454,4 @@ export const notificationService = {
       return false
     }
   }
-} 
+}

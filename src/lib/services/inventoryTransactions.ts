@@ -176,10 +176,10 @@ export const inventoryTransactionService = {
       inventory_id: inventoryId,
       transaction_type: 'in',
       quantity,
-      unit_cost: unitCost,
-      total_cost: totalCost,
+      unit_cost: unitCost || 0,
+      total_cost: totalCost || 0,
       reference_type: 'purchase',
-      notes,
+      notes: notes || '',
       performed_by: (await supabase.auth.getUser()).data.user?.id || '',
       transaction_date: new Date().toISOString()
     })
@@ -191,9 +191,9 @@ export const inventoryTransactionService = {
       inventory_id: inventoryId,
       transaction_type: 'out',
       quantity,
-      reference_type: referenceType,
-      reference_id: referenceId,
-      notes,
+      reference_type: referenceType || 'production',
+      reference_id: referenceId || '',
+      notes: notes || '',
       performed_by: (await supabase.auth.getUser()).data.user?.id || '',
       transaction_date: new Date().toISOString()
     })
@@ -206,9 +206,9 @@ export const inventoryTransactionService = {
       transaction_type: 'adjustment',
       quantity,
       reference_type: 'adjustment',
-      notes,
+      notes: notes || '',
       performed_by: (await supabase.auth.getUser()).data.user?.id || '',
       transaction_date: new Date().toISOString()
     })
   }
-} 
+}

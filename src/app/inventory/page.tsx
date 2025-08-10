@@ -1,7 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Package, AlertTriangle, TrendingUp, MapPin, DollarSign } from 'lucide-react'
+import { Plus, Search, Package, TrendingUp, MapPin } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
 import { Inventory } from '@/types'
 import Link from 'next/link'

@@ -31,11 +31,11 @@ export default function AuditLogsPage() {
     setError(null);
     try {
       const data = await getAuditLogs({
-        tableName: filter.table || undefined,
-        action: filter.action || undefined,
-        userId: filter.user || undefined,
-        from: filter.from || undefined,
-        to: filter.to || undefined,
+        tableName: filter.table,
+        action: filter.action,
+        userId: filter.user,
+        from: filter.from,
+        to: filter.to,
         limit: 50,
       });
       setLogs(data);
@@ -180,4 +180,4 @@ export default function AuditLogsPage() {
       )}
     </div>
   );
-} 
+}

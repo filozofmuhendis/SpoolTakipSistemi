@@ -17,7 +17,7 @@ const shipmentSchema = z.object({
   totalWeight: z.number().min(0, 'Toplam ağırlık zorunlu ve 0 veya daha fazla olmalı.')
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const shipments = await shipmentService.getAllShipments();
     return NextResponse.json({ success: true, data: shipments });
@@ -42,4 +42,4 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
-} 
+}

@@ -22,13 +22,16 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
     setError(null)
     
     try {
-      const updatedPersonnel = await personnelService.updatePersonnel(personnel.id, {
+      const updateData: any = {
         fullName: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        position: formData.position,
-        department: formData.department
-      })
+        email: formData.email
+      }
+      
+      if (formData.phone) updateData.phone = formData.phone
+      if (formData.position) updateData.position = formData.position
+      if (formData.department) updateData.department = formData.department
+      
+      const updatedPersonnel = await personnelService.updatePersonnel(personnel.id, updateData)
       
       if (updatedPersonnel) {
         onSave(updatedPersonnel)

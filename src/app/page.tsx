@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+
 import Link from 'next/link';
-import { BarChart3, Users, Package, TrendingUp, AlertCircle, Clock, Bell, Filter, Plus, FileText, Truck, Box } from 'lucide-react';
+import { BarChart3, Users, Package, Plus, FileText, Truck, Box } from 'lucide-react';
 import { projectService } from '@/lib/services/projects';
 import { spoolService } from '@/lib/services/spools';
 import { personnelService } from '@/lib/services/personnel';
@@ -97,7 +97,7 @@ export default function Home() {
     }
   };
 
-  const generateActivities = (projects: any[], spools: any[], personnel: any[], workOrders: any[], shipments: any[]): Activity[] => {
+  const generateActivities = (projects: any[], spools: any[], personnel: any[], _workOrders: any[], shipments: any[]): Activity[] => {
     const activities: Activity[] = [];
 
     // Son tamamlanan ürün alt kalemleri

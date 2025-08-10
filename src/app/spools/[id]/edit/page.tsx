@@ -36,7 +36,6 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
     reset
   } = useForm<SpoolFormData>({
@@ -94,7 +93,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
         length: parseFloat(data.length) || 0,
         weight: parseFloat(data.weight) || 0,
         status: data.status,
-        notes: data.notes
+        notes: data.notes || ''
       })
 
       router.push('/spools?success=true')
@@ -105,8 +104,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const selectedProjectId = watch('project_id')
-  const selectedProject = projects.find(p => p.id === selectedProjectId)
+
 
   if (initialLoading) {
     return (
@@ -331,4 +329,4 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
       </div>
     </div>
   )
-} 
+}

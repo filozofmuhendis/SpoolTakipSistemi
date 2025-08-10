@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Search, Filter, Trash2, Check, Eye, EyeOff, Settings, RefreshCw } from 'lucide-react'
+import { Bell, Search, Trash2, Check, Eye, Settings, RefreshCw } from 'lucide-react'
 import { notificationService, Notification } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -411,4 +411,4 @@ export default function NotificationsPage() {
       </div>
     </div>
   )
-} 
+}

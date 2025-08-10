@@ -31,11 +31,11 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [inventory, setInventory] = useState<Inventory | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [_projects, setProjects] = useState<Project[]>([])
   const [files, setFiles] = useState<FileUpload[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
-  const [loadingFiles, setLoadingFiles] = useState(false)
+  const [_loadingFiles, setLoadingFiles] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
 
@@ -192,13 +192,22 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
   const onSubmit = async (data: InventoryFormData) => {
     setSaving(true)
     try {
-      await inventoryService.updateInventory(params.id, {
+      // Filter out undefined values
+      const updateData: any = {
         name: data.name,
-        description: data.description || undefined,
         quantity: data.quantity,
-        location: data.location,
-        notes: data.notes || undefined
-      })
+        location: data.location
+      }
+      
+      if (data.description) {
+        updateData.description = data.description
+      }
+      
+      if (data.notes) {
+        updateData.notes = data.notes
+      }
+      
+      await inventoryService.updateInventory(params.id, updateData)
 
       // Yeni dosyaları yükle
       if (selectedFiles.length > 0) {

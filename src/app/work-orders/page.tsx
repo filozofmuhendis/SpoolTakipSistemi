@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Package, Calendar, User, Clock } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { jobOrderService } from '@/lib/services/workOrders'
-import { spoolService } from '@/lib/services/spools'
 import Link from 'next/link'
 import Loading from '@/components/ui/Loading'
 import EmptyState from '@/components/ui/EmptyState'

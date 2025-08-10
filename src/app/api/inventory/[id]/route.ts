@@ -12,17 +12,14 @@ const inventoryUpdateSchema = z.object({
   notes: z.string().optional()
 })
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 401 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     const inventory = await inventoryService.getInventoryById(id)
     
     if (!inventory) {
@@ -42,17 +39,14 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     const body = await req.json()
     const parse = inventoryUpdateSchema.safeParse(body)
     
@@ -63,7 +57,12 @@ export async function PUT(
       )
     }
 
-    const updated = await inventoryService.updateInventory(id, parse.data)
+    // Filter out undefined values
+    const updateData = Object.fromEntries(
+      Object.entries(parse.data).filter(([_, value]) => value !== undefined)
+    )
+    
+    const updated = await inventoryService.updateInventory(id, updateData)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
     console.error('Envanter güncelleme hatası:', error)
@@ -74,17 +73,14 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 })
   }
 
   try {
-    const { id } = await params
+    const { id } = params
     await inventoryService.deleteInventory(id)
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -94,4 +90,4 @@ export async function DELETE(
       { status: 500 }
     )
   }
-} 
+}

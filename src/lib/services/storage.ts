@@ -53,7 +53,7 @@ export const storageService = {
         .getPublicUrl(fileName)
 
       // Veritabanına kaydet
-      const fileRecord: Omit<FileUpload, 'id'> = {
+      const fileRecord: Required<Omit<FileUpload, 'id' | 'description'>> & { description?: string } = {
         name: file.name,
         url: urlData.publicUrl,
         size: file.size,
@@ -61,8 +61,11 @@ export const storageService = {
         uploadedAt: new Date().toISOString(),
         uploadedBy: (await supabase.auth.getUser()).data.user?.id || '',
         entityType,
-        entityId,
-        description
+        entityId
+      }
+      
+      if (description !== undefined) {
+        fileRecord.description = description
       }
 
       const { data: dbData, error: dbError } = await supabase

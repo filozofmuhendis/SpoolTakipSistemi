@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectService } from '@/lib/services/projects';
 import { z } from 'zod';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createValidationErrorResponse 
+} from '@/lib/api-response';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Proje adı zorunlu.'),
@@ -11,12 +16,14 @@ const projectSchema = z.object({
   description: z.string().optional()
 });
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const projects = await projectService.getAllProjects();
-    return NextResponse.json({ success: true, data: projects });
+    const response = createSuccessResponse(projects, 'Projeler başarıyla getirildi');
+    return NextResponse.json(response);
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
   }
 }
 
@@ -24,12 +31,28 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parse = projectSchema.safeParse(body);
+    
     if (!parse.success) {
-      return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
+      const validationErrors: Record<string, string[]> = {};
+      parse.error.errors.forEach((err) => {
+        const path = err.path.join('.');
+        if (!validationErrors[path]) {
+          validationErrors[path] = [];
+        }
+        validationErrors[path].push(err.message);
+      });
+      const { response, status } = createValidationErrorResponse(validationErrors);
+      return NextResponse.json(response, { status });
     }
-    const project = await projectService.createProject(parse.data);
-    return NextResponse.json({ success: true, data: project }, { status: 201 });
+    
+    const project = await projectService.createProject({
+      ...parse.data,
+      description: parse.data.description || '' // Ensure description is never undefined
+    });
+    const response = createSuccessResponse(project, 'Proje başarıyla oluşturuldu');
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
   }
-} 
+}

@@ -73,7 +73,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const inventory = await inventoryService.createInventory(parse.data)
+    // Filter out undefined values
+    const inventoryData = Object.fromEntries(
+      Object.entries(parse.data).filter(([_, value]) => value !== undefined)
+    )
+    
+    const inventory = await inventoryService.createInventory(inventoryData)
     return NextResponse.json({ success: true, data: inventory }, { status: 201 })
   } catch (error) {
     console.error('Envanter oluşturma hatası:', error)
@@ -82,4 +87,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { BarChart3, Download, Calendar, TrendingUp, Package, Users, Truck, Filter, FileText, PieChart, Activity, Upload, File, Trash2, Eye, Save, X } from 'lucide-react'
+import { BarChart3, Download, Package, Users, Truck, Activity, Upload, File, Trash2, Eye, Save, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
@@ -37,12 +37,9 @@ interface ChartData {
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [selectedReport, setSelectedReport] = useState<string>('overview')
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
-  })
-  const [projectFilter, setProjectFilter] = useState<string>('all')
+
+
+  const [projectFilter] = useState<string>('all')
   const [savedReports, setSavedReports] = useState<FileUpload[]>([])
   const [loadingReports, setLoadingReports] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)

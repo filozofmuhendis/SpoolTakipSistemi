@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { ArrowLeft, Camera, Upload, Scan } from 'lucide-react'
+import { ArrowLeft, Camera, Upload } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
 import { useToast } from '@/components/ui/ToastProvider'

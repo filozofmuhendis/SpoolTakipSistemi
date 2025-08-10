@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, User, LogOut, Settings, Bell } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
+
 import NotificationBell from '@/components/ui/NotificationBell'
 import GlobalSearch from '@/components/ui/GlobalSearch'
 import { signOut } from 'next-auth/react'

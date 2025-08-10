@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Check, Trash2, Settings, X, AlertTriangle, Info, CheckCircle } from 'lucide-react'
+import { Bell, Check, Trash2, X, AlertTriangle, Info, CheckCircle } from 'lucide-react'
 import { notificationService, Notification } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -24,6 +24,7 @@ export default function NotificationBell() {
 
       return () => clearInterval(interval)
     }
+    return undefined
   }, [user?.id])
 
   const loadNotifications = async () => {
@@ -280,4 +281,4 @@ export default function NotificationBell() {
       )}
     </div>
   )
-} 
+}

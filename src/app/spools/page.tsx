@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { UrunAltKalemi } from '@/types'
 import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
-import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react'
 import Link from 'next/link'
 import Loading from '@/components/ui/Loading'
 import EmptyState from '@/components/ui/EmptyState'
@@ -266,4 +266,4 @@ export default function SpoolsPage() {
       </div>
     </div>
   )
-} 
+}

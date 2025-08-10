@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { X, Upload, File, Trash2 } from 'lucide-react'
+import { Upload, File, Trash2 } from 'lucide-react'
 import { jobOrderService } from '@/lib/services/workOrders'
-import { personnelService } from '@/lib/services/personnel'
 import { projectService } from '@/lib/services/projects'
 import { storageService } from '@/lib/services/storage'
 
@@ -116,9 +115,9 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
         status: data.status,
         planned_start_date: data.planned_start_date,
         planned_end_date: data.planned_end_date,
-        actual_start_date: data.actual_start_date || undefined,
-        actual_end_date: data.actual_end_date || undefined,
-        created_by: data.created_by || undefined
+        actual_start_date: data.actual_start_date || '',
+        actual_end_date: data.actual_end_date || '',
+        created_by: data.created_by || ''
       })
 
       // İş emri oluşturulduktan sonra dosyaları yükle

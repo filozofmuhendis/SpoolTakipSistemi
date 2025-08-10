@@ -27,7 +27,7 @@ type InventoryFormData = z.infer<typeof inventorySchema>
 export default function NewInventoryPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [_projects, setProjects] = useState<Project[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -37,8 +37,8 @@ export default function NewInventoryPage() {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch
+    setValue: _setValue,
+    watch: _watch
   } = useForm<InventoryFormData>({
     resolver: zodResolver(inventorySchema),
     defaultValues: {
@@ -130,14 +130,17 @@ export default function NewInventoryPage() {
   const onSubmit: SubmitHandler<InventoryFormData> = async (data) => {
     setLoading(true)
     try {
-      const newInventory = await inventoryService.createInventory({
+      const inventoryData: any = {
         name: data.name,
-        description: data.description || undefined,
         quantity: data.quantity,
-        location: data.location,
-        notes: data.notes || undefined,
-        created_by: data.created_by || undefined
-      })
+        location: data.location
+      }
+      
+      if (data.description) inventoryData.description = data.description
+      if (data.notes) inventoryData.notes = data.notes
+      if (data.created_by) inventoryData.created_by = data.created_by
+      
+      const newInventory = await inventoryService.createInventory(inventoryData)
 
       // Malzeme oluşturulduktan sonra dosyaları yükle
       if (newInventory && selectedFiles.length > 0) {

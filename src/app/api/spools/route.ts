@@ -15,7 +15,7 @@ const spoolSchema = z.object({
   assignedTo: z.string().optional()
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const spools = await spoolService.getAllSpools();
     return NextResponse.json({ success: true, data: spools });
@@ -40,4 +40,4 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
-} 
+}

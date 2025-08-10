@@ -1,18 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Filter, FileText, Calendar, Building } from 'lucide-react'
+import { Search, Filter, FileText } from 'lucide-react'
 
-interface Shipment {
-  id: string
-  date: string
-  type: 'incoming' | 'outgoing-product' | 'outgoing-material'
-  company: string
-  waybillNo: string
-  description: string
-  spoolNumber?: string
-  documents: string[]
-}
+
 
 interface FilterOptions {
   dateRange: { start: string; end: string }
@@ -23,8 +14,8 @@ interface FilterOptions {
 export default function ShipmentList() {
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: {
-      start: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      end: new Date().toISOString().split('T')[0]
+      start: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] || '',
+      end: new Date().toISOString().split('T')[0] || ''
     },
     type: '',
     company: ''

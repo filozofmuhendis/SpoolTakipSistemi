@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
 import { projectService } from '@/lib/services/projects'
 import { personnelService } from '@/lib/services/personnel'
-import { Personnel } from '@/types'
+
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -23,10 +23,10 @@ const projectSchema = z.object({
     .refine(date => !date || new Date(date) > new Date(), 'Bitiş tarihi gelecekte olmalıdır')
     .optional(),
   managerId: z.string().min(1, 'Proje yöneticisi seçilmelidir'),
-  status: z.enum(['active', 'pending', 'completed']).optional().default('pending')
+  status: z.enum(['active', 'pending', 'completed']).default('pending')
 })
 
-type ProjectFormData = Omit<z.infer<typeof projectSchema>, 'status'> & { status?: 'active' | 'pending' | 'completed' }
+type ProjectFormData = z.infer<typeof projectSchema>
 
 export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
@@ -39,23 +39,13 @@ export default function NewProjectPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<ProjectFormData>({
+    formState: { errors }
+  } = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       status: 'pending'
     }
   })
-
-  const loadPersonnel = async () => {
-    try {
-      const personnelData = await personnelService.getAllPersonnel()
-      setPersonnel(personnelData)
-    } catch (error) {
-      console.log('Personel yüklenirken hata:', error)
-    }
-  }
 
   useEffect(() => {
     personnelService.getManagers().then(setPersonnel)
@@ -66,15 +56,17 @@ export default function NewProjectPage() {
       setLoading(true)
       setError(null)
       // 1. Proje kaydını oluştur
-      const project = await projectService.createProject({
+      const projectData: any = {
         name: data.name,
-        description: data.description,
         start_date: data.startDate,
-        end_date: data.endDate || undefined,
         manager_id: data.managerId,
-        status: data.status ?? 'pending',
-        // priority: 'medium'
-      })
+        status: data.status ?? 'pending'
+      }
+      
+      if (data.description) projectData.description = data.description
+      if (data.endDate) projectData.end_date = data.endDate
+      
+      const project = await projectService.createProject(projectData)
       // 2. Spool dosyası varsa storage'a yükle ve documents tablosuna kaydet
       if (spoolFile && project.id && user?.id) {
         const { data: uploadData, error: uploadError } = await supabase.storage

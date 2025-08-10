@@ -3,8 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import Navbar from "@/components/layout/Navbar";
+
 import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,16 +22,18 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={inter.className}>
-        <SessionProvider>
-          <ToastProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-              <ConditionalNavbar />
-              <main>
-                {children}
-              </main>
-            </div>
-          </ToastProvider>
-        </SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>
+            <ToastProvider>
+              <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                <ConditionalNavbar />
+                <main>
+                  {children}
+                </main>
+              </div>
+            </ToastProvider>
+          </SessionProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

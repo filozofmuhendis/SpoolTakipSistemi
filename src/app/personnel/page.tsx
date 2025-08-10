@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Filter, Eye, Edit, Trash2, User, Mail, Phone, Building, Calendar } from 'lucide-react'
+import { Plus, Search, Eye, Edit, Trash2, User, Phone } from 'lucide-react'
 import { personnelService, Personnel } from '@/lib/services/personnel'
 import Loading from '@/components/ui/Loading'
 import EmptyState from '@/components/ui/EmptyState'

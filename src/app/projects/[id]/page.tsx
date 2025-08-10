@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, Users, FileText, Activity, Calendar, Clock, Building, Edit, Trash, Plus, Search } from 'lucide-react'
+import { ArrowLeft, Users, FileText, Activity, Clock, Edit, Trash, Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 
-export default function ProjectDetail({ params }: { params: { id: string } }) {
+export default function ProjectDetail({ params: _params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'spools' | 'team' | 'timeline'>('overview')
 
   return (

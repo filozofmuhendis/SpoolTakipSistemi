@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
-import { personnelService, Personnel } from '@/lib/services/personnel'
+import { personnelService } from '@/lib/services/personnel'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface PersonnelForm {
@@ -60,15 +60,16 @@ export default function NewPersonnel() {
       setIsLoading(true)
       setError(null)
       
-      const personnelData = {
+      const personnelData: any = {
         email: data.email,
         password: data.password,
         fullName: data.fullName,
-        phone: data.phone || undefined,
         department: data.department,
         position: data.position
       }
-
+      
+      if (data.phone) personnelData.phone = data.phone
+      
       const result = await personnelService.createPersonnel(personnelData)
       
       if (result) {

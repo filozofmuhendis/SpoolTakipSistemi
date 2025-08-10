@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Package, MapPin, Calendar, User, File, Download, Eye } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Package, MapPin, File, Download, Eye } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
 import { storageService } from '@/lib/services/storage'
 import { Inventory } from '@/types'

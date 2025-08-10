@@ -15,7 +15,7 @@ const workOrderSchema = z.object({
   description: z.string().optional()
 });
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const workOrders = await jobOrderService.getAllJobOrders();
     return NextResponse.json({ success: true, data: workOrders });
@@ -35,9 +35,23 @@ export async function POST(req: NextRequest) {
     if (!parse.success) {
       return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
     }
-    const workOrder = await jobOrderService.createJobOrder(parse.data);
+    // Map schema fields to JobOrder interface fields
+    const workOrderData: any = {
+      project_id: parse.data.projectId,
+      status: parse.data.status,
+      planned_start_date: parse.data.startDate,
+      planned_end_date: parse.data.dueDate,
+      created_by: parse.data.assignedTo
+    }
+    
+    // Only add description if it's defined
+    if (parse.data.description) {
+      workOrderData.description = parse.data.description
+    }
+    
+    const workOrder = await jobOrderService.createJobOrder(workOrderData);
     return NextResponse.json({ success: true, data: workOrder }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
-} 
+}

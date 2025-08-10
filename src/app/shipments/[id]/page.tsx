@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
 import { Shipment, Project } from '@/types'
@@ -15,7 +15,7 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+
 
   useEffect(() => {
     loadShipment()
@@ -103,4 +103,4 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
       </div>
     </div>
   )
-} 
+}
