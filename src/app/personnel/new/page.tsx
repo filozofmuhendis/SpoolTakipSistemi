@@ -7,7 +7,7 @@ import { personnelService } from '@/lib/services/personnel'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface PersonnelForm {
-  fullName: string
+  full_name: string
   email: string
   password: string
   confirmPassword: string
@@ -63,7 +63,7 @@ export default function NewPersonnel() {
       const personnelData: any = {
         email: data.email,
         password: data.password,
-        fullName: data.fullName,
+        full_name: data.full_name,
         department: data.department,
         position: data.position
       }
@@ -107,12 +107,12 @@ export default function NewPersonnel() {
                   Ad Soyad *
                 </label>
                 <input
-                  {...register('fullName', { required: 'Ad Soyad gereklidir' })}
+                  {...register('full_name', { required: 'Ad Soyad gereklidir' })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   placeholder="Örn: Ahmet Demir"
                 />
-                {errors.fullName && (
-                  <span className="text-red-500 text-sm">{errors.fullName.message}</span>
+                {errors.full_name && (
+                  <span className="text-red-500 text-sm">{errors.full_name.message}</span>
                 )}
               </div>
 

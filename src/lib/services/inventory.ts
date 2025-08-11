@@ -19,10 +19,31 @@ export const inventoryService = {
 
   // Envanter oluştur
   async createInventory(inventory: Omit<Inventory, 'id'>) {
+    // Varsayılan değerlerle birlikte envanter verisi hazırla
+    const inventoryData = {
+      name: inventory.name,
+      code: inventory.code || `INV-${Date.now()}`, // Otomatik kod oluştur
+      category: inventory.category || 'general',
+      type: inventory.type || 'raw_material',
+      quantity: inventory.quantity || 0,
+      unit: inventory.unit || 'adet',
+      min_stock: inventory.min_stock || 0,
+      max_stock: inventory.max_stock || 100,
+      location: inventory.location,
+      supplier: inventory.supplier || 'Belirtilmemiş',
+      project_id: inventory.project_id || null,
+      description: inventory.description || null,
+      specifications: inventory.specifications || null,
+      cost: inventory.cost || 0,
+      status: inventory.status || 'active',
+      reorder_point: inventory.reorder_point || null,
+      lead_time_days: inventory.lead_time_days || null
+    }
+    
     const { data, error } = await supabase
       .from('public.inventory')
-      .insert(inventory)
-      .select('id, name, description, quantity, unit, location, status, notes, created_by')
+      .insert(inventoryData)
+      .select('id, name, description, quantity, unit, location, status')
       .single()
     if (error) throw new Error(`Envanter oluşturulamadı: ${error.message}`)
     return data;

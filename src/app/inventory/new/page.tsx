@@ -15,9 +15,14 @@ import { useToast } from '@/components/ui/ToastProvider'
 
 const inventorySchema = z.object({
   name: z.string().min(3, 'Ürün adı en az 3 karakter olmalı').max(100, 'Ürün adı en fazla 100 karakter olabilir'),
-  description: z.string().max(500, 'Açıklama en fazla 500 karakter olabilir').optional(),
+  category: z.string().min(1, 'Kategori seçiniz'),
+  type: z.enum(['raw_material', 'finished_product', 'semi_finished', 'consumable']),
   quantity: z.number().min(0, 'Miktar 0\'dan küçük olamaz').max(1000000, 'Miktar çok yüksek'),
+  unit: z.string().min(1, 'Birim seçiniz'),
   location: z.string().min(2, 'Konum en az 2 karakter olmalı').max(100, 'Konum en fazla 100 karakter olabilir'),
+  supplier: z.string().min(1, 'Tedarikçi adı gereklidir'),
+  cost: z.number().min(0, 'Maliyet 0\'dan küçük olamaz').optional(),
+  description: z.string().max(500, 'Açıklama en fazla 500 karakter olabilir').optional(),
   notes: z.string().max(500, 'Notlar en fazla 500 karakter olabilir').optional(),
   created_by: z.string().optional()
 })
@@ -43,9 +48,14 @@ export default function NewInventoryPage() {
     resolver: zodResolver(inventorySchema),
     defaultValues: {
       name: '',
-      description: '',
+      category: '',
+      type: 'raw_material' as const,
       quantity: 0,
+      unit: '',
       location: '',
+      supplier: '',
+      cost: 0,
+      description: '',
       notes: '',
       created_by: ''
     }
@@ -132,10 +142,15 @@ export default function NewInventoryPage() {
     try {
       const inventoryData: any = {
         name: data.name,
+        category: data.category,
+        type: data.type,
         quantity: data.quantity,
-        location: data.location
+        unit: data.unit,
+        location: data.location,
+        supplier: data.supplier
       }
       
+      if (data.cost) inventoryData.cost = data.cost
       if (data.description) inventoryData.description = data.description
       if (data.notes) inventoryData.notes = data.notes
       if (data.created_by) inventoryData.created_by = data.created_by
@@ -180,7 +195,7 @@ export default function NewInventoryPage() {
                 <input
                   type="text"
                   {...register('name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Malzeme adını giriniz"
                 />
                 {errors.name && (
@@ -190,14 +205,63 @@ export default function NewInventoryPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Açıklama
+                  Kategori *
                 </label>
-                <textarea
-                  {...register('description')}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Malzeme hakkında genel açıklama"
-                />
+                <select
+                  {...register('category')}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Kategori seçiniz</option>
+                  <option value="metal">Metal</option>
+                  <option value="plastic">Plastik</option>
+                  <option value="electronic">Elektronik</option>
+                  <option value="chemical">Kimyasal</option>
+                  <option value="textile">Tekstil</option>
+                  <option value="general">Genel</option>
+                </select>
+                {errors.category && (
+                  <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Tip *
+                </label>
+                <select
+                  {...register('type')}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="raw_material">Ham Madde</option>
+                  <option value="finished_product">Bitmiş Ürün</option>
+                  <option value="semi_finished">Yarı Mamul</option>
+                  <option value="consumable">Sarf Malzeme</option>
+                </select>
+                {errors.type && (
+                  <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Birim *
+                </label>
+                <select
+                  {...register('unit')}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Birim seçiniz</option>
+                  <option value="adet">Adet</option>
+                  <option value="kg">Kilogram</option>
+                  <option value="m">Metre</option>
+                  <option value="m2">Metrekare</option>
+                  <option value="m3">Metreküp</option>
+                  <option value="lt">Litre</option>
+                  <option value="ton">Ton</option>
+                </select>
+                {errors.unit && (
+                  <p className="mt-1 text-sm text-red-600">{errors.unit.message}</p>
+                )}
               </div>
 
               <div>
@@ -209,7 +273,7 @@ export default function NewInventoryPage() {
                   {...register('quantity', { valueAsNumber: true })}
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0"
                 />
                 {errors.quantity && (
@@ -224,7 +288,7 @@ export default function NewInventoryPage() {
                 <input
                   type="text"
                   {...register('location')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Örn: A Blok, Raf 3"
                 />
                 {errors.location && (
@@ -234,12 +298,56 @@ export default function NewInventoryPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Tedarikçi *
+                </label>
+                <input
+                  type="text"
+                  {...register('supplier')}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Tedarikçi adını giriniz"
+                />
+                {errors.supplier && (
+                  <p className="mt-1 text-sm text-red-600">{errors.supplier.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Birim Maliyet
+                </label>
+                <input
+                  type="number"
+                  {...register('cost', { valueAsNumber: true })}
+                  min="0"
+                  step="0.01"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+                {errors.cost && (
+                  <p className="mt-1 text-sm text-red-600">{errors.cost.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Açıklama
+                </label>
+                <textarea
+                  {...register('description')}
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Malzeme hakkında genel açıklama"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Notlar
                 </label>
                 <textarea
                   {...register('notes')}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   placeholder="Ek notlar veya açıklamalar"
                 />
               </div>

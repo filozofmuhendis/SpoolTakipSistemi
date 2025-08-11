@@ -36,14 +36,20 @@ export default function ProjectsPage() {
       
       // Projeleri ve spool'ları paralel olarak çek
       const [projectsData, spoolsData] = await Promise.all([
-        projectService.getAllProjects(),
-        spoolService.getAllSpools()
+        projectService.getAllProjects().catch(err => {
+          console.error('Projeler yüklenemedi:', err)
+          return []
+        }),
+        spoolService.getAllSpools().catch(err => {
+          console.error('Spools yüklenemedi:', err)
+          return []
+        })
       ])
 
       // Her proje için spool istatistiklerini hesapla
-      const projectsWithStats = projectsData.map(project => {
-        const projectSpools = spoolsData.filter(spool => spool.project_id === project.id)
-        const completedSpools = projectSpools.filter(spool => spool.status === 'completed').length
+      const projectsWithStats = projectsData.map((project: Project) => {
+        const projectSpools = spoolsData.filter((spool: { project_id: string }) => spool.project_id === project.id)
+        const completedSpools = projectSpools.filter((spool: { status: string }) => spool.status === 'completed').length
         const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0
 
         return {
@@ -55,7 +61,7 @@ export default function ProjectsPage() {
         }
       })
 
-      setProjects(projectsWithStats)
+      setProjects(projectsWithStats as ProjectWithStats[])
     } catch (error) {
       setError('Projeler yüklenirken bir hata oluştu.')
       showToast({ type: 'error', message: 'Projeler yüklenirken bir hata oluştu.' })

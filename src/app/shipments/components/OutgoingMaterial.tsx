@@ -86,10 +86,10 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
           </div>
         )}
         <div className="mb-4">
-          <label className="block mb-2">Proje *</label>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Proje *</label>
           <select
             {...register('project_id', { required: 'Proje seçilmelidir' })}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Proje seçin</option>
             {projects.map((project) => (
@@ -102,11 +102,11 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block mb-2">Sevkiyat Tarihi</label>
+            <label className="block mb-2 text-gray-700 dark:text-gray-300">Sevkiyat Tarihi</label>
             <input
               type="date"
               {...register('shipment_date', { required: 'Tarih gereklidir' })}
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {errors.shipment_date && (
               <span className="text-red-500 text-sm">{errors.shipment_date.message}</span>
@@ -114,17 +114,17 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
           </div>
         </div>
         <div>
-          <label className="block mb-2">Notlar</label>
+          <label className="block mb-2 text-gray-700 dark:text-gray-300">Notlar</label>
           <textarea
             {...register('notes')}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             rows={3}
             placeholder="Sevkiyat hakkında notlar..."
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block mb-2">
+            <label className="block mb-2 text-gray-700 dark:text-gray-300">
               <Camera className="w-4 h-4 inline mr-2" />
               Fotoğraf Ekle
             </label>
@@ -133,11 +133,11 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               accept="image/*"
               multiple
               {...register('photos')}
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block mb-2">
+            <label className="block mb-2 text-gray-700 dark:text-gray-300">
               <Upload className="w-4 h-4 inline mr-2" />
               Belge Ekle
             </label>
@@ -146,7 +146,7 @@ export default function OutgoingMaterial({ onBack }: { onBack: () => void }) {
               accept=".pdf,image/*"
               multiple
               {...register('documents')}
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>

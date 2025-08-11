@@ -45,7 +45,7 @@ export default function PersonnelPage() {
     // Arama filtresi
     if (searchTerm) {
       filtered = filtered.filter(person =>
-        person.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (person.department && person.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (person.position && person.position.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -187,7 +187,7 @@ export default function PersonnelPage() {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {person.fullName}
+                              {person.full_name}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               {person.email}
@@ -213,7 +213,7 @@ export default function PersonnelPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {formatDate(person.createdAt)}
+                          {formatDate(person.created_at)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -236,7 +236,7 @@ export default function PersonnelPage() {
                             onClick={() => setDeleteModal({ 
                               show: true, 
                               personnelId: person.id, 
-                              personnelName: person.fullName 
+                              personnelName: person.full_name 
                             })}
                             className="text-red-600 hover:text-red-500 p-1"
                             title="Sil"

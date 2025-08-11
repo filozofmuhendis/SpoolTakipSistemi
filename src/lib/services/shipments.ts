@@ -9,11 +9,14 @@ export const shipmentService = {
         .from('public.shipments')
         .select('id, project_id, shipment_date, status, notes, created_by')
         .order('shipment_date', { ascending: false })
-      if (error) return [];
-      if (!data || data.length === 0) return [];
-      return data;
+      if (error) {
+        console.error('Sevkiyatlar yüklenirken hata:', error)
+        throw new Error(`Sevkiyatlar yüklenemedi: ${error.message}`)
+      }
+      return data || [];
     } catch (error) {
-      return [];
+      console.error('Shipments service hatası:', error)
+      throw error;
     }
   },
 

@@ -1,15 +1,15 @@
-import { supabase } from '../supabase'
+import { supabase, supabaseAdmin } from '../supabase'
 
 export interface Personnel {
   id: string
   email: string
-  fullName: string
+  full_name: string
   phone?: string
   department?: string
   position?: string
-  avatarUrl?: string
-  createdAt: string
-  updatedAt: string
+  avatar_url?: string
+  created_at: string
+  updated_at: string
 }
 
 export const personnelService = {
@@ -78,19 +78,19 @@ export const personnelService = {
   async createPersonnel(personnel: {
     email: string
     password: string
-    fullName: string
+    full_name: string
     phone?: string
     department?: string
     position?: string
   }): Promise<Personnel | null> {
     try {
       // Önce auth.users'a kullanıcı oluştur
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: personnel.email,
         password: personnel.password,
         email_confirm: true,
         user_metadata: {
-          full_name: personnel.fullName,
+          full_name: personnel.full_name,
           department: personnel.department,
           position: personnel.position
         }
@@ -112,7 +112,7 @@ export const personnelService = {
         .insert({
           id: authData.user.id,
           email: personnel.email,
-          full_name: personnel.fullName,
+          full_name: personnel.full_name,
           phone: personnel.phone,
           department: personnel.department,
           position: personnel.position
@@ -123,7 +123,7 @@ export const personnelService = {
       if (error) {
         console.log('Profil oluşturma hatası:', error)
         // Auth kullanıcısını sil
-        await supabase.auth.admin.deleteUser(authData.user.id)
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
         return null
       }
       
@@ -138,12 +138,12 @@ export const personnelService = {
   async updatePersonnel(id: string, updates: Partial<Personnel>): Promise<Personnel | null> {
     try {
       const updateData: any = {}
-      if (updates.fullName) updateData.full_name = updates.fullName
+      if (updates.full_name) updateData.full_name = updates.full_name
       if (updates.email) updateData.email = updates.email
       if (updates.phone) updateData.phone = updates.phone
       if (updates.department) updateData.department = updates.department
       if (updates.position) updateData.position = updates.position
-      if (updates.avatarUrl) updateData.avatar_url = updates.avatarUrl
+      if (updates.avatar_url) updateData.avatar_url = updates.avatar_url
 
       const { data, error } = await supabase
         .from('profiles')
@@ -246,7 +246,7 @@ export const personnelService = {
       const personnel = data || []
       const byDepartment: Record<string, number> = {}
 
-      personnel.forEach(person => {
+      personnel.forEach((person: Personnel) => {
         const dept = person.department || 'Belirtilmemiş'
         byDepartment[dept] = (byDepartment[dept] || 0) + 1
       })
@@ -323,4 +323,4 @@ export async function getAllPersonnelBasic() {
     console.log('Basit personel listesi getirme hatası:', error)
     return []
   }
-} 
+}

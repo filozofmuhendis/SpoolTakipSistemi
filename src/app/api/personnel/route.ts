@@ -7,7 +7,7 @@ import { z } from 'zod';
 const personnelSchema = z.object({
   email: z.string().email('Geçerli bir email giriniz.'),
   password: z.string().min(6, 'Şifre en az 6 karakter olmalı.'),
-  fullName: z.string().min(1, 'Ad soyad zorunlu.'),
+  full_name: z.string().min(1, 'Ad soyad zorunlu.'),
   phone: z.string().optional(),
   department: z.string().optional(),
   position: z.string().optional()
@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== 'admin') {
+  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
     return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
   }
   try {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const personnelData = parse.data as {
       email: string
       password: string
-      fullName: string
+      full_name: string
       phone?: string
       department?: string
       position?: string

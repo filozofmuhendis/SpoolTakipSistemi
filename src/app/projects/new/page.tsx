@@ -20,11 +20,21 @@ const projectSchema = z.object({
     .refine(date => !isNaN(Date.parse(date)), 'Geçerli bir tarih giriniz'),
   endDate: z.string()
     .refine(date => !date || !isNaN(Date.parse(date)), 'Geçerli bir tarih giriniz')
-    .refine(date => !date || new Date(date) > new Date(), 'Bitiş tarihi gelecekte olmalıdır')
     .optional(),
   managerId: z.string().min(1, 'Proje yöneticisi seçilmelidir'),
   status: z.enum(['active', 'pending', 'completed']).default('pending')
-})
+}).refine(
+  (data) => {
+    if (data.endDate) {
+      return new Date(data.startDate) <= new Date(data.endDate)
+    }
+    return true
+  },
+  {
+    message: 'Başlangıç tarihi bitiş tarihinden önce veya aynı olmalıdır',
+    path: ['endDate']
+  }
+)
 
 type ProjectFormData = z.infer<typeof projectSchema>
 

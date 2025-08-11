@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,14 +12,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Kullanıcı oluşturmayı dene
-    const { data, error } = await supabase.auth.signUp({
+    // Kullanıcı oluşturmayı dene (admin client ile)
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName || email.split('@')[0]
-        }
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName || email.split('@')[0]
       }
     })
 

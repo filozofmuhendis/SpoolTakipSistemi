@@ -9,11 +9,14 @@ export const jobOrderService = {
         .from('public.job_orders')
         .select('id, project_id, spool_id, description, status, planned_start_date, planned_end_date, actual_start_date, actual_end_date, created_by')
         .order('planned_start_date', { ascending: false })
-      if (error) return [];
-      if (!data || data.length === 0) return [];
-      return data;
+      if (error) {
+        console.error('İş emirleri yüklenirken hata:', error)
+        throw new Error(`İş emirleri yüklenemedi: ${error.message}`)
+      }
+      return data || [];
     } catch (error) {
-      return [];
+      console.error('Job orders service hatası:', error)
+      throw error;
     }
   },
 
@@ -61,4 +64,4 @@ export const jobOrderService = {
     if (error) return null;
     return data;
   }
-} 
+}

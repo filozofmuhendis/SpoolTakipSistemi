@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { Upload, File, Trash2 } from 'lucide-react'
+import { Upload, File, Trash2, ArrowLeft } from 'lucide-react'
 import { jobOrderService } from '@/lib/services/workOrders'
 import { projectService } from '@/lib/services/projects'
 import { storageService } from '@/lib/services/storage'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface NewJobOrderForm {
   project_id: string
@@ -19,7 +21,8 @@ interface NewJobOrderForm {
   created_by?: string
 }
 
-export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
+export default function NewWorkOrderPage() {
+  const router = useRouter()
   const { register, handleSubmit, formState: { errors } } = useForm<NewJobOrderForm>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -125,7 +128,10 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
         await uploadFiles(newJobOrder.id)
       }
 
-      onClose()
+      setSuccess('İş emri başarıyla oluşturuldu!')
+      setTimeout(() => {
+        router.push('/work-orders')
+      }, 2000)
     } catch (error: any) {
       setError(error.message || 'İş emri oluşturulurken bir hata oluştu')
     } finally {
@@ -140,11 +146,16 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="rounded-xl shadow-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Yeni İş Emri Oluştur</h2>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center mb-6">
+          <Link href="/work-orders" className="mr-4 btn-secondary flex items-center gap-2">
+            <ArrowLeft className="w-5 h-5" />
+            Geri
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Yeni İş Emri Oluştur</h1>
         </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -158,10 +169,10 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="project_id" className="block text-sm font-medium mb-2">Proje</label>
+              <label htmlFor="project_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Proje</label>
               <select
                 {...register('project_id', { required: 'Proje seçilmelidir' })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Proje seçiniz...</option>
                 {projects.map(project => (
@@ -169,53 +180,53 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
                 ))}
               </select>
               {errors.project_id && (
-                <span className="text-red-500 text-sm">{errors.project_id.message}</span>
+                <span className="text-red-500 text-sm mt-1 block">{errors.project_id.message}</span>
               )}
             </div>
             <div>
-              <label htmlFor="spool_id" className="block text-sm font-medium mb-2">Ürün Alt Kalemi ID</label>
+              <label htmlFor="spool_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ürün Alt Kalemi ID</label>
               <input
                 {...register('spool_id', { required: 'Ürün alt kalemi ID gerekli' })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ürün Alt Kalemi ID"
               />
               {errors.spool_id && (
-                <span className="text-red-500 text-sm">{errors.spool_id.message}</span>
+                <span className="text-red-500 text-sm mt-1 block">{errors.spool_id.message}</span>
               )}
             </div>
             <div>
-              <label htmlFor="planned_start_date" className="block text-sm font-medium mb-2">Planlanan Başlangıç</label>
+              <label htmlFor="planned_start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Planlanan Başlangıç</label>
               <input
                 type="date"
                 {...register('planned_start_date', { required: 'Başlangıç tarihi gerekli' })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {errors.planned_start_date && (
-                <span className="text-red-500 text-sm">{errors.planned_start_date.message}</span>
+                <span className="text-red-500 text-sm mt-1 block">{errors.planned_start_date.message}</span>
               )}
             </div>
             <div>
-              <label htmlFor="planned_end_date" className="block text-sm font-medium mb-2">Planlanan Bitiş</label>
+              <label htmlFor="planned_end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Planlanan Bitiş</label>
               <input
                 type="date"
                 {...register('planned_end_date', { required: 'Bitiş tarihi gerekli' })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {errors.planned_end_date && (
-                <span className="text-red-500 text-sm">{errors.planned_end_date.message}</span>
+                <span className="text-red-500 text-sm mt-1 block">{errors.planned_end_date.message}</span>
               )}
             </div>
           </div>
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">Açıklama</label>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Açıklama</label>
             <textarea
               {...register('description', { required: 'Açıklama gerekli' })}
               rows={4}
-              className="w-full p-2 border rounded-lg"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="İş emri açıklaması..."
             />
             {errors.description && (
-              <span className="text-red-500 text-sm">{errors.description.message}</span>
+              <span className="text-red-500 text-sm mt-1 block">{errors.description.message}</span>
             )}
           </div>
 
@@ -309,23 +320,23 @@ export default function NewWorkOrder({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-600">
+            <Link
+              href="/work-orders"
+              className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
             >
               İptal
-            </button>
+            </Link>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed font-medium transition-colors"
             >
-              {isLoading ? 'Oluşturuluyor...' : 'Oluştur'}
+              {isLoading ? 'Oluşturuluyor...' : 'İş Emri Oluştur'}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )

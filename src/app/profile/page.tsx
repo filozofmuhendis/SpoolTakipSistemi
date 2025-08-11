@@ -5,7 +5,12 @@ import { User, Save, Key, Bell, Shield, Camera, X, LogOut, AlertTriangle, Clock,
  Activity } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 import { storageService } from '@/lib/services/storage'
 
 interface UserProfile {

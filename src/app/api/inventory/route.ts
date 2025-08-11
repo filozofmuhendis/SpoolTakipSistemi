@@ -2,24 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { inventoryService } from '@/lib/services/inventory'
+import { Inventory } from '@/types'
 import { z } from 'zod'
 
 const inventorySchema = z.object({
   name: z.string().min(1, 'Malzeme adı gereklidir'),
-  code: z.string().min(1, 'Malzeme kodu gereklidir'),
-  category: z.string().min(1, 'Kategori gereklidir'),
-  type: z.enum(['raw_material', 'finished_product', 'semi_finished', 'consumable']),
+  code: z.string().optional(),
+  category: z.string().optional(),
+  type: z.enum(['raw_material', 'finished_product', 'semi_finished', 'consumable']).optional(),
   quantity: z.number().min(0, 'Miktar 0 veya daha fazla olmalıdır'),
-  unit: z.string().min(1, 'Birim gereklidir'),
-  minStock: z.number().min(0, 'Minimum stok 0 veya daha fazla olmalıdır'),
-  maxStock: z.number().min(0, 'Maksimum stok 0 veya daha fazla olmalıdır'),
+  unit: z.string().optional(),
+  min_stock: z.number().min(0).optional(),
+  max_stock: z.number().min(0).optional(),
   location: z.string().min(1, 'Konum gereklidir'),
-  supplier: z.string().min(1, 'Tedarikçi gereklidir'),
-  projectId: z.string().optional(),
+  supplier: z.string().optional(),
+  project_id: z.string().optional(),
   description: z.string().optional(),
   specifications: z.string().optional(),
-  cost: z.number().min(0, 'Maliyet 0 veya daha fazla olmalıdır'),
-  status: z.enum(['active', 'inactive', 'discontinued']).default('active')
+  cost: z.number().min(0).optional(),
+  status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
+  reorder_point: z.number().min(0).optional(),
+  lead_time_days: z.number().min(0).optional(),
+  notes: z.string().optional(),
+  created_by: z.string().optional()
 })
 
 export async function GET(req: NextRequest) {
@@ -73,12 +78,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Filter out undefined values
+    // Filter out undefined values and prepare inventory data
     const inventoryData = Object.fromEntries(
       Object.entries(parse.data).filter(([_, value]) => value !== undefined)
     )
     
-    const inventory = await inventoryService.createInventory(inventoryData)
+    const inventory = await inventoryService.createInventory(inventoryData as Omit<Inventory, 'id'>)
     return NextResponse.json({ success: true, data: inventory }, { status: 201 })
   } catch (error) {
     console.error('Envanter oluşturma hatası:', error)

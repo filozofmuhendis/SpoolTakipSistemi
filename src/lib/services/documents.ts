@@ -9,11 +9,14 @@ export const documentService = {
         .from('public.documents')
         .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
         .order('uploaded_at', { ascending: false })
-      if (error) return [];
-      if (!data || data.length === 0) return [];
-      return data;
+      if (error) {
+        console.error('Dokümanlar yüklenirken hata:', error)
+        throw new Error(`Dokümanlar yüklenemedi: ${error.message}`)
+      }
+      return data || [];
     } catch (error) {
-      return [];
+      console.error('Documents service hatası:', error)
+      throw error;
     }
   },
 
@@ -61,4 +64,4 @@ export const documentService = {
     if (error) return null;
     return data;
   }
-} 
+}

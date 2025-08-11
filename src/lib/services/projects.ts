@@ -7,13 +7,16 @@ export const projectService = {
     try {
       const { data, error } = await supabase
         .from('public.projects')
-        .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status')
+        .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status, manager_id')
         .order('created_at', { ascending: false })
-      if (error) return [];
-      if (!data || data.length === 0) return [];
-      return data;
+      if (error) {
+        console.error('Projeler yüklenirken hata:', error)
+        throw new Error(`Projeler yüklenemedi: ${error.message}`)
+      }
+      return data || [];
     } catch (error) {
-      return [];
+      console.error('Projects service hatası:', error)
+      throw error;
     }
   },
 
@@ -22,7 +25,7 @@ export const projectService = {
     const { data, error } = await supabase
       .from('public.projects')
       .insert(project)
-      .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status')
+      .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status, manager_id')
       .single()
     if (error) throw new Error(`Proje oluşturulamadı: ${error.message}`)
     return data;
@@ -35,7 +38,7 @@ export const projectService = {
       .from('public.projects')
       .update(updateData)
       .eq('id', id)
-      .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status')
+      .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status, manager_id')
       .single()
     if (error) throw new Error(`Proje güncellenemedi: ${error.message}`)
     return data;
@@ -61,4 +64,4 @@ export const projectService = {
     if (error) return null;
     return data;
   }
-} 
+}

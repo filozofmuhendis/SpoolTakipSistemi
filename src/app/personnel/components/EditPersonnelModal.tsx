@@ -23,7 +23,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
     
     try {
       const updateData: any = {
-        fullName: formData.fullName,
+        full_name: formData.full_name,
         email: formData.email
       }
       
@@ -67,8 +67,8 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Ad Soyad</label>
               <input
                 type="text"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
               />

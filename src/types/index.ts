@@ -27,6 +27,8 @@ export interface Project {
   description?: string;
   end_date?: string;
   status?: string;
+  priority?: string;
+  project_code?: string;
 }
 
 export interface UrunAltKalemi {
@@ -71,12 +73,26 @@ export interface Shipment {
 
 export interface Inventory {
   id: string;
-  name?: string;
-  description?: string;
-  quantity?: number;
+  name: string;
+  code?: string;
+  category?: string;
+  type?: 'raw_material' | 'finished_product' | 'semi_finished' | 'consumable';
+  quantity: number;
   unit?: string;
-  location?: string;
-  status?: string;
+  min_stock?: number;
+  max_stock?: number;
+  location: string;
+  supplier?: string;
+  project_id?: string;
+  description?: string;
+  specifications?: string;
+  cost?: number;
+  status?: 'active' | 'inactive' | 'discontinued';
+  last_updated?: string;
+  reorder_point?: number;
+  lead_time_days?: number;
+  created_at?: string;
+  updated_at?: string;
   notes?: string;
   created_by?: string;
 }
@@ -93,7 +109,7 @@ export interface Document {
 
 export interface Personnel {
   id: string;
-  fullName: string;
+  full_name: string;
   email: string;
   phone?: string;
   department?: string;
