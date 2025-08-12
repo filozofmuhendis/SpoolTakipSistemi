@@ -67,7 +67,7 @@ export default function NewInventoryPage() {
         const data = await projectService.getAllProjects()
         setProjects(data)
       } catch (error) {
-        console.error('Projeler yüklenirken hata:', error)
+        console.log('Projeler yüklenirken hata:', error)
       }
     }
     loadProjects()
@@ -165,7 +165,7 @@ export default function NewInventoryPage() {
       showToast({ type: 'success', message: 'Malzeme başarıyla eklendi!' })
       router.push('/inventory')
     } catch (error: any) {
-      console.error('Malzeme ekleme hatası:', error)
+      console.log('Malzeme ekleme hatası:', error)
       showToast({ type: 'error', message: error.message || 'Malzeme eklenirken bir hata oluştu' })
     } finally {
       setLoading(false)

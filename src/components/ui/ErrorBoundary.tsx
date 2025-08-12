@@ -28,7 +28,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    console.log('ErrorBoundary caught an error:', error, errorInfo)
     
     // Log to external service in production
     if (process.env.NODE_ENV === 'production') {
@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
     
     // Send to your error tracking service
-    console.error('Error logged to service:', errorData)
+    console.log('Error logged to service:', errorData)
   }
 
   private handleRetry = () => {
@@ -151,7 +151,7 @@ export default ErrorBoundary
 // Hook for functional components to trigger error boundary
 export const useErrorHandler = () => {
   return (error: Error) => {
-    console.error('Error caught by useErrorHandler:', error)
+    console.log('Error caught by useErrorHandler:', error)
     throw error // This will be caught by the nearest ErrorBoundary
   }
 }

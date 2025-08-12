@@ -38,7 +38,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
       // Dosyaları yükle
       await loadFiles()
     } catch (error: any) {
-      console.error('Envanter yükleme hatası:', error)
+      console.log('Envanter yükleme hatası:', error)
       setError(error.message || 'Envanter yüklenirken bir hata oluştu')
       showToast({ type: 'error', message: 'Envanter yüklenirken bir hata oluştu' })
     } finally {
@@ -52,7 +52,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
       const filesData = await storageService.getFilesByEntity('inventory', params.id)
       setFiles(filesData)
     } catch (error) {
-      console.error('Dosya yükleme hatası:', error)
+      console.log('Dosya yükleme hatası:', error)
     } finally {
       setLoadingFiles(false)
     }
@@ -68,7 +68,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
       showToast({ type: 'success', message: 'Envanter öğesi silindi' })
       router.push('/inventory')
     } catch (error: any) {
-      console.error('Silme hatası:', error)
+      console.log('Silme hatası:', error)
       showToast({ type: 'error', message: 'Silme sırasında bir hata oluştu' })
     }
   }

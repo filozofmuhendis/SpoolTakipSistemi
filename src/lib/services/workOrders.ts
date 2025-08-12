@@ -10,12 +10,12 @@ export const jobOrderService = {
         .select('id, project_id, spool_id, description, status, planned_start_date, planned_end_date, actual_start_date, actual_end_date, created_by')
         .order('planned_start_date', { ascending: false })
       if (error) {
-        console.error('İş emirleri yüklenirken hata:', error)
+        console.log('İş emirleri yüklenirken hata:', error)
         throw new Error(`İş emirleri yüklenemedi: ${error.message}`)
       }
       return data || [];
     } catch (error) {
-      console.error('Job orders service hatası:', error)
+      console.log('Job orders service hatası:', error)
       throw error;
     }
   },

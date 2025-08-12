@@ -121,7 +121,7 @@ export function createRateLimitErrorResponse(): { response: ApiResponse; status:
 
 // Generic error handler for API routes
 export function handleApiError(error: any): { response: ApiResponse; status: number } {
-  console.error('API Error:', error)
+  console.log('API Error:', error)
   
   // Network errors (check before Supabase errors)
   if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {

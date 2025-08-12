@@ -16,7 +16,7 @@ export const qualityCheckService = {
         .order('check_date', { ascending: false })
 
       if (error) {
-        console.error('Kalite kontrol listesi alma hatası:', error)
+        console.log('Kalite kontrol listesi alma hatası:', error)
         throw new Error(`Kalite kontrol listesi alınamadı: ${error.message}`)
       }
 
@@ -27,7 +27,7 @@ export const qualityCheckService = {
         inspectorName: item.personnel?.name
       })) || []
     } catch (error) {
-      console.error('Kalite kontrol listesi alma hatası:', error)
+      console.log('Kalite kontrol listesi alma hatası:', error)
       throw error
     }
   },

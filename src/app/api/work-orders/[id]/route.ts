@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ success: true, data: jobOrder })
   } catch (error) {
-    console.error('İş emri detay hatası:', error)
+    console.log('İş emri detay hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updated = await jobOrderService.updateJobOrder(id, updateData)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    console.error('İş emri güncelleme hatası:', error)
+    console.log('İş emri güncelleme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -85,7 +85,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     await jobOrderService.deleteJobOrder(id)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('İş emri silme hatası:', error)
+    console.log('İş emri silme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

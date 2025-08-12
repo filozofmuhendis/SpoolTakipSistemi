@@ -20,18 +20,23 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   try {
     const { id } = params
-    const personnel = await personnelService.getPersonnelById(id)
+    const { supabase } = await import('@/lib/supabase')
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single()
     
-    if (!personnel) {
+    if (error || !data) {
       return NextResponse.json(
         { success: false, error: 'Personel bulunamadı.' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ success: true, data: personnel })
+    return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error('Personel detay hatası:', error)
+    console.log('Personel detay hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -65,7 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updated = await personnelService.updatePersonnel(id, updateData)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    console.error('Personel güncelleme hatası:', error)
+    console.log('Personel güncelleme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -81,10 +86,22 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   try {
     const { id } = params
-    await personnelService.deletePersonnel(id)
+    const { supabaseAdmin } = await import('@/lib/supabase')
+    
+    if (!supabaseAdmin) {
+      return NextResponse.json({ success: false, error: 'Server yapılandırma hatası.' }, { status: 500 })
+    }
+
+    // Auth kullanıcısını sil
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id)
+    
+    if (authError) {
+      return NextResponse.json({ success: false, error: 'Kullanıcı silinemedi.' }, { status: 500 })
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Personel silme hatası:', error)
+    console.log('Personel silme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

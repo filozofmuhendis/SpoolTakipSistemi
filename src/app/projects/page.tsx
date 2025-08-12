@@ -37,11 +37,11 @@ export default function ProjectsPage() {
       // Projeleri ve spool'ları paralel olarak çek
       const [projectsData, spoolsData] = await Promise.all([
         projectService.getAllProjects().catch(err => {
-          console.error('Projeler yüklenemedi:', err)
+          console.log('Projeler yüklenemedi:', err)
           return []
         }),
         spoolService.getAllSpools().catch(err => {
-          console.error('Spools yüklenemedi:', err)
+          console.log('Spools yüklenemedi:', err)
           return []
         })
       ])

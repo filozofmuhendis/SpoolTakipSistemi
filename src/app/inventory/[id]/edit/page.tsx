@@ -76,7 +76,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
         // Dosyaları yükle
         await loadFiles()
       } catch (error: any) {
-        console.error('Veri yükleme hatası:', error)
+        console.log('Veri yükleme hatası:', error)
         showToast({ type: 'error', message: error.message || 'Veri yüklenirken bir hata oluştu' })
       } finally {
         setLoading(false)
@@ -92,7 +92,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
       const filesData = await storageService.getFilesByEntity('inventory', params.id)
       setFiles(filesData)
     } catch (error) {
-      console.error('Dosya yükleme hatası:', error)
+      console.log('Dosya yükleme hatası:', error)
     } finally {
       setLoadingFiles(false)
     }
@@ -138,7 +138,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
         showToast({ type: 'error', message: 'Dosya silinirken hata oluştu' })
       }
     } catch (error) {
-      console.error('Dosya silme hatası:', error)
+      console.log('Dosya silme hatası:', error)
       showToast({ type: 'error', message: 'Dosya silinirken hata oluştu' })
     }
   }
@@ -217,7 +217,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
       showToast({ type: 'success', message: 'Malzeme başarıyla güncellendi!' })
       router.push(`/inventory/${params.id}`)
     } catch (error: any) {
-      console.error('Malzeme güncelleme hatası:', error)
+      console.log('Malzeme güncelleme hatası:', error)
       showToast({ type: 'error', message: error.message || 'Malzeme güncellenirken bir hata oluştu' })
     } finally {
       setSaving(false)

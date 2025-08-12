@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Kullanıcı oluşturmayı dene (admin client ile)
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    const { data, error } = await supabaseAdmin!.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.error('Supabase Auth Error:', error)
+      console.log('Supabase Auth Error:', error)
       return NextResponse.json(
         { 
           error: 'Kullanıcı oluşturulamadı',
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('API Error:', error)
+    console.log('API Error:', error)
     return NextResponse.json(
       { 
         error: 'Sunucu hatası',
@@ -65,7 +65,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Profiles fetch error:', error)
+      console.log('Profiles fetch error:', error)
       return NextResponse.json(
         { 
           error: 'Kullanıcılar getirilemedi',
@@ -81,7 +81,7 @@ export async function GET() {
     })
 
   } catch (error: any) {
-    console.error('API Error:', error)
+    console.log('API Error:', error)
     return NextResponse.json(
       { 
         error: 'Sunucu hatası',

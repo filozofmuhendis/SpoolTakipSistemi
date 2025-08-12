@@ -10,12 +10,12 @@ export const documentService = {
         .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
         .order('uploaded_at', { ascending: false })
       if (error) {
-        console.error('Dokümanlar yüklenirken hata:', error)
+        console.log('Dokümanlar yüklenirken hata:', error)
         throw new Error(`Dokümanlar yüklenemedi: ${error.message}`)
       }
       return data || [];
     } catch (error) {
-      console.error('Documents service hatası:', error)
+      console.log('Documents service hatası:', error)
       throw error;
     }
   },

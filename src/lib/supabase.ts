@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Server-side only - client-side'da undefined olacak
+const supabaseServiceRoleKey = typeof window === 'undefined' ? process.env.SUPABASE_SERVICE_ROLE_KEY : undefined
 
 if (!supabaseUrl) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
@@ -15,7 +16,7 @@ if (!supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Server-side admin client (only use on server)
-export const supabaseAdmin = createClient(
+export const supabaseAdmin = supabaseServiceRoleKey ? createClient(
   supabaseUrl,
   supabaseServiceRoleKey,
   {
@@ -24,7 +25,7 @@ export const supabaseAdmin = createClient(
       persistSession: false
     }
   }
-)
+) : null
 
 // Database types
 export interface Database {
@@ -33,52 +34,58 @@ export interface Database {
       profiles: {
         Row: {
           id: string
-          name: string
+          full_name?: string
           email: string
-          role: string
           phone?: string
           department?: string
           position?: string
+          avatar_url?: string
           hire_date?: string
           status?: string
           salary?: number
           emergency_contact?: string
           emergency_phone?: string
           address?: string
+          is_active?: boolean
+          last_login?: string
           created_at?: string
           updated_at?: string
         }
         Insert: {
           id?: string
-          name: string
+          full_name?: string
           email: string
-          role?: string
           phone?: string
           department?: string
           position?: string
+          avatar_url?: string
           hire_date?: string
           status?: string
           salary?: number
           emergency_contact?: string
           emergency_phone?: string
           address?: string
+          is_active?: boolean
+          last_login?: string
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          name?: string
+          full_name?: string
           email?: string
-          role?: string
           phone?: string
           department?: string
           position?: string
+          avatar_url?: string
           hire_date?: string
           status?: string
           salary?: number
           emergency_contact?: string
           emergency_phone?: string
           address?: string
+          is_active?: boolean
+          last_login?: string
           created_at?: string
           updated_at?: string
         }

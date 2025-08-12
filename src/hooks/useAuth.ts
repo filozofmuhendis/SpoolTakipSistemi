@@ -44,7 +44,7 @@ export function useAuth() {
       await signOut({ redirect: false })
       router.push('/login')
     } catch (error) {
-      console.error('Çıkış hatası:', error)
+      console.log('Çıkış hatası:', error)
     }
   }
 
@@ -55,7 +55,7 @@ export function useAuth() {
       await signOut({ redirect: false })
       router.push('/login')
     } catch (error) {
-      console.error('Zorla çıkış hatası:', error)
+      console.log('Zorla çıkış hatası:', error)
     }
   }
 
@@ -65,7 +65,7 @@ export function useAuth() {
       if (error) throw error
       return session ? [session] : []
     } catch (error) {
-      console.error('Aktif oturumlar alınamadı:', error)
+      console.log('Aktif oturumlar alınamadı:', error)
       return []
     }
   }

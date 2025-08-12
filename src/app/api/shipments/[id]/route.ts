@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ success: true, data: shipment })
   } catch (error) {
-    console.error('Sevkiyat detay hatası:', error)
+    console.log('Sevkiyat detay hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updated = await shipmentService.updateShipment(id, updateData)
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
-    console.error('Sevkiyat güncelleme hatası:', error)
+    console.log('Sevkiyat güncelleme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -82,7 +82,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     await shipmentService.deleteShipment(id)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Sevkiyat silme hatası:', error)
+    console.log('Sevkiyat silme hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

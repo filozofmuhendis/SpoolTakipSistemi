@@ -16,17 +16,15 @@ export const personnelService = {
   // Tüm personeli getir
   async getAllPersonnel(): Promise<Personnel[]> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('full_name', { ascending: true })
+      const response = await fetch('/api/personnel')
+      const result = await response.json()
       
-      if (error) {
-        console.log('Personel getirme hatası:', error)
+      if (!result.success) {
+        console.log('Personel getirme hatası:', result.error)
         return []
       }
       
-      return data || []
+      return result.data || []
     } catch (error) {
       console.log('Personel getirme hatası:', error)
       return []
@@ -84,50 +82,22 @@ export const personnelService = {
     position?: string
   }): Promise<Personnel | null> {
     try {
-      // Önce auth.users'a kullanıcı oluştur
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: personnel.email,
-        password: personnel.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: personnel.full_name,
-          department: personnel.department,
-          position: personnel.position
-        }
+      const response = await fetch('/api/personnel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(personnel)
       })
-
-      if (authError) {
-        console.log('Auth kullanıcı oluşturma hatası:', authError)
-        return null
-      }
-
-      if (!authData.user) {
-        console.log('Auth kullanıcı oluşturulamadı')
-        return null
-      }
-
-      // Sonra profiles tablosuna ekle
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: personnel.email,
-          full_name: personnel.full_name,
-          phone: personnel.phone,
-          department: personnel.department,
-          position: personnel.position
-        })
-        .select()
-        .single()
       
-      if (error) {
-        console.log('Profil oluşturma hatası:', error)
-        // Auth kullanıcısını sil
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      const result = await response.json()
+      
+      if (!result.success) {
+        console.log('Personel oluşturma hatası:', result.error)
         return null
       }
       
-      return data
+      return result.data
     } catch (error) {
       console.log('Personel oluşturma hatası:', error)
       return null
@@ -167,15 +137,17 @@ export const personnelService = {
   // Personel sil (auth.users'dan da sil)
   async deletePersonnel(id: string): Promise<boolean> {
     try {
-      // Önce auth.users'dan sil
-      const { error: authError } = await supabase.auth.admin.deleteUser(id)
+      const response = await fetch(`/api/personnel/${id}`, {
+        method: 'DELETE'
+      })
       
-      if (authError) {
-        console.log('Auth kullanıcı silme hatası:', authError)
+      const result = await response.json()
+      
+      if (!result.success) {
+        console.log('Personel silme hatası:', result.error)
         return false
       }
 
-      // Profiles tablosundan otomatik silinir (CASCADE)
       return true
     } catch (error) {
       console.log('Personel silme hatası:', error)
@@ -186,18 +158,15 @@ export const personnelService = {
   // Personel detayını getir
   async getPersonnelById(id: string): Promise<Personnel | null> {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const response = await fetch(`/api/personnel/${id}`)
+      const result = await response.json()
       
-      if (error) {
-        console.log('Personel detay getirme hatası:', error)
+      if (!result.success) {
+        console.log('Personel detay getirme hatası:', result.error)
         return null
       }
       
-      return data
+      return result.data
     } catch (error) {
       console.log('Personel detay getirme hatası:', error)
       return null
@@ -267,7 +236,13 @@ export const personnelService = {
   // Şifre değiştir
   async updatePassword(userId: string, newPassword: string): Promise<boolean> {
     try {
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
+      // supabaseAdmin kontrolü
+      if (!supabaseAdmin) {
+        console.log('supabaseAdmin mevcut değil, SUPABASE_SERVICE_ROLE_KEY gerekli')
+        return false
+      }
+
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: newPassword
       })
 

@@ -88,7 +88,7 @@ export default function ReportsPage() {
       const reports = await storageService.getFilesByEntity('project', 'reports')
       setSavedReports(reports)
     } catch (error) {
-      console.error('Kayıtlı raporlar yüklenirken hata:', error)
+      console.log('Kayıtlı raporlar yüklenirken hata:', error)
     } finally {
       setLoadingReports(false)
     }
@@ -177,7 +177,7 @@ export default function ReportsPage() {
         showToast({ type: 'success', message: 'Rapor sisteme kaydedildi!' })
       }
     } catch (error) {
-      console.error('Rapor kaydetme hatası:', error)
+      console.log('Rapor kaydetme hatası:', error)
       showToast({ type: 'error', message: 'Rapor kaydedilirken hata oluştu.' })
     }
   }
@@ -192,7 +192,7 @@ export default function ReportsPage() {
         showToast({ type: 'error', message: 'Rapor silinirken hata oluştu' })
       }
     } catch (error) {
-      console.error('Rapor silme hatası:', error)
+      console.log('Rapor silme hatası:', error)
       showToast({ type: 'error', message: 'Rapor silinirken hata oluştu' })
     }
   }

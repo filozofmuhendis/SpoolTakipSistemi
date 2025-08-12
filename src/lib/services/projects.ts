@@ -10,12 +10,12 @@ export const projectService = {
         .select('id, name, shipyard, ship, start_date, delivery_date, created_by, created_at, client_name, description, end_date, priority, project_code, status, manager_id')
         .order('created_at', { ascending: false })
       if (error) {
-        console.error('Projeler yüklenirken hata:', error)
+        console.log('Projeler yüklenirken hata:', error)
         throw new Error(`Projeler yüklenemedi: ${error.message}`)
       }
       return data || [];
     } catch (error) {
-      console.error('Projects service hatası:', error)
+      console.log('Projects service hatası:', error)
       throw error;
     }
   },

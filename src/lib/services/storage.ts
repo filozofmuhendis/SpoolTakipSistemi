@@ -41,7 +41,7 @@ export const storageService = {
         .upload(fileName, file)
 
       if (error) {
-        console.error('Dosya yükleme hatası:', error)
+        console.log('Dosya yükleme hatası:', error)
         return null
       }
 
@@ -165,13 +165,13 @@ export const storageService = {
         .order('uploadedAt', { ascending: false })
 
       if (error) {
-        console.error('Dosya listesi alma hatası:', error)
+        console.log('Dosya listesi alma hatası:', error)
         throw new Error(`Dosya listesi alınamadı: ${error.message}`)
       }
 
       return data || []
     } catch (error) {
-      console.error('Dosya listesi alma hatası:', error)
+      console.log('Dosya listesi alma hatası:', error)
       throw error
     }
   },

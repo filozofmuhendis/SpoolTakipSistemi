@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: inventory })
   } catch (error) {
-    console.error('Envanter listesi hatası:', error)
+    console.log('Envanter listesi hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     const inventory = await inventoryService.createInventory(inventoryData as Omit<Inventory, 'id'>)
     return NextResponse.json({ success: true, data: inventory }, { status: 201 })
   } catch (error) {
-    console.error('Envanter oluşturma hatası:', error)
+    console.log('Envanter oluşturma hatası:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

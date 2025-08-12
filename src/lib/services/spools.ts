@@ -13,12 +13,12 @@ export const spoolService = {
         .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
         .order('name', { ascending: true })
       if (error) {
-        console.error('Spools yüklenirken hata:', error)
+        console.log('Spools yüklenirken hata:', error)
         throw new Error(`Spools yüklenemedi: ${error.message}`)
       }
       return data || [];
     } catch (error) {
-      console.error('Spools service hatası:', error)
+      console.log('Spools service hatası:', error)
       throw error;
     }
   },
