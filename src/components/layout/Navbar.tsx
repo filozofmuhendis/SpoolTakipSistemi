@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { Menu, X, User, LogOut, Settings, Bell, Home, BarChart3, Package, Users, FileText, Truck, Box, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
-import NotificationBell from '@/components/ui/NotificationBell'
 import GlobalSearch from '@/components/ui/GlobalSearch'
 import { signOut } from 'next-auth/react'
 

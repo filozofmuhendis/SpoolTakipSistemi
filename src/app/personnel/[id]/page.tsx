@@ -76,7 +76,7 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                {personnel.fullName}
+                {personnel.full_name}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">{personnel.position || 'Pozisyon belirtilmemiş'}</p>
             </div>
@@ -145,7 +145,7 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
                 <div className="flex items-center gap-2 mt-1">
                   <Calendar className="w-4 h-4 text-gray-400" />
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {formatDate(personnel.createdAt)}
+                    {formatDate(personnel.created_at)}
                   </p>
                 </div>
               </div>
@@ -178,10 +178,10 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {formatDate(personnel.createdAt)} - Günümüz
+                    {formatDate(personnel.created_at)} - Günümüz
                   </p>
                   <p className="text-xs text-gray-500">
-                    {Math.floor((new Date().getTime() - new Date(personnel.createdAt).getTime()) / (1000 * 60 * 60 * 24))} gün
+                    {Math.floor((new Date().getTime() - new Date(personnel.created_at).getTime()) / (1000 * 60 * 60 * 24))} gün
                   </p>
                 </div>
               </div>

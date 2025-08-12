@@ -94,14 +94,14 @@ export default function GlobalSearch() {
       const personnel = await personnelService.getAllPersonnel()
       const personnelResults = personnel
         .filter(person => 
-          person.fullName?.toLowerCase().includes(query.toLowerCase()) ||
+          person.full_name?.toLowerCase().includes(query.toLowerCase()) ||
           person.email?.toLowerCase().includes(query.toLowerCase()) ||
           person.department?.toLowerCase().includes(query.toLowerCase())
         )
         .map(person => ({
           id: person.id,
           type: 'personnel' as const,
-          title: person.fullName || 'İsimsiz',
+          title: person.full_name || 'İsimsiz',
           subtitle: `${person.department || 'Departman yok'} - ${person.position || 'Pozisyon yok'}`,
           status: 'active',
           url: `/personnel/${person.id}`,
@@ -297,4 +297,4 @@ export default function GlobalSearch() {
       )}
     </div>
   )
-} 
+}

@@ -153,7 +153,7 @@ export default function Home() {
       activities.push({
         id: `personnel-${person.id}`,
         type: 'personnel_added',
-        title: `Personel kaydı: ${person.fullName}`,
+        title: `Personel kaydı: ${person.full_name}`,
         description: `${person.position} pozisyonunda`,
         timestamp: 'Az önce',
         color: 'text-purple-500'

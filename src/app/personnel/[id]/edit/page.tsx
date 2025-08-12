@@ -66,7 +66,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
       if (data) {
         setPersonnel(data)
         reset({
-          fullName: data.fullName,
+          fullName: data.full_name,
           email: data.email,
           phone: data.phone || '',
           department: data.department || '',
@@ -143,7 +143,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
                   Personel Düzenle
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {personnel.fullName} - {personnel.position || 'Pozisyon belirtilmemiş'}
+                  {personnel.full_name} - {personnel.position || 'Pozisyon belirtilmemiş'}
                 </p>
               </div>
             </div>
