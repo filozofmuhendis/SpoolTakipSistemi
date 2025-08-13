@@ -32,7 +32,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-white/20 dark:border-gray-700/50">
+    <nav className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-white/20 dark:border-gray-700/50 z-50">
       {/* Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-pink-400/5"></div>
       
@@ -118,7 +118,7 @@ export default function Navbar() {
 
               {/* Profile Dropdown Menu */}
               {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 z-50">
+                <div className="absolute right-0 mt-3 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 z-[9999]">
                   <div className="p-2">
                     <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50">
                       <div className="flex items-center space-x-3">
@@ -192,7 +192,7 @@ export default function Navbar() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="lg:hidden">
-            <div className="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-white/20 dark:border-gray-700/20 shadow-xl">
+            <div className="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-white/20 dark:border-gray-700/20 shadow-xl z-[9998]">
               <div className="px-4 pt-4 pb-3 space-y-2">
                 {navigation.map((item) => {
                   const IconComponent = item.icon;
@@ -231,7 +231,7 @@ export default function Navbar() {
       {/* Backdrop for mobile menu */}
       {isMenuOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
+          className="fixed inset-0 z-30 lg:hidden"
           onClick={() => setIsMenuOpen(false)}
         />
       )}
@@ -239,7 +239,7 @@ export default function Navbar() {
       {/* Backdrop for profile dropdown */}
       {isProfileOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-30"
           onClick={() => setIsProfileOpen(false)}
         />
       )}
