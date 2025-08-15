@@ -9,9 +9,9 @@ export const spoolService = {
   async getAllSpools() {
     try {
       const { data, error } = await supabase
-        .from('public.spools')
-        .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
-        .order('name', { ascending: true })
+         .from('spools')
+         .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
+         .order('name', { ascending: true })
       if (error) {
         console.log('Spools yüklenirken hata:', error)
         throw new Error(`Spools yüklenemedi: ${error.message}`)
@@ -23,10 +23,29 @@ export const spoolService = {
     }
   },
 
+  // Spools arama fonksiyonu
+  async searchSpools(search: string) {
+    try {
+      const { data, error } = await supabase
+        .from('spools')
+        .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
+        .or(`name.ilike.%${search}%,material.ilike.%${search}%`)
+        .order('name', { ascending: true })
+      if (error) {
+        console.log('Spools aranırken hata:', error)
+        throw new Error(`Spools aranamadı: ${error.message}`)
+      }
+      return data || [];
+    } catch (error) {
+      console.log('Spools search service hatası:', error)
+      throw error;
+    }
+  },
+
   // Ürün alt kalemi oluştur
   async createSpool(spool: Omit<Spool, 'id'>) {
     const { data, error } = await supabase
-      .from('public.spools')
+      .from('spools')
       .insert(spool)
       .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
       .single()
@@ -38,7 +57,7 @@ export const spoolService = {
   async updateSpool(id: string, updates: Partial<Spool>) {
     const updateData: any = { ...updates };
     const { data, error } = await supabase
-      .from('public.spools')
+      .from('spools')
       .update(updateData)
       .eq('id', id)
       .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
@@ -50,7 +69,7 @@ export const spoolService = {
   // Ürün alt kalemi sil
   async deleteSpool(id: string) {
     const { error } = await supabase
-      .from('public.spools')
+      .from('spools')
       .delete()
       .eq('id', id)
     if (error) throw new Error(`Ürün alt kalemi silinemedi: ${error.message}`)
@@ -60,7 +79,7 @@ export const spoolService = {
   // Ürün alt kalemi detayını getir
   async getSpoolById(id: string) {
     const { data, error } = await supabase
-      .from('public.spools')
+      .from('spools')
       .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
       .eq('id', id)
       .single()

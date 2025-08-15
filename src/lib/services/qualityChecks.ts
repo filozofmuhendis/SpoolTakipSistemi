@@ -11,7 +11,7 @@ export const qualityCheckService = {
           *,
           spools:spool_id(name),
           work_orders:work_order_id(number),
-          personnel:inspector_id(name)
+          profiles:inspector_id(full_name)
         `)
         .order('check_date', { ascending: false })
 
@@ -24,7 +24,7 @@ export const qualityCheckService = {
         ...item,
         spoolName: item.spools?.name,
         workOrderNumber: item.work_orders?.number,
-        inspectorName: item.personnel?.name
+        inspectorName: item.profiles?.full_name
       })) || []
     } catch (error) {
       console.log('Kalite kontrol listesi alma hatası:', error)
@@ -37,11 +37,11 @@ export const qualityCheckService = {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
-        *,
-        spools:spool_id(name),
-        work_orders:work_order_id(number),
-        personnel:inspector_id(name)
-      `)
+          *,
+          spools:spool_id(name),
+          work_orders:work_order_id(number),
+          profiles:inspector_id(full_name)
+        `)
       .eq('id', id)
       .single()
 
@@ -50,7 +50,7 @@ export const qualityCheckService = {
       ...data,
       spoolName: data.spools?.name,
       workOrderNumber: data.work_orders?.number,
-      inspectorName: data.personnel?.name
+      inspectorName: data.profiles?.full_name
     } : null
   },
 
@@ -59,11 +59,11 @@ export const qualityCheckService = {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
-        *,
-        spools:spool_id(name),
-        work_orders:work_order_id(number),
-        personnel:inspector_id(name)
-      `)
+          *,
+          spools:spool_id(name),
+          work_orders:work_order_id(number),
+          profiles:inspector_id(full_name)
+        `)
       .eq('spool_id', spoolId)
       .order('check_date', { ascending: false })
 
@@ -72,7 +72,7 @@ export const qualityCheckService = {
       ...item,
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
+      inspectorName: item.profiles?.full_name
     })) || []
   },
 
@@ -84,7 +84,7 @@ export const qualityCheckService = {
         *,
         spools:spool_id(name),
         work_orders:work_order_id(number),
-        personnel:inspector_id(name)
+        profiles:inspector_id(full_name)
       `)
       .eq('work_order_id', workOrderId)
       .order('check_date', { ascending: false })
@@ -94,7 +94,7 @@ export const qualityCheckService = {
       ...item,
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
+      inspectorName: item.profiles?.full_name
     })) || []
   },
 
@@ -151,7 +151,7 @@ export const qualityCheckService = {
         *,
         spools:spool_id(name),
         work_orders:work_order_id(number),
-        personnel:inspector_id(name)
+        profiles:inspector_id(full_name)
       `)
       .eq('status', status)
       .order('check_date', { ascending: false })
@@ -161,7 +161,7 @@ export const qualityCheckService = {
       ...item,
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
+      inspectorName: item.profiles?.full_name
     })) || []
   },
 
@@ -173,7 +173,7 @@ export const qualityCheckService = {
         *,
         spools:spool_id(name),
         work_orders:work_order_id(number),
-        personnel:inspector_id(name)
+        profiles:inspector_id(full_name)
       `)
       .eq('inspector_id', inspectorId)
       .order('check_date', { ascending: false })
@@ -183,7 +183,7 @@ export const qualityCheckService = {
       ...item,
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
+      inspectorName: item.profiles?.full_name
     })) || []
   },
 
@@ -195,7 +195,7 @@ export const qualityCheckService = {
         *,
         spools:spool_id(name),
         work_orders:work_order_id(number),
-        personnel:inspector_id(name)
+        profiles:inspector_id(full_name)
       `)
       .gte('check_date', startDate)
       .lte('check_date', endDate)
@@ -206,7 +206,7 @@ export const qualityCheckService = {
       ...item,
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
-      inspectorName: item.personnel?.name
+      inspectorName: item.profiles?.full_name
     })) || []
   },
 
@@ -269,7 +269,7 @@ export const qualityCheckService = {
         *,
         spools:spool_id(name),
         work_orders:work_order_id(number),
-        personnel:inspector_id(name)
+        profiles:inspector_id(full_name)
       `)
       .eq('spool_id', spoolId)
       .order('check_date', { ascending: false })
@@ -281,7 +281,7 @@ export const qualityCheckService = {
       ...data,
       spoolName: data.spools?.name,
       workOrderNumber: data.work_orders?.number,
-      inspectorName: data.personnel?.name
+      inspectorName: data.profiles?.full_name
     } : null
   },
 

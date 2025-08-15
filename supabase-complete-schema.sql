@@ -47,26 +47,7 @@ CREATE TABLE public.projects (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =============================================
--- PERSONNEL TABLE (Extended user info)
--- =============================================
-CREATE TABLE public.personnel (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    department TEXT NOT NULL,
-    position TEXT NOT NULL,
-    hire_date DATE DEFAULT CURRENT_DATE,
-    status TEXT CHECK (status IN ('active', 'inactive', 'terminated', 'on_leave')) DEFAULT 'active',
-    salary DECIMAL(10,2),
-    emergency_contact TEXT,
-    emergency_phone TEXT,
-    address TEXT,
-    skills TEXT[],
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- Personnel tablosu kaldırıldı - profiles tablosu kullanılıyor
 
 -- =============================================
 -- SPOOLS TABLE
@@ -386,7 +367,7 @@ $$ language 'plpgsql';
 -- Apply triggers to all tables with updated_at column
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_personnel_updated_at BEFORE UPDATE ON public.personnel FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Personnel trigger kaldırıldı - personnel tablosu artık yok
 CREATE TRIGGER update_spools_updated_at BEFORE UPDATE ON public.spools FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_orders_updated_at BEFORE UPDATE ON public.work_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_shipments_updated_at BEFORE UPDATE ON public.shipments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -422,7 +403,7 @@ CREATE TRIGGER on_auth_user_created
 -- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.personnel ENABLE ROW LEVEL SECURITY;
+-- Personnel RLS kaldırıldı - personnel tablosu artık yok
 ALTER TABLE public.spools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
@@ -465,14 +446,7 @@ CREATE POLICY "Managers and admins can manage projects" ON public.projects FOR A
     )
 );
 
--- Personnel policies
-CREATE POLICY "Authenticated users can view personnel" ON public.personnel FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage personnel" ON public.personnel FOR ALL USING (
-    EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() AND position = 'admin'
-    )
-);
+-- Personnel policies kaldırıldı - personnel tablosu artık yok
 
 -- Spools policies
 CREATE POLICY "Authenticated users can view spools" ON public.spools FOR SELECT USING (auth.role() = 'authenticated');
@@ -649,8 +623,23 @@ CREATE INDEX idx_equipment_assigned_to ON public.equipment(assigned_to);
 -- SAMPLE DATA (Optional)
 -- =============================================
 
--- Insert sample admin user (will be created when first user registers)
--- The trigger will handle profile creation automatically
+-- =============================================
+-- AUTH TRIGGER FOR PROFILE CREATION
+-- =============================================
+-- Function to create profile when user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, position, status)
+  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email), 'user', 'active');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to automatically create profile on user signup
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 COMMIT;
 

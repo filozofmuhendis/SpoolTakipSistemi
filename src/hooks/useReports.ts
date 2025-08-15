@@ -16,7 +16,7 @@ export function useReports() {
             *,
             project:projects(name),
             spool:spools(code),
-            personnel:profiles(name)
+            personnel:profiles(full_name)
           `)
           .gte('created_at', startDate.toISOString())
           .lte('created_at', endDate.toISOString());
@@ -27,7 +27,7 @@ export function useReports() {
           .from('work_hours')
           .select(`
             *,
-            personnel:profiles(name),
+            personnel:profiles(full_name),
             project:projects(name)
           `)
           .gte('start_time', startDate.toISOString())

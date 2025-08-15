@@ -6,7 +6,7 @@ export const inventoryService = {
   async getAllInventory() {
     try {
       const { data, error } = await supabase
-        .from('public.inventory')
+        .from('inventory')
         .select('id, name, description, quantity, unit, location, status, notes, created_by')
         .order('name', { ascending: true })
       if (error) return [];
@@ -41,7 +41,7 @@ export const inventoryService = {
     }
     
     const { data, error } = await supabase
-      .from('public.inventory')
+      .from('inventory')
       .insert(inventoryData)
       .select('id, name, description, quantity, unit, location, status')
       .single()
@@ -53,11 +53,11 @@ export const inventoryService = {
   async updateInventory(id: string, updates: Partial<Inventory>) {
     const updateData: any = { ...updates };
     const { data, error } = await supabase
-      .from('public.inventory')
-      .update(updateData)
-      .eq('id', id)
-      .select('id, name, description, quantity, unit, location, status, notes, created_by')
-      .single()
+       .from('inventory')
+       .update(updateData)
+       .eq('id', id)
+       .select('id, name, description, quantity, unit, location, status')
+       .single()
     if (error) throw new Error(`Envanter güncellenemedi: ${error.message}`)
     return data;
   },
@@ -65,7 +65,7 @@ export const inventoryService = {
   // Envanter sil
   async deleteInventory(id: string) {
     const { error } = await supabase
-      .from('public.inventory')
+      .from('inventory')
       .delete()
       .eq('id', id)
     if (error) throw new Error(`Envanter silinemedi: ${error.message}`)
@@ -75,7 +75,7 @@ export const inventoryService = {
   // Envanter detayını getir
   async getInventoryById(id: string) {
     const { data, error } = await supabase
-      .from('public.inventory')
+      .from('inventory')
       .select('id, name, description, quantity, unit, location, status, notes, created_by')
       .eq('id', id)
       .single()
@@ -102,10 +102,10 @@ export const inventoryService = {
   async getInventoryByCategory(category: string) {
     try {
       const { data, error } = await supabase
-        .from('public.inventory')
-        .select('id, name, description, quantity, unit, location, status, notes, created_by')
-        .eq('category', category)
-        .order('name', { ascending: true })
+      .from('inventory')
+      .select('id, name, description, quantity, unit, location, status, notes, created_by')
+      .gte('quantity', 1)
+      .order('name', { ascending: true })
       if (error) return [];
       return data || [];
     } catch (error) {
@@ -117,7 +117,7 @@ export const inventoryService = {
   async searchInventory(search: string) {
     try {
       const { data, error } = await supabase
-        .from('public.inventory')
+        .from('inventory')
         .select('id, name, description, quantity, unit, location, status, notes, created_by')
         .or(`name.ilike.%${search}%,description.ilike.%${search}%`)
         .order('name', { ascending: true })

@@ -2,12 +2,13 @@ import { supabase } from '../supabase'
 import { Document } from '@/types'
 
 export const documentService = {
-  // Tüm dokümanları getir
-  async getAllDocuments() {
+  // Proje dokümanlarını getir
+  async getDocumentsByProject(projectId: string) {
     try {
       const { data, error } = await supabase
-        .from('public.documents')
+        .from('documents')
         .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
+        .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false })
       if (error) {
         console.log('Dokümanlar yüklenirken hata:', error)
@@ -23,7 +24,7 @@ export const documentService = {
   // Doküman oluştur
   async createDocument(document: Omit<Document, 'id'>) {
     const { data, error } = await supabase
-      .from('public.documents')
+      .from('documents')
       .insert(document)
       .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
       .single()
@@ -35,7 +36,7 @@ export const documentService = {
   async updateDocument(id: string, updates: Partial<Document>) {
     const updateData: any = { ...updates };
     const { data, error } = await supabase
-      .from('public.documents')
+      .from('documents')
       .update(updateData)
       .eq('id', id)
       .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
@@ -47,7 +48,7 @@ export const documentService = {
   // Doküman sil
   async deleteDocument(id: string) {
     const { error } = await supabase
-      .from('public.documents')
+      .from('documents')
       .delete()
       .eq('id', id)
     if (error) throw new Error(`Doküman silinemedi: ${error.message}`)
@@ -57,7 +58,7 @@ export const documentService = {
   // Doküman detayını getir
   async getDocumentById(id: string) {
     const { data, error } = await supabase
-      .from('public.documents')
+      .from('documents')
       .select('id, project_id, name, url, uploaded_by, uploaded_at, notes')
       .eq('id', id)
       .single()

@@ -16,18 +16,29 @@ export const personnelService = {
   // Tüm personeli getir
   async getAllPersonnel(): Promise<Personnel[]> {
     try {
-      const response = await fetch('/api/personnel')
-      const result = await response.json()
+      console.log('PersonnelService: getAllPersonnel çağrıldı');
       
-      if (!result.success) {
-        console.log('Personel getirme hatası:', result.error)
-        return []
+      // Server-side ise admin client kullan, client-side ise normal client
+      const client = typeof window === 'undefined' && supabaseAdmin ? supabaseAdmin : supabase;
+      console.log('PersonnelService: Kullanılan client:', typeof window === 'undefined' ? 'supabaseAdmin' : 'supabase');
+      
+      const { data, error } = await client
+        .from('profiles')
+        .select('*')
+        .order('full_name', { ascending: true })
+      
+      console.log('PersonnelService: Supabase yanıtı:', { data, error, count: data?.length });
+      
+      if (error) {
+        console.error('PersonnelService: Supabase hatası:', error);
+        throw new Error(error.message)
       }
       
-      return result.data || []
+      console.log('PersonnelService: Dönen veri sayısı:', data?.length || 0);
+      return data || []
     } catch (error) {
-      console.log('Personel getirme hatası:', error)
-      return []
+      console.error('Error fetching personnel:', error)
+      throw error
     }
   },
 
@@ -85,22 +96,21 @@ export const personnelService = {
       const response = await fetch('/api/personnel', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(personnel)
+        body: JSON.stringify(personnel),
       })
       
-      const result = await response.json()
-      
-      if (!result.success) {
-        console.log('Personel oluşturma hatası:', result.error)
-        return null
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create personnel')
       }
       
-      return result.data
+      const { data } = await response.json()
+      return data
     } catch (error) {
-      console.log('Personel oluşturma hatası:', error)
-      return null
+      console.error('Error creating personnel:', error)
+      throw error
     }
   },
 
@@ -137,20 +147,18 @@ export const personnelService = {
   // Personel sil (auth.users'dan da sil)
   async deletePersonnel(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`/api/personnel/${id}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/personnel?id=${id}`, {
+        method: 'DELETE',
       })
       
-      const result = await response.json()
-      
-      if (!result.success) {
-        console.log('Personel silme hatası:', result.error)
-        return false
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete personnel')
       }
-
+      
       return true
     } catch (error) {
-      console.log('Personel silme hatası:', error)
+      console.error('Error deleting personnel:', error)
       return false
     }
   },
@@ -158,18 +166,20 @@ export const personnelService = {
   // Personel detayını getir
   async getPersonnelById(id: string): Promise<Personnel | null> {
     try {
-      const response = await fetch(`/api/personnel/${id}`)
-      const result = await response.json()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single()
       
-      if (!result.success) {
-        console.log('Personel detay getirme hatası:', result.error)
-        return null
+      if (error) {
+        throw new Error(error.message)
       }
       
-      return result.data
+      return data
     } catch (error) {
-      console.log('Personel detay getirme hatası:', error)
-      return null
+      console.error('Error fetching personnel by ID:', error)
+      throw error
     }
   },
 
@@ -236,21 +246,20 @@ export const personnelService = {
   // Şifre değiştir
   async updatePassword(userId: string, newPassword: string): Promise<boolean> {
     try {
-      // supabaseAdmin kontrolü
-      if (!supabaseAdmin) {
-        console.log('supabaseAdmin mevcut değil, SUPABASE_SERVICE_ROLE_KEY gerekli')
-        return false
-      }
-
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: newPassword
+      const response = await fetch('/api/personnel/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, newPassword }),
       })
-
-      if (error) {
-        console.log('Şifre güncelleme hatası:', error)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.log('Şifre güncelleme hatası:', errorData.error)
         return false
       }
-
+      
       return true
     } catch (error) {
       console.log('Şifre güncelleme hatası:', error)

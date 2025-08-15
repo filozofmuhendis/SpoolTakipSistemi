@@ -27,22 +27,12 @@ const departmentOptions = [
   { value: 'Bilgi Teknolojileri', label: 'Bilgi Teknolojileri' },
   { value: 'Güvenlik', label: 'Güvenlik' },
   { value: 'Temizlik', label: 'Temizlik' },
-  { value: 'Diğer', label: 'Diğer' }
 ]
 
 const positionOptions = [
-  { value: 'İmalat Ustası', label: 'İmalat Ustası' },
-  { value: 'Kaynakçı', label: 'Kaynakçı' },
-  { value: 'Kalite Kontrol Uzmanı', label: 'Kalite Kontrol Uzmanı' },
-  { value: 'Proje Müdürü', label: 'Proje Müdürü' },
-  { value: 'Satış Temsilcisi', label: 'Satış Temsilcisi' },
-  { value: 'Muhasebe Uzmanı', label: 'Muhasebe Uzmanı' },
-  { value: 'İK Uzmanı', label: 'İK Uzmanı' },
-  { value: 'Sistem Yöneticisi', label: 'Sistem Yöneticisi' },
-  { value: 'Güvenlik Görevlisi', label: 'Güvenlik Görevlisi' },
-  { value: 'Temizlik Görevlisi', label: 'Temizlik Görevlisi' },
-  { value: 'Stajyer', label: 'Stajyer' },
-  { value: 'Diğer', label: 'Diğer' }
+  { value: 'admin', label: 'Yönetici' },
+  { value: 'manager', label: 'Müdür' },
+  { value: 'user', label: 'Kullanıcı' }
 ]
 
 export default function EditPersonnel({ params }: { params: { id: string } }) {

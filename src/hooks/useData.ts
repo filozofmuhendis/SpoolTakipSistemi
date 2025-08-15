@@ -38,9 +38,9 @@ export function useData() {
 
   const getPersonnel = async () => {
     const { data, error } = await supabase
-      .from('personnel')
+      .from('profiles')
       .select('*')
-      .order('name')
+      .order('full_name')
 
     if (error) throw error
     return data
@@ -146,9 +146,9 @@ export function useData() {
   }
 
   // Personnel Operations
-  const createPersonnel = async (data: { user_id: string; name: string; position?: string }) => {
+  const createPersonnel = async (data: { id: string; full_name: string; position?: string }) => {
     const { data: personnel, error } = await supabase
-      .from('personnel')
+      .from('profiles')
       .insert([data])
       .select()
       .single()
@@ -157,9 +157,9 @@ export function useData() {
     return personnel
   }
 
-  const updatePersonnel = async (id: string, data: { name?: string; position?: string; status?: string }) => {
+  const updatePersonnel = async (id: string, data: { full_name?: string; position?: string; status?: string }) => {
     const { data: personnel, error } = await supabase
-      .from('personnel')
+      .from('profiles')
       .update(data)
       .eq('id', id)
       .select()
@@ -171,7 +171,7 @@ export function useData() {
 
   const deletePersonnel = async (id: string) => {
     const { error } = await supabase
-      .from('personnel')
+      .from('profiles')
       .delete()
       .eq('id', id)
 

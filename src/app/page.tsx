@@ -65,6 +65,14 @@ export default function Home() {
         shipmentService.getAllShipments()
       ]);
 
+      console.log('Dashboard verileri:', {
+        projects: projects.length,
+        spools: spools.length,
+        personnel: personnel.length,
+        workOrders: workOrders.length,
+        shipments: shipments.length
+      });
+
       // İstatistikleri hesapla
       const totalProjects = projects.length;
       const activeProjects = projects.filter(p => p.status === 'active').length;
@@ -72,6 +80,15 @@ export default function Home() {
       const totalSpools = spools.length;
       const pendingShipments = shipments.filter(s => s.status === 'pending').length;
       const totalPersonnel = personnel.length;
+
+      console.log('Hesaplanan istatistikler:', {
+        totalProjects,
+        activeProjects,
+        completedProjects,
+        totalSpools,
+        pendingShipments,
+        totalPersonnel
+      });
 
       setStats({
         totalProjects,
@@ -91,7 +108,7 @@ export default function Home() {
       setProjectStatuses(projectStatusList);
 
     } catch (error) {
-      console.log('Dashboard verisi yüklenirken hata:', error);
+      console.error('Dashboard verisi yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }

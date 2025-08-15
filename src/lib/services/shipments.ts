@@ -6,7 +6,7 @@ export const shipmentService = {
   async getAllShipments() {
     try {
       const { data, error } = await supabase
-        .from('public.shipments')
+        .from('shipments')
         .select('id, project_id, shipment_date, status, notes, created_by')
         .order('shipment_date', { ascending: false })
       if (error) {
@@ -23,7 +23,7 @@ export const shipmentService = {
   // Sevkiyat oluştur
   async createShipment(shipment: Omit<Shipment, 'id'>) {
     const { data, error } = await supabase
-      .from('public.shipments')
+      .from('shipments')
       .insert(shipment)
       .select('id, project_id, shipment_date, status, notes, created_by')
       .single()
@@ -35,7 +35,7 @@ export const shipmentService = {
   async updateShipment(id: string, updates: Partial<Shipment>) {
     const updateData: any = { ...updates };
     const { data, error } = await supabase
-      .from('public.shipments')
+      .from('shipments')
       .update(updateData)
       .eq('id', id)
       .select('id, project_id, shipment_date, status, notes, created_by')
@@ -47,7 +47,7 @@ export const shipmentService = {
   // Sevkiyat sil
   async deleteShipment(id: string) {
     const { error } = await supabase
-      .from('public.shipments')
+      .from('shipments')
       .delete()
       .eq('id', id)
     if (error) throw new Error(`Sevkiyat silinemedi: ${error.message}`)
@@ -57,7 +57,7 @@ export const shipmentService = {
   // Sevkiyat detayını getir
   async getShipmentById(id: string) {
     const { data, error } = await supabase
-      .from('public.shipments')
+      .from('shipments')
       .select('id, project_id, shipment_date, status, notes, created_by')
       .eq('id', id)
       .single()
