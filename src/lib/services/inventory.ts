@@ -102,10 +102,10 @@ export const inventoryService = {
   async getInventoryByCategory(category: string) {
     try {
       const { data, error } = await supabase
-      .from('inventory')
-      .select('id, name, description, quantity, unit, location, status, notes, created_by')
-      .gte('quantity', 1)
-      .order('name', { ascending: true })
+        .from('inventory')
+        .select('id, name, description, quantity, unit, location, status, notes, created_by')
+        .eq('category', category)
+        .order('name', { ascending: true })
       if (error) return [];
       return data || [];
     } catch (error) {
