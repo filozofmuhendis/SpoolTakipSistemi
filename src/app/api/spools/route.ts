@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spoolService } from '@/lib/services/spools';
+import { spoolService } from '@/services/spoolService';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
@@ -35,7 +35,20 @@ export async function POST(req: NextRequest) {
     if (!parse.success) {
       return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
     }
-    const spool = await spoolService.createSpool(parse.data);
+
+    // Map camelCase to snake_case for DB
+    const spoolData = {
+      name: parse.data.name,
+      project_id: parse.data.projectId,
+      status: parse.data.status,
+      quantity: parse.data.quantity,
+      completed_quantity: parse.data.completedQuantity,
+      start_date: parse.data.startDate,
+      end_date: parse.data.endDate,
+      assigned_to: parse.data.assignedTo || null // Ensure undefined becomes null
+    };
+
+    const spool = await spoolService.createSpool(spoolData);
     return NextResponse.json({ success: true, data: spool }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });

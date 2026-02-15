@@ -1,9 +1,26 @@
 import { supabase } from '../supabase'
-import { MaterialRequest, MaterialRequestItem } from '@/types'
+import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+
+export type MaterialRequest = Tables<'material_requests'> & {
+  projectName?: string
+  spoolName?: string
+  requestedByName?: string
+  approvedByName?: string
+  items?: MaterialRequestItem[]
+}
+
+export type MaterialRequestItem = Tables<'material_request_items'> & {
+  inventoryName?: string
+}
+
+export type MaterialRequestInsert = TablesInsert<'material_requests'>
+export type MaterialRequestUpdate = TablesUpdate<'material_requests'>
+export type MaterialRequestItemInsert = TablesInsert<'material_request_items'>
+export type MaterialRequestItemUpdate = TablesUpdate<'material_request_items'>
 
 export const materialRequestService = {
   // Tüm malzeme taleplerini getir
-  async getAllRequests(): Promise<MaterialRequest[]> {
+  async getAllRequests() {
     const { data, error } = await supabase
       .from('material_requests')
       .select(`
@@ -13,20 +30,21 @@ export const materialRequestService = {
         profiles:requested_by(full_name),
         approver:approved_by(full_name)
       `)
-      .order('requested_date', { ascending: false })
+      .order('created_at', { ascending: false }) // requested_date might be null, created_at is safer
 
     if (error) throw error
+
     return data?.map(item => ({
       ...item,
       projectName: item.projects?.name,
       spoolName: item.spools?.name,
       requestedByName: item.profiles?.full_name,
       approvedByName: item.approver?.full_name
-    })) || []
+    })) as MaterialRequest[]
   },
 
   // ID'ye göre talep getir
-  async getRequestById(id: string): Promise<MaterialRequest | null> {
+  async getRequestById(id: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .select(`
@@ -40,7 +58,6 @@ export const materialRequestService = {
       .single()
 
     if (error) throw error
-    
     if (!data) return null
 
     // Talep kalemlerini de getir
@@ -63,34 +80,24 @@ export const materialRequestService = {
       items: items?.map(item => ({
         ...item,
         inventoryName: item.inventory?.name
-      })) || []
-    }
+      }))
+    } as MaterialRequest
   },
 
   // Yeni talep oluştur
-  async createRequest(request: Omit<MaterialRequest, 'id' | 'createdAt' | 'updatedAt' | 'projectName' | 'spoolName' | 'requestedByName' | 'approvedByName' | 'items'>): Promise<MaterialRequest> {
+  async createRequest(request: MaterialRequestInsert) {
     const { data, error } = await supabase
       .from('material_requests')
-      .insert({
-        request_number: request.request_number,
-        project_id: request.project_id,
-        urun_alt_kalemi_id: request.urun_alt_kalemi_id,
-        requested_by: request.requested_by,
-        status: request.status,
-        priority: request.priority,
-        request_date: request.request_date,
-        required_date: request.required_date,
-        notes: request.notes
-      })
+      .insert(request)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequest
   },
 
   // Talep güncelle
-  async updateRequest(id: string, updates: Partial<MaterialRequest>): Promise<MaterialRequest> {
+  async updateRequest(id: string, updates: MaterialRequestUpdate) {
     const { data, error } = await supabase
       .from('material_requests')
       .update(updates)
@@ -99,20 +106,15 @@ export const materialRequestService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequest
   },
 
   // Talep sil
-  async deleteRequest(id: string): Promise<void> {
-    // Önce talep kalemlerini sil
-    const { error: itemsError } = await supabase
-      .from('material_request_items')
-      .delete()
-      .eq('request_id', id)
+  async deleteRequest(id: string) {
+    // Önce talep kalemlerini sil (ON DELETE CASCADE varsa gerek yok ama emin olalım)
+    // Şemada ON DELETE CASCADE var: request_id UUID NOT NULL REFERENCES public.material_requests(id) ON DELETE CASCADE
+    // Bu yüzden kalemleri manuel silmeye gerek yok.
 
-    if (itemsError) throw itemsError
-
-    // Sonra talebi sil
     const { error } = await supabase
       .from('material_requests')
       .delete()
@@ -122,24 +124,24 @@ export const materialRequestService = {
   },
 
   // Talep onayla
-  async approveRequest(id: string, approvedBy: string, approvedAt?: string): Promise<MaterialRequest> {
+  async approveRequest(id: string, approvedBy: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .update({
         status: 'approved',
         approved_by: approvedBy,
-        approved_at: approvedAt || new Date().toISOString()
+        approved_at: new Date().toISOString()
       })
       .eq('id', id)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequest
   },
 
   // Talep reddet
-  async rejectRequest(id: string, approvedBy: string, notes?: string): Promise<MaterialRequest> {
+  async rejectRequest(id: string, approvedBy: string, notes?: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .update({
@@ -153,11 +155,11 @@ export const materialRequestService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequest
   },
 
   // Talep tamamla
-  async fulfillRequest(id: string): Promise<MaterialRequest> {
+  async fulfillRequest(id: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .update({
@@ -168,11 +170,11 @@ export const materialRequestService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequest
   },
 
   // Duruma göre talepleri getir
-  async getRequestsByStatus(status: 'pending' | 'approved' | 'rejected' | 'fulfilled'): Promise<MaterialRequest[]> {
+  async getRequestsByStatus(status: 'pending' | 'approved' | 'rejected' | 'fulfilled') {
     const { data, error } = await supabase
       .from('material_requests')
       .select(`
@@ -183,7 +185,7 @@ export const materialRequestService = {
         approver:approved_by(full_name)
       `)
       .eq('status', status)
-      .order('requested_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) throw error
     return data?.map(item => ({
@@ -192,11 +194,11 @@ export const materialRequestService = {
       spoolName: item.spools?.name,
       requestedByName: item.profiles?.full_name,
       approvedByName: item.approver?.full_name
-    })) || []
+    })) as MaterialRequest[]
   },
 
   // Projeye göre talepleri getir
-  async getRequestsByProject(projectId: string): Promise<MaterialRequest[]> {
+  async getRequestsByProject(projectId: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .select(`
@@ -207,7 +209,7 @@ export const materialRequestService = {
         approver:approved_by(full_name)
       `)
       .eq('project_id', projectId)
-      .order('requested_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) throw error
     return data?.map(item => ({
@@ -216,11 +218,11 @@ export const materialRequestService = {
       spoolName: item.spools?.name,
       requestedByName: item.profiles?.full_name,
       approvedByName: item.approver?.full_name
-    })) || []
+    })) as MaterialRequest[]
   },
 
   // Kullanıcının taleplerini getir
-  async getRequestsByUser(userId: string): Promise<MaterialRequest[]> {
+  async getRequestsByUser(userId: string) {
     const { data, error } = await supabase
       .from('material_requests')
       .select(`
@@ -231,7 +233,7 @@ export const materialRequestService = {
         approver:approved_by(full_name)
       `)
       .eq('requested_by', userId)
-      .order('requested_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) throw error
     return data?.map(item => ({
@@ -240,29 +242,23 @@ export const materialRequestService = {
       spoolName: item.spools?.name,
       requestedByName: item.profiles?.full_name,
       approvedByName: item.approver?.full_name
-    })) || []
+    })) as MaterialRequest[]
   },
 
   // Talep kalemi ekle
-  async addRequestItem(item: Omit<MaterialRequestItem, 'id' | 'createdAt' | 'inventoryName'>): Promise<MaterialRequestItem> {
+  async addRequestItem(item: MaterialRequestItemInsert) {
     const { data, error } = await supabase
       .from('material_request_items')
-      .insert({
-        request_id: item.request_id,
-        inventory_id: item.inventory_id,
-        quantity: item.quantity,
-        unit: item.unit,
-        notes: item.notes
-      })
+      .insert(item)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequestItem
   },
 
   // Talep kalemi güncelle
-  async updateRequestItem(id: string, updates: Partial<MaterialRequestItem>): Promise<MaterialRequestItem> {
+  async updateRequestItem(id: string, updates: MaterialRequestItemUpdate) {
     const { data, error } = await supabase
       .from('material_request_items')
       .update(updates)
@@ -271,11 +267,11 @@ export const materialRequestService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as MaterialRequestItem
   },
 
   // Talep kalemi sil
-  async deleteRequestItem(id: string): Promise<void> {
+  async deleteRequestItem(id: string) {
     const { error } = await supabase
       .from('material_request_items')
       .delete()
@@ -285,7 +281,7 @@ export const materialRequestService = {
   },
 
   // Talep kalemlerini getir
-  async getRequestItems(requestId: string): Promise<MaterialRequestItem[]> {
+  async getRequestItems(requestId: string) {
     const { data, error } = await supabase
       .from('material_request_items')
       .select(`
@@ -298,6 +294,6 @@ export const materialRequestService = {
     return data?.map(item => ({
       ...item,
       inventoryName: item.inventory?.name
-    })) || []
+    })) as MaterialRequestItem[]
   }
 } 

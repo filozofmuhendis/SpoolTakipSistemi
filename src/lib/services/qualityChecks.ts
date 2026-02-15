@@ -1,39 +1,40 @@
 import { supabase } from '../supabase'
-import { QualityCheck } from '@/types'
+import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+
+export type QualityCheck = Tables<'quality_checks'> & {
+  spoolName?: string
+  workOrderNumber?: string
+  inspectorName?: string
+}
+
+export type QualityCheckInsert = TablesInsert<'quality_checks'>
+export type QualityCheckUpdate = TablesUpdate<'quality_checks'>
 
 export const qualityCheckService = {
   // Tüm kalite kontrollerini getir
-  async getAllQualityChecks(): Promise<QualityCheck[]> {
-    try {
-      const { data, error } = await supabase
-        .from('quality_checks')
-        .select(`
-          *,
-          spools:spool_id(name),
-          work_orders:work_order_id(number),
-          profiles:inspector_id(full_name)
-        `)
-        .order('check_date', { ascending: false })
+  async getAllQualityChecks() {
+    const { data, error } = await supabase
+      .from('quality_checks')
+      .select(`
+        *,
+        spools:spool_id(name),
+        work_orders:work_order_id(number),
+        profiles:inspector_id(full_name)
+      `)
+      .order('check_date', { ascending: false })
 
-      if (error) {
-        console.log('Kalite kontrol listesi alma hatası:', error)
-        throw new Error(`Kalite kontrol listesi alınamadı: ${error.message}`)
-      }
+    if (error) throw error
 
-      return data?.map(item => ({
-        ...item,
-        spoolName: item.spools?.name,
-        workOrderNumber: item.work_orders?.number,
-        inspectorName: item.profiles?.full_name
-      })) || []
-    } catch (error) {
-      console.log('Kalite kontrol listesi alma hatası:', error)
-      throw error
-    }
+    return data?.map(item => ({
+      ...item,
+      spoolName: item.spools?.name,
+      workOrderNumber: item.work_orders?.number,
+      inspectorName: item.profiles?.full_name
+    })) as QualityCheck[]
   },
 
   // ID'ye göre kalite kontrol getir
-  async getQualityCheckById(id: string): Promise<QualityCheck | null> {
+  async getQualityCheckById(id: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -46,16 +47,18 @@ export const qualityCheckService = {
       .single()
 
     if (error) throw error
-    return data ? {
+    if (!data) return null
+
+    return {
       ...data,
       spoolName: data.spools?.name,
       workOrderNumber: data.work_orders?.number,
       inspectorName: data.profiles?.full_name
-    } : null
+    } as QualityCheck
   },
 
-      // Ürün alt kalemi ID'sine göre kalite kontrollerini getir
-    async getQualityChecksBySpoolId(spoolId: string): Promise<QualityCheck[]> {
+  // Ürün alt kalemi ID'sine göre kalite kontrollerini getir
+  async getQualityChecksBySpoolId(spoolId: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -73,11 +76,11 @@ export const qualityCheckService = {
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
       inspectorName: item.profiles?.full_name
-    })) || []
+    })) as QualityCheck[]
   },
 
   // İş emri ID'sine göre kalite kontrollerini getir
-  async getQualityChecksByWorkOrderId(workOrderId: string): Promise<QualityCheck[]> {
+  async getQualityChecksByWorkOrderId(workOrderId: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -95,33 +98,23 @@ export const qualityCheckService = {
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
       inspectorName: item.profiles?.full_name
-    })) || []
+    })) as QualityCheck[]
   },
 
   // Yeni kalite kontrol oluştur
-  async createQualityCheck(qualityCheck: Omit<QualityCheck, 'id' | 'createdAt' | 'updatedAt' | 'spoolName' | 'workOrderNumber' | 'inspectorName'>): Promise<QualityCheck> {
+  async createQualityCheck(qualityCheck: QualityCheckInsert) {
     const { data, error } = await supabase
       .from('quality_checks')
-      .insert({
-        urun_alt_kalemi_id: qualityCheck.urun_alt_kalemi_id,
-        work_order_id: qualityCheck.work_order_id,
-        inspector_id: qualityCheck.inspector_id,
-        check_date: qualityCheck.check_date,
-        status: qualityCheck.status,
-        notes: qualityCheck.notes,
-        measurements: qualityCheck.measurements,
-        photos: qualityCheck.photos,
-        next_check_date: qualityCheck.next_check_date
-      })
+      .insert(qualityCheck)
       .select()
       .single()
 
     if (error) throw error
-    return data
+    return data as QualityCheck
   },
 
   // Kalite kontrol güncelle
-  async updateQualityCheck(id: string, updates: Partial<QualityCheck>): Promise<QualityCheck> {
+  async updateQualityCheck(id: string, updates: QualityCheckUpdate) {
     const { data, error } = await supabase
       .from('quality_checks')
       .update(updates)
@@ -130,11 +123,11 @@ export const qualityCheckService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as QualityCheck
   },
 
   // Kalite kontrol sil
-  async deleteQualityCheck(id: string): Promise<void> {
+  async deleteQualityCheck(id: string) {
     const { error } = await supabase
       .from('quality_checks')
       .delete()
@@ -144,7 +137,7 @@ export const qualityCheckService = {
   },
 
   // Duruma göre kalite kontrollerini getir
-  async getQualityChecksByStatus(status: 'pending' | 'passed' | 'failed' | 'conditional'): Promise<QualityCheck[]> {
+  async getQualityChecksByStatus(status: 'pending' | 'passed' | 'failed' | 'conditional') {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -162,11 +155,11 @@ export const qualityCheckService = {
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
       inspectorName: item.profiles?.full_name
-    })) || []
+    })) as QualityCheck[]
   },
 
   // Müfettişe göre kalite kontrollerini getir
-  async getQualityChecksByInspector(inspectorId: string): Promise<QualityCheck[]> {
+  async getQualityChecksByInspector(inspectorId: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -184,11 +177,11 @@ export const qualityCheckService = {
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
       inspectorName: item.profiles?.full_name
-    })) || []
+    })) as QualityCheck[]
   },
 
   // Tarih aralığına göre kalite kontrollerini getir
-  async getQualityChecksByDateRange(startDate: string, endDate: string): Promise<QualityCheck[]> {
+  async getQualityChecksByDateRange(startDate: string, endDate: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -207,11 +200,11 @@ export const qualityCheckService = {
       spoolName: item.spools?.name,
       workOrderNumber: item.work_orders?.number,
       inspectorName: item.profiles?.full_name
-    })) || []
+    })) as QualityCheck[]
   },
 
   // Kalite kontrol geçir
-  async passQualityCheck(id: string, notes?: string): Promise<QualityCheck> {
+  async passQualityCheck(id: string, notes?: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .update({
@@ -223,11 +216,11 @@ export const qualityCheckService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as QualityCheck
   },
 
   // Kalite kontrol başarısız
-  async failQualityCheck(id: string, defectsFound: string, correctiveActions?: string, nextCheckDate?: string): Promise<QualityCheck> {
+  async failQualityCheck(id: string, defectsFound: string, correctiveActions?: string, nextCheckDate?: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .update({
@@ -241,11 +234,11 @@ export const qualityCheckService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as QualityCheck
   },
 
   // Koşullu geçer
-  async conditionalPassQualityCheck(id: string, notes: string, nextCheckDate: string): Promise<QualityCheck> {
+  async conditionalPassQualityCheck(id: string, notes: string, nextCheckDate: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .update({
@@ -258,11 +251,11 @@ export const qualityCheckService = {
       .single()
 
     if (error) throw error
-    return data
+    return data as QualityCheck
   },
 
-      // Ürün alt kalemi için son kalite kontrol durumunu getir
-    async getLastQualityCheckForSpool(spoolId: string): Promise<QualityCheck | null> {
+  // Ürün alt kalemi için son kalite kontrol durumunu getir
+  async getLastQualityCheckForSpool(spoolId: string) {
     const { data, error } = await supabase
       .from('quality_checks')
       .select(`
@@ -282,18 +275,11 @@ export const qualityCheckService = {
       spoolName: data.spools?.name,
       workOrderNumber: data.work_orders?.number,
       inspectorName: data.profiles?.full_name
-    } : null
+    } as QualityCheck : null
   },
 
   // Kalite kontrol istatistikleri
-  async getQualityCheckStats(): Promise<{
-    total: number
-    passed: number
-    failed: number
-    conditional: number
-    pending: number
-    passRate: number
-  }> {
+  async getQualityCheckStats() {
     const { data, error } = await supabase
       .from('quality_checks')
       .select('status')

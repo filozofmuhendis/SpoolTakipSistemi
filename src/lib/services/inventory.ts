@@ -1,65 +1,61 @@
 import { supabase } from '../supabase'
-import { Inventory } from '@/types'
+import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+
+export type Inventory = Tables<'inventory'> & {
+  project_name?: string
+}
+
+export type InventoryInsert = TablesInsert<'inventory'>
+export type InventoryUpdate = TablesUpdate<'inventory'>
 
 export const inventoryService = {
   // Tüm envanterleri getir
   async getAllInventory() {
-    try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, description, quantity, unit, location, status, notes, created_by')
-        .order('name', { ascending: true })
-      if (error) return [];
-      if (!data || data.length === 0) return [];
-      return data;
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase
+      .from('inventory')
+      .select(`
+        *,
+        projects:project_id(name)
+      `)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+
+    return data?.map(item => ({
+      ...item,
+      project_name: item.projects?.name
+    })) as Inventory[]
   },
 
   // Envanter oluştur
-  async createInventory(inventory: Omit<Inventory, 'id'>) {
+  async createInventory(inventory: InventoryInsert) {
     // Varsayılan değerlerle birlikte envanter verisi hazırla
     const inventoryData = {
-      name: inventory.name,
+      ...inventory,
       code: inventory.code || `INV-${Date.now()}`, // Otomatik kod oluştur
-      category: inventory.category || 'general',
-      type: inventory.type || 'raw_material',
-      quantity: inventory.quantity || 0,
-      unit: inventory.unit || 'adet',
-      min_stock: inventory.min_stock || 0,
-      max_stock: inventory.max_stock || 100,
-      location: inventory.location,
-      supplier: inventory.supplier || 'Belirtilmemiş',
-      project_id: inventory.project_id || null,
-      description: inventory.description || null,
-      specifications: inventory.specifications || null,
-      cost: inventory.cost || 0,
-      status: inventory.status || 'active',
-      reorder_point: inventory.reorder_point || null,
-      lead_time_days: inventory.lead_time_days || null
     }
-    
+
     const { data, error } = await supabase
       .from('inventory')
       .insert(inventoryData)
-      .select('id, name, description, quantity, unit, location, status')
+      .select()
       .single()
-    if (error) throw new Error(`Envanter oluşturulamadı: ${error.message}`)
-    return data;
+
+    if (error) throw error
+    return data as Inventory
   },
 
   // Envanter güncelle
-  async updateInventory(id: string, updates: Partial<Inventory>) {
-    const updateData: any = { ...updates };
+  async updateInventory(id: string, updates: InventoryUpdate) {
     const { data, error } = await supabase
-       .from('inventory')
-       .update(updateData)
-       .eq('id', id)
-       .select('id, name, description, quantity, unit, location, status')
-       .single()
-    if (error) throw new Error(`Envanter güncellenemedi: ${error.message}`)
-    return data;
+      .from('inventory')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as Inventory
   },
 
   // Envanter sil
@@ -68,63 +64,62 @@ export const inventoryService = {
       .from('inventory')
       .delete()
       .eq('id', id)
-    if (error) throw new Error(`Envanter silinemedi: ${error.message}`)
-    return true;
+
+    if (error) throw error
+    return true
   },
 
   // Envanter detayını getir
   async getInventoryById(id: string) {
     const { data, error } = await supabase
       .from('inventory')
-      .select('id, name, description, quantity, unit, location, status, notes, created_by')
+      .select(`
+        *,
+        projects:project_id(name)
+      `)
       .eq('id', id)
       .single()
-    if (error) return null;
-    return data;
+
+    if (error) return null
+    return {
+      ...data,
+      project_name: data.projects?.name
+    } as Inventory
   },
 
   // Düşük stoklu ürünleri getir
   async getLowStockItems() {
-    try {
-      const { data, error } = await supabase
-        .from('public.inventory')
-        .select('id, name, description, quantity, unit, location, status, notes, created_by')
-        .lt('quantity', 10) // 10'dan az stok
-        .order('quantity', { ascending: true })
-      if (error) return [];
-      return data || [];
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .lt('quantity', 10) // 10'dan az stok
+      .order('quantity', { ascending: true })
+
+    if (error) throw error
+    return data as Inventory[]
   },
 
   // Kategoriye göre envanter getir
   async getInventoryByCategory(category: string) {
-    try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, description, quantity, unit, location, status, notes, created_by')
-        .eq('category', category)
-        .order('name', { ascending: true })
-      if (error) return [];
-      return data || [];
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .eq('category', category)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return data as Inventory[]
   },
 
   // Envanter arama
   async searchInventory(search: string) {
-    try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, description, quantity, unit, location, status, notes, created_by')
-        .or(`name.ilike.%${search}%,description.ilike.%${search}%`)
-        .order('name', { ascending: true })
-      if (error) return [];
-      return data || [];
-    } catch (error) {
-      return [];
-    }
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .or(`name.ilike.%${search}%,description.ilike.%${search}%`)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return data as Inventory[]
   }
 }

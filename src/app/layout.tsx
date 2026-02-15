@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 
 import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
@@ -23,16 +24,18 @@ export default function RootLayout({
     <html lang="tr" suppressHydrationWarning>
       <body className={inter.className}>
         <ErrorBoundary>
-          <SessionProvider>
-            <ToastProvider>
-              <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                <ConditionalNavbar />
-                <main>
-                  {children}
-                </main>
-              </div>
-            </ToastProvider>
-          </SessionProvider>
+          <QueryProvider>
+            <SessionProvider>
+              <ToastProvider>
+                <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                  <ConditionalNavbar />
+                  <main>
+                    {children}
+                  </main>
+                </div>
+              </ToastProvider>
+            </SessionProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

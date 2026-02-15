@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { inventoryService } from '@/lib/services/inventory'
-import { Inventory } from '@/types'
+import { inventoryService } from '@/services/inventoryService'
 import { z } from 'zod'
 
 const inventorySchema = z.object({
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const parse = inventorySchema.safeParse(body)
-    
+
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten().fieldErrors },
@@ -82,8 +81,11 @@ export async function POST(req: NextRequest) {
     const inventoryData = Object.fromEntries(
       Object.entries(parse.data).filter(([_, value]) => value !== undefined)
     )
-    
-    const inventory = await inventoryService.createInventory(inventoryData as Omit<Inventory, 'id'>)
+
+    // Type assertion is safe here because we validated, but we need to ensure keys match DB columns
+    // The schema matches the DB structure (name, code, category, type...) so direct mapping is fine.
+    const inventory = await inventoryService.createInventory(inventoryData as any)
+
     return NextResponse.json({ success: true, data: inventory }, { status: 201 })
   } catch (error) {
     console.log('Envanter oluşturma hatası:', error);

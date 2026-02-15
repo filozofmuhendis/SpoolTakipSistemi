@@ -1,69 +1,57 @@
 import { supabase } from '../supabase'
-import { UrunAltKalemi } from '@/types'
+import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
 
-// Spool tipi için alias
-type Spool = UrunAltKalemi
+export type Spool = Tables<'spools'>
+export type SpoolInsert = TablesInsert<'spools'>
+export type SpoolUpdate = TablesUpdate<'spools'>
 
 export const spoolService = {
   // Tüm ürün alt kalemlerini getir
   async getAllSpools() {
-    try {
-      const { data, error } = await supabase
-         .from('spools')
-         .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
-         .order('name', { ascending: true })
-      if (error) {
-        console.log('Spools yüklenirken hata:', error)
-        throw new Error(`Spools yüklenemedi: ${error.message}`)
-      }
-      return data || [];
-    } catch (error) {
-      console.log('Spools service hatası:', error)
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('spools')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return data as Spool[]
   },
 
   // Spools arama fonksiyonu
   async searchSpools(search: string) {
-    try {
-      const { data, error } = await supabase
-        .from('spools')
-        .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
-        .or(`name.ilike.%${search}%,material.ilike.%${search}%`)
-        .order('name', { ascending: true })
-      if (error) {
-        console.log('Spools aranırken hata:', error)
-        throw new Error(`Spools aranamadı: ${error.message}`)
-      }
-      return data || [];
-    } catch (error) {
-      console.log('Spools search service hatası:', error)
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('spools')
+      .select('*')
+      .or(`name.ilike.%${search}%,material.ilike.%${search}%`)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return data || []
   },
 
   // Ürün alt kalemi oluştur
-  async createSpool(spool: Omit<Spool, 'id'>) {
+  async createSpool(spool: SpoolInsert) {
     const { data, error } = await supabase
       .from('spools')
       .insert(spool)
-      .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
+      .select()
       .single()
-    if (error) throw new Error(`Ürün alt kalemi oluşturulamadı: ${error.message}`)
-    return data;
+
+    if (error) throw error
+    return data as Spool
   },
 
   // Ürün alt kalemi güncelle
-  async updateSpool(id: string, updates: Partial<Spool>) {
-    const updateData: any = { ...updates };
+  async updateSpool(id: string, updates: SpoolUpdate) {
     const { data, error } = await supabase
       .from('spools')
-      .update(updateData)
+      .update(updates)
       .eq('id', id)
-      .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
+      .select()
       .single()
-    if (error) throw new Error(`Ürün alt kalemi güncellenemedi: ${error.message}`)
-    return data;
+
+    if (error) throw error
+    return data as Spool
   },
 
   // Ürün alt kalemi sil
@@ -72,18 +60,21 @@ export const spoolService = {
       .from('spools')
       .delete()
       .eq('id', id)
-    if (error) throw new Error(`Ürün alt kalemi silinemedi: ${error.message}`)
-    return true;
+
+    if (error) throw error
+    return true
   },
 
   // Ürün alt kalemi detayını getir
   async getSpoolById(id: string) {
     const { data, error } = await supabase
       .from('spools')
-      .select('id, project_id, name, material, diameter, thickness, length, weight, status, notes, created_by')
+      .select('*')
       .eq('id', id)
       .single()
-    if (error) return null;
-    return data;
+
+    if (error) return null
+    return data as Spool
   }
 }
+
