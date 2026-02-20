@@ -1,0 +1,54 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 1
+      arrivalCount: 1
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+
+scenarios:
+  - name: "Debug Scenario 3 - CSRF Flow"
+    flow:
+      - get:
+          url: "/api/auth/csrf"
+          capture:
+            - json: "$.csrfToken"
+              as: "csrfToken"
+      - log: "CSRF Token: {{ csrfToken }}"
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            csrfToken: "{{ csrfToken }}"
+            redirect: false
+            json: true
+          expect:
+            - statusCode: 200
+      - log: "Login successful with CSRF"
+      - post:
+          url: "/api/work-orders"
+          json:
+            number: "WO-DEBUG-{{ $randomString(4) }}"
+            title: "Load Test WO"
+            description: "Created during load test debugging"
+            projectId: "00000000-0000-0000-0000-000000000001"
+            status: "pending"
+            priority: "medium"
+            assignedTo: "00000000-0000-0000-0000-000000000004"
+            startDate: "2024-01-01T00:00:00Z"
+            dueDate: "2024-01-10T00:00:00Z"
+          expect:
+            - statusCode: 201
+      - log: "WorkOrder creation successful"
+      - post:
+          url: "/api/inventory/consume"
+          json:
+            inventoryId: "00000000-0000-0000-0000-000000000005"
+            amount: 1
+          expect:
+            - statusCode: 200
+      - log: "Inventory consumption successful"

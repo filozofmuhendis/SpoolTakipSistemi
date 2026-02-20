@@ -60,18 +60,18 @@ describe('API Response Utilities', () => {
 
     it('creates database error response', () => {
       const message = 'Database connection failed'
-      
+
       // Set NODE_ENV to development to get the actual error message
       const originalEnv = process.env.NODE_ENV
       Object.defineProperty(process.env, 'NODE_ENV', { value: 'development' })
-      
+
       const response = createDatabaseErrorResponse({ message })
-      
+
       expect(response.response.success).toBe(false)
       expect(response.response.error).toBe('Veritabanı hatası')
       expect(response.response.message).toBe('Veritabanı işlemi başarısız')
       expect(response.status).toBe(500)
-      
+
       // Restore original NODE_ENV
       Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv })
     })
@@ -166,7 +166,7 @@ describe('API Response Utilities', () => {
     it('handles generic errors', () => {
       const originalEnv = process.env.NODE_ENV
       Object.defineProperty(process.env, 'NODE_ENV', { value: 'development' })
-      
+
       const genericError = new Error('Something went wrong')
       const response = handleApiError(genericError)
 
@@ -174,7 +174,7 @@ describe('API Response Utilities', () => {
       expect(response.response.success).toBe(false)
       expect(response.response.error).toBe('Beklenmeyen bir hata oluştu')
       expect(response.response.message).toBe('Sunucu hatası')
-      
+
       Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv })
     })
 
@@ -196,8 +196,8 @@ describe('API Response Utilities', () => {
       const wrappedHandler = withErrorHandling(mockHandler)
       const mockRequest = {} as NextRequest
 
-      const response = await wrappedHandler(mockRequest)
-      const responseData = await response.json() as { success: boolean; data: { id: number; name: string } }
+      const response = await wrappedHandler(mockRequest) as any;
+      const responseData = await response.json();
 
       expect(response.status).toBe(200)
       expect(responseData.success).toBe(true)
@@ -211,8 +211,8 @@ describe('API Response Utilities', () => {
       const wrappedHandler = withErrorHandling(mockHandler)
       const mockRequest = {} as NextRequest
 
-      const response = await wrappedHandler(mockRequest)
-      const responseData = await response.json()
+      const response = await wrappedHandler(mockRequest) as any;
+      const responseData = await response.json();
 
       expect(response.status).toBe(500)
       expect(responseData.success).toBe(false)

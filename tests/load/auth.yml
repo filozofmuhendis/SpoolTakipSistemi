@@ -1,0 +1,25 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      name: "Stabilization Validation"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+
+scenarios:
+  - name: "Authentication Flow"
+    flow:
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            redirect: false
+            json: true
+          expect:
+            - statusCode: 200
+            - statusCode: 302

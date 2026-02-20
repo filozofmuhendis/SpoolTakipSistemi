@@ -1,0 +1,29 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      name: "Scaled Instance 1"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+    order: "sequence"
+scenarios:
+  - name: "Login Flow (Port 3000)"
+    flow:
+      - get:
+          url: "/api/auth/csrf"
+          capture:
+            json: "$.csrfToken"
+            as: "csrf"
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            csrfToken: "{{ csrf }}"
+            json: true
+            callbackUrl: "http://127.0.0.1:3000/"
+            redirect: false

@@ -78,10 +78,9 @@ describe('Project Service', () => {
     it('creates a new project successfully', async () => {
       const newProject = {
         name: 'New Project',
-        status: 'planning' as const,
+        status: 'active' as const,
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        manager_id: 'user1',
         description: 'A new test project',
       }
 
@@ -115,10 +114,9 @@ describe('Project Service', () => {
     it('handles creation errors', async () => {
       const newProject = {
         name: 'New Project',
-        status: 'planning' as const,
+        status: 'active' as const,
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        manager_id: 'user1',
         description: 'A new test project',
       }
 

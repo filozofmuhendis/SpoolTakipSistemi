@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum ProjectStatus {
+  active
+  completed
+  on_hold
+  cancelled
+}
+
+enum SpoolStatus {
+  pending
+  in_progress
+  completed
+  on_hold
+}
+
+enum WorkOrderStatus {
+  pending
+  in_progress
+  completed
+  cancelled
+}
+
+enum WorkOrderPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ShipmentStatus {
+  pending
+  shipped
+  delivered
+  returned
+}
+
+enum InventoryTransactionType {
+  IN
+  OUT
+  ADJUSTMENT
+  RETURN
+}
+
+model Project {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  start_date  DateTime
+  end_date    DateTime?
+  status      ProjectStatus @default(active)
+  budget      Float     @default(0)
+  manager_id  String?   @db.Uuid
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  
+  // Soft Delete & Audit
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  // Relations
+  manager     User?     @relation(fields: [manager_id], references: [id])
+  spools      Spool[]
+  inventory   Inventory[]
+  work_orders WorkOrder[]
+  shipments   Shipment[]
+
+  @@map("projects")
+  @@index([manager_id])
+  @@index([status])
+}
+
+model Spool {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  status        SpoolStatus @default(pending)
+  project_id    String    @db.Uuid
+  material_type String?
+  dimensions    String?
+  thickness     Float?
+  weight        Float?
+  quantity      Int       @default(1)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  // Soft Delete & Audit
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  // Relations
+  project     Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  work_orders WorkOrder[]
+
+  @@map("spools")
+  @@index([project_id])
+  @@index([status])
+}
+
+model Inventory {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  code        String    @unique
+  category    String
+  type        String
+  quantity    Float     @default(0)
+  unit        String
+  cost        Float     @default(0)
+  location    String?
+  supplier    String?
+  project_id  String?   @db.Uuid
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // Soft Delete & Audit
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  // Relations
+  project     Project?  @relation(fields: [project_id], references: [id])
+  transactions InventoryTransaction[]
+
+  @@map("inventory")
+  @@index([project_id])
+  @@index([code])
+}
+
+model InventoryTransaction {
+  id           String                   @id @default(uuid()) @db.Uuid
+  inventory_id String                   @db.Uuid
+  delta        Float
+  type         InventoryTransactionType
+  user_id      String?                  @db.Uuid
+  created_at   DateTime                 @default(now())
+
+  // Relations
+  inventory    Inventory @relation(fields: [inventory_id], references: [id])
+  user         User?     @relation(fields: [user_id], references: [id])
+
+  @@map("inventory_transactions")
+  @@index([inventory_id])
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model WorkOrder {
+  id          String    @id @default(uuid()) @db.Uuid
+  number      String    @unique
+  title       String
+  description String?
+  project_id  String    @db.Uuid
+  spool_id    String?   @db.Uuid
+  assigned_to String?   @db.Uuid
+  priority    WorkOrderPriority @default(medium)
+  status      WorkOrderStatus   @default(pending)
+  start_date  DateTime?
+  due_date    DateTime?
+  completed_at DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // Soft Delete & Audit
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  // Relations
+  project     Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  spool       Spool?    @relation(fields: [spool_id], references: [id])
+  assignee    User?     @relation("AssignedTo", fields: [assigned_to], references: [id])
+
+  @@map("work_orders")
+  @@index([project_id])
+  @@index([spool_id])
+  @@index([assigned_to])
+  @@index([status])
+}
+
+// Renamed Profile to User for NextAuth
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String?   @map("full_name")
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?   @map("avatar_url")
+  password      String?   // Added for Credentials Provider (hashed)
+  
+  // Custom Profile Fields
+  role        String    @default("user")
+  status      String?   @default("active")
+  department  String?
+  position    String?
+  
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  managed_projects Project[]
+  assigned_work    WorkOrder[] @relation("AssignedTo")
+  inventory_transactions InventoryTransaction[]
+
+  @@map("profiles")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String  @map("user_id") @db.Uuid
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  table_name  String
+  record_id   String    @db.Uuid
+  operation   String    // INSERT, UPDATE, DELETE, SOFT_DELETE
+  old_data    Json?
+  new_data    Json?
+  changed_by  String?   @db.Uuid
+  changed_at  DateTime  @default(now())
+
+  @@map("audit_logs")
+  @@index([table_name])
+  @@index([record_id])
+}
+
+model Material {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  type           String?
+  unit           String?
+  stock_quantity Float?    @default(0)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@map("materials")
+}
+
+model Shipment {
+  id            String    @id @default(uuid()) @db.Uuid
+  project_id    String    @db.Uuid
+  shipment_date DateTime
+  status        ShipmentStatus @default(pending)
+  notes         String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  
+  // Soft Delete & Audit
+  deleted_at  DateTime?
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+
+  // Relations
+  project     Project   @relation(fields: [project_id], references: [id])
+
+  @@map("shipments")
+  @@index([project_id])
+  @@index([status])
+}
+

@@ -1,0 +1,111 @@
+
+> spool-takip-sistemi@0.1.0 build
+> next build
+
+   ▲ Next.js 15.3.4
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 2000ms
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/module/index.js
+./src/lib/supabase.ts
+./src/app/test-profiles/page.tsx
+
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled successfully in 3.0s
+   Linting and checking validity of types ...
+
+./src/app/admin/users/page.tsx
+31:6  Warning: React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/inventory/page.tsx
+22:6  Warning: React Hook useEffect has a missing dependency: 'loadInventory'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+45:10  Warning: Unexpected confirm.  no-alert
+
+./src/app/inventory/[id]/edit/page.tsx
+86:6  Warning: React Hook useEffect has a missing dependency: 'loadFiles'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/inventory/[id]/page.tsx
+25:6  Warning: React Hook useEffect has a missing dependency: 'loadInventory'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+61:10  Warning: Unexpected confirm.  no-alert
+
+./src/app/notifications/page.tsx
+23:6  Warning: React Hook useEffect has a missing dependency: 'loadNotifications'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+27:6  Warning: React Hook useEffect has a missing dependency: 'filterNotifications'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/notifications/settings/page.tsx
+19:6  Warning: React Hook useEffect has a missing dependency: 'loadPreferences'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/personnel/page.tsx
+27:6  Warning: React Hook useEffect has a missing dependency: 'filterPersonnel'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/personnel/[id]/edit/page.tsx
+49:6  Warning: React Hook useEffect has a missing dependency: 'loadPersonnel'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/profile/page.tsx
+67:6  Warning: React Hook useEffect has missing dependencies: 'loadNotificationPreferences', 'loadProfile', and 'loadUserActivities'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+339:19  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/projects/page.tsx
+30:6  Warning: React Hook useEffect has a missing dependency: 'loadProjects'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/reports/page.tsx
+54:6  Warning: React Hook useEffect has a missing dependency: 'loadReportData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+219:9  Warning: 'filteredData' is never reassigned. Use 'const' instead.  prefer-const
+
+./src/app/shipments/page.tsx
+29:6  Warning: React Hook useEffect has a missing dependency: 'loadShipments'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/spools/page.tsx
+35:6  Warning: React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+83:9  Warning: Unexpected confirm.  no-alert
+
+./src/app/spools/[id]/edit/page.tsx
+47:6  Warning: React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/spools/[id]/page.tsx
+20:6  Warning: React Hook useEffect has a missing dependency: 'loadSpool'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+41:11  Warning: Unexpected confirm.  no-alert
+
+./src/app/work-orders/page.tsx
+22:6  Warning: React Hook useEffect has a missing dependency: 'loadWorkOrders'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/ui/FileUpload.tsx
+50:6  Warning: React Hook useCallback has a missing dependency: 'handleFiles'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+55:6  Warning: React Hook useCallback has a missing dependency: 'handleFiles'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+124:47  Warning: Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images.  jsx-a11y/alt-text
+
+./src/components/ui/GlobalSearch.tsx
+49:6  Warning: React Hook useEffect has a missing dependency: 'performSearch'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/ui/NotificationBell.tsx
+28:6  Warning: React Hook useEffect has missing dependencies: 'loadNotifications' and 'loadUnreadCount'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./src/app/inventory/[id]/edit/page.tsx:64:21
+Type error: Argument of type '{ id: string; name: string; description: string | null; status: "active" | "completed" | "cancelled" | "pending" | null; start_date: string; end_date: string | null; manager_id: string | null; ... 5 more ...; updated_at: string | null; }[]' is not assignable to parameter of type 'SetStateAction<Project[]>'.
+  Type '{ id: string; name: string; description: string | null; status: "active" | "completed" | "cancelled" | "pending" | null; start_date: string; end_date: string | null; manager_id: string | null; ... 5 more ...; updated_at: string | null; }[]' is not assignable to type 'Project[]'.
+    Type '{ id: string; name: string; description: string | null; status: "active" | "completed" | "cancelled" | "pending" | null; start_date: string; end_date: string | null; manager_id: string | null; ... 5 more ...; updated_at: string | null; }' is not assignable to type 'Project'.
+      Types of property 'manager_id' are incompatible.
+        Type 'string | null' is not assignable to type 'string'.
+          Type 'null' is not assignable to type 'string'.
+
+[0m [90m 62 |[39m[0m
+[0m [90m 63 |[39m         setInventory(inventoryData)[0m
+[0m[31m[1m>[22m[39m[90m 64 |[39m         setProjects(projectsData)[0m
+[0m [90m    |[39m                     [31m[1m^[22m[39m[0m
+[0m [90m 65 |[39m[0m
+[0m [90m 66 |[39m         [90m// Form değerlerini doldur[39m[0m
+[0m [90m 67 |[39m         reset({[0m
+Next.js build worker exited with code: 1 and signal: null

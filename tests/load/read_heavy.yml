@@ -1,0 +1,35 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: "Read Heavy Load"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+
+scenarios:
+  - name: "List Projects and Spools"
+    flow:
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            redirect: false
+            json: true
+          capture:
+            - header: "set-cookie"
+              as: "cookie"
+          expect:
+            - statusCode: 302
+      - get:
+          url: "/api/projects?page={{ $randomInt(1,5) }}&limit=10"
+          headers:
+            cookie: "{{ cookie }}"
+      - get:
+          url: "/api/spools?page={{ $randomInt(1,5) }}&limit=10"
+          headers:
+            cookie: "{{ cookie }}"

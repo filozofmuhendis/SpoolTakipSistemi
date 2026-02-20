@@ -1,0 +1,20 @@
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "spool_db", schema "public" at "127.0.0.1:5432"
+
+
+Error: Prisma schema validation - (validate wasm)
+Error code: P1012
+[1;91merror[0m: [1mError validating field `project` in model `Shipment`: The relation field `project` on model `Shipment` is missing an opposite relation field on the model `Project`. Either run `prisma format` or add it manually.[0m
+  [1;94m-->[0m  [4mprisma\schema.prisma:222[0m
+[1;94m   | [0m
+[1;94m221 | [0m  // Relations
+[1;94m222 | [0m  [1;91mproject     Project   @relation(fields: [project_id], references: [id])[0m
+[1;94m223 | [0m
+[1;94m   | [0m
+
+Validation Error Count: 1
+[Context: validate]
+
+Prisma CLI Version : 7.4.0

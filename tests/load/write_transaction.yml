@@ -1,0 +1,49 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 1
+      name: "Write Transaction Load"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+
+scenarios:
+  - name: "Create WorkOrder and Consume Inventory"
+    flow:
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            redirect: false
+            json: true
+          capture:
+            - header: "set-cookie"
+              as: "cookie"
+          expect:
+            - statusCode: 302
+      - post:
+          url: "/api/work-orders"
+          headers:
+            cookie: "{{ cookie }}"
+          json:
+            number: "WO-LT-{{ $randomString(5) }}"
+            projectId: "00000000-0000-0000-0000-000000000001" # Assuming seed data
+            status: "pending"
+            priority: "medium"
+            assignedTo: "00000000-0000-0000-0000-000000000004"
+            startDate: "2024-01-01T00:00:00Z"
+            dueDate: "2024-01-10T00:00:00Z"
+          capture:
+            json: "$.data.id"
+            as: "workOrderId"
+      - post:
+          url: "/api/inventory/consume"
+          headers:
+            cookie: "{{ cookie }}"
+          json:
+            inventoryId: "00000000-0000-0000-0000-000000000005" # Assuming seed data
+            amount: 1

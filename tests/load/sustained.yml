@@ -1,0 +1,40 @@
+config:
+  target: "http://127.0.0.1:3000"
+  phases:
+    - duration: 300
+      arrivalRate: 1
+      name: "Sustained Load"
+  payload:
+    path: "users.csv"
+    fields:
+      - "email"
+      - "password"
+
+scenarios:
+  - name: "Mixed Sustained Load"
+    flow:
+      - post:
+          url: "/api/auth/callback/credentials"
+          json:
+            email: "{{ email }}"
+            password: "{{ password }}"
+            redirect: false
+            json: true
+          capture:
+            - header: "set-cookie"
+              as: "cookie"
+          expect:
+            - statusCode: 302
+      - get:
+          url: "/api/projects"
+          headers:
+            cookie: "{{ cookie }}"
+      - get:
+          url: "/api/spools"
+          headers:
+            cookie: "{{ cookie }}"
+      - think: 2
+      - get:
+          url: "/api/inventory"
+          headers:
+            cookie: "{{ cookie }}"
