@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Mail, Smartphone, Save, X, Check } from 'lucide-react'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,33 +12,14 @@ export default function NotificationSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  useEffect(() => {
-    if (user?.id) {
-      loadPreferences()
-    }
-  }, [user?.id])
-
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     if (!user?.id) return
-    
+
     try {
       setLoading(true)
       const data = await notificationService.getNotificationPreferences(user.id)
       if (data) {
         setPreferences(data)
-      } else {
-        // Varsayılan tercihler oluştur
-        setPreferences({
-          userId: user.id,
-          emailNotifications: true,
-          pushNotifications: true,
-          spoolUpdates: true,
-          projectUpdates: true,
-          personnelUpdates: true,
-          workOrderUpdates: true,
-          shipmentUpdates: true,
-          inventoryAlerts: true
-        })
       }
     } catch (error) {
       console.log('Bildirim tercihleri yüklenirken hata:', error)
@@ -46,21 +27,27 @@ export default function NotificationSettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user?.id) {
+      loadPreferences()
+    }
+  }, [user?.id, loadPreferences])
 
   const updatePreference = (key: keyof NotificationPreferences, value: boolean) => {
     if (!preferences) return
-    
+
     setPreferences(prev => prev ? { ...prev, [key]: value } : null)
   }
 
   const savePreferences = async () => {
     if (!preferences || !user?.id) return
-    
+
     try {
       setSaving(true)
       const success = await notificationService.updateNotificationPreferences(preferences)
-      
+
       if (success) {
         setMessage({ type: 'success', text: 'Bildirim tercihleri başarıyla kaydedildi' })
         setTimeout(() => setMessage(null), 3000)
@@ -77,7 +64,7 @@ export default function NotificationSettingsPage() {
 
   const resetToDefaults = () => {
     if (!user?.id) return
-    
+
     setPreferences({
       userId: user.id,
       emailNotifications: true,
@@ -121,11 +108,10 @@ export default function NotificationSettingsPage() {
 
         {/* Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
-            message.type === 'success' 
-              ? 'bg-green-100 text-green-800 border border-green-200' 
-              : 'bg-red-100 text-red-800 border border-red-200'
-          }`}>
+          <div className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${message.type === 'success'
+            ? 'bg-green-100 text-green-800 border border-green-200'
+            : 'bg-red-100 text-red-800 border border-red-200'
+            }`}>
             {message.type === 'success' ? (
               <Check className="w-5 h-5" />
             ) : (
@@ -311,7 +297,7 @@ export default function NotificationSettingsPage() {
               >
                 Varsayılana Sıfırla
               </button>
-              
+
               <button
                 onClick={savePreferences}
                 disabled={saving}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
@@ -17,12 +17,7 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
   const [error, setError] = useState<string | null>(null)
 
 
-  useEffect(() => {
-    loadShipment()
-    // eslint-disable-next-line
-  }, [params.id])
-
-  const loadShipment = async () => {
+  const loadShipment = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -31,7 +26,7 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
         setError('Sevkiyat bulunamadı.')
       } else {
         setShipment(data)
-        
+
         if (data.project_id) {
           const projectData = await projectService.getProjectById(data.project_id)
           setProject(projectData)
@@ -42,7 +37,11 @@ export default function ShipmentDetailPage({ params }: { params: { id: string } 
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    loadShipment()
+  }, [loadShipment])
 
   const getStatusText = (status: string) => {
     switch (status) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { UrunAltKalemi } from '@/types'
@@ -24,17 +24,7 @@ export default function SpoolsPage() {
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (status === 'loading') return
-    
-    if (!session) {
-      redirect('/login')
-    }
-
-    loadData()
-  }, [session, status])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -51,13 +41,23 @@ export default function SpoolsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
+
+  useEffect(() => {
+    if (status === 'loading') return
+
+    if (!session) {
+      redirect('/login')
+    }
+
+    loadData()
+  }, [session, status, loadData])
 
   const filteredSpools = spools.filter(spool => {
     const matchesSearch = spool.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
     const matchesStatus = statusFilter === 'all' || spool.status === statusFilter
     const matchesProject = projectFilter === 'all' || spool.project_id === projectFilter
-    
+
     return matchesSearch && matchesStatus && matchesProject
   })
 
@@ -80,7 +80,8 @@ export default function SpoolsPage() {
   }
 
   const handleDeleteSpool = async (spoolId: string) => {
-    if (confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
+    // eslint-disable-next-line no-restricted-globals
+    if (window.confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
       try {
         await spoolService.deleteSpool(spoolId)
         loadData()
@@ -130,7 +131,7 @@ export default function SpoolsPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
-          
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -194,23 +195,23 @@ export default function SpoolsPage() {
               {filteredSpools.map((spool) => {
                 const project = projects.find(p => p.id === spool.project_id)
                 return (
-                <tr key={spool.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {spool.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={spool.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {spool.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {project?.name || 'Bilinmiyor'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {spool.material}
                       </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {spool.diameter}
                       </div>
@@ -218,46 +219,46 @@ export default function SpoolsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {spool.thickness}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {spool.length}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {spool.weight}
-                    </div>
-                  </td>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(spool.status || 'unknown')}`}>
                         {getStatusText(spool.status || 'unknown')}
                       </span>
                     </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/spools/${spool.id}`}
                           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                         >
-                        <Eye size={16} />
-                      </Link>
+                          <Eye size={16} />
+                        </Link>
                         <Link
                           href={`/spools/${spool.id}/edit`}
                           className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                         >
-                        <Edit size={16} />
-                      </Link>
-                      <button 
-                        onClick={() => handleDeleteSpool(spool.id)}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                          <Edit size={16} />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteSpool(spool.id)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 )
               })}
             </tbody>

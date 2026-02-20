@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -47,6 +47,18 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
     resolver: zodResolver(inventorySchema)
   })
 
+  const loadFiles = useCallback(async () => {
+    try {
+      setLoadingFiles(true)
+      const filesData = await storageService.getFilesByEntity('inventory', params.id)
+      setFiles(filesData)
+    } catch (error) {
+      console.log('Dosya yükleme hatası:', error)
+    } finally {
+      setLoadingFiles(false)
+    }
+  }, [params.id])
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -83,19 +95,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
     }
 
     loadData()
-  }, [params.id, reset, showToast])
-
-  const loadFiles = async () => {
-    try {
-      setLoadingFiles(true)
-      const filesData = await storageService.getFilesByEntity('inventory', params.id)
-      setFiles(filesData)
-    } catch (error) {
-      console.log('Dosya yükleme hatası:', error)
-    } finally {
-      setLoadingFiles(false)
-    }
-  }
+  }, [params.id, reset, showToast, loadFiles])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -142,7 +142,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
     }
   }
 
-  const uploadFiles = async () => {
+  const uploadFiles = useCallback(async () => {
     const uploadPromises = selectedFiles.map(async (file) => {
       setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
 
@@ -170,7 +170,8 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
     setTimeout(() => {
       setUploadProgress({})
     }, 3000)
-  }
+  }, [params.id, selectedFiles, showToast])
+
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <File className="w-4 h-4 text-green-500" />

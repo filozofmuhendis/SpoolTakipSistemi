@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { User, Save, Key, Bell, Shield, Camera, X, LogOut, AlertTriangle, Clock,
- Activity } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import {
+  User, Save, Key, Bell, Shield, Camera, X, LogOut, AlertTriangle, Clock,
+  Activity
+} from 'lucide-react'
+import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { notificationService, NotificationPreferences } from '@/lib/services/notifications'
 import { createClient } from '@supabase/supabase-js'
@@ -58,15 +61,7 @@ export default function ProfilePage() {
     confirm_password: ''
   })
 
-  useEffect(() => {
-    if (user) {
-      loadProfile()
-      loadNotificationPreferences()
-      loadUserActivities()
-    }
-  }, [user])
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user) return
 
     try {
@@ -94,9 +89,9 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
-  const loadNotificationPreferences = async () => {
+  const loadNotificationPreferences = useCallback(async () => {
     if (!user) return
 
     try {
@@ -105,9 +100,9 @@ export default function ProfilePage() {
     } catch (error) {
       console.log('Bildirim tercihleri yükleme hatası:', error)
     }
-  }
+  }, [user])
 
-  const loadUserActivities = async () => {
+  const loadUserActivities = useCallback(async () => {
     if (!user) return
 
     try {
@@ -127,7 +122,15 @@ export default function ProfilePage() {
     } catch (error) {
       console.log('Kullanıcı aktiviteleri yükleme hatası:', error)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadProfile()
+      loadNotificationPreferences()
+      loadUserActivities()
+    }
+  }, [user, loadProfile, loadNotificationPreferences, loadUserActivities])
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -147,15 +150,15 @@ export default function ProfilePage() {
 
     try {
       setUploadingAvatar(true)
-      
+
       // Avatar'ı storage'a yükle
       const uploadedFile = await storageService.uploadFile(file, 'profiles', user.id)
-      
+
       if (uploadedFile) {
         // Profil tablosunu güncelle
         const { error } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             avatar_url: uploadedFile.url,
             updated_at: new Date().toISOString()
           })
@@ -181,11 +184,11 @@ export default function ProfilePage() {
 
     try {
       setUploadingAvatar(true)
-      
+
       // Profil tablosundan avatar_url'i kaldır
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           avatar_url: null,
           updated_at: new Date().toISOString()
         })
@@ -277,7 +280,7 @@ export default function ProfilePage() {
     try {
       const updatedPrefs = { ...notificationPrefs, [key]: value }
       const success = await notificationService.updateNotificationPreferences(updatedPrefs)
-      
+
       if (success) {
         setNotificationPrefs(updatedPrefs)
         setMessage({ type: 'success', text: 'Bildirim tercihleri güncellendi!' })
@@ -311,11 +314,10 @@ export default function ProfilePage() {
 
       {/* Message */}
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
-            : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
-        }`}>
+        <div className={`mb-6 p-4 rounded-lg ${message.type === 'success'
+          ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+          : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+          }`}>
           {message.text}
         </div>
       )}
@@ -336,10 +338,12 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 {profile?.avatar_url ? (
-                  <img
+                  <Image
                     src={profile.avatar_url}
                     alt="Profil fotoğrafı"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                    width={80}
+                    height={80}
+                    className="rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
@@ -522,7 +526,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Genel Bildirimler</h3>
-              
+
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">E-posta Bildirimleri</p>
@@ -530,13 +534,11 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => handleNotificationPrefsUpdate('emailNotifications', !notificationPrefs.emailNotifications)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationPrefs.emailNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs.emailNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationPrefs.emailNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                 </button>
               </div>
 
@@ -547,20 +549,18 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => handleNotificationPrefsUpdate('pushNotifications', !notificationPrefs.pushNotifications)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationPrefs.pushNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs.pushNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationPrefs.pushNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs.pushNotifications ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                 </button>
               </div>
             </div>
 
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Özel Bildirimler</h3>
-              
+
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Spool Güncellemeleri</p>
@@ -568,13 +568,11 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => handleNotificationPrefsUpdate('spoolUpdates', !notificationPrefs.spoolUpdates)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationPrefs.spoolUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs.spoolUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationPrefs.spoolUpdates ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs.spoolUpdates ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                 </button>
               </div>
 
@@ -585,13 +583,11 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => handleNotificationPrefsUpdate('projectUpdates', !notificationPrefs.projectUpdates)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationPrefs.projectUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs.projectUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationPrefs.projectUpdates ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs.projectUpdates ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                 </button>
               </div>
 
@@ -602,13 +598,11 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => handleNotificationPrefsUpdate('shipmentUpdates', !notificationPrefs.shipmentUpdates)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    notificationPrefs.shipmentUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationPrefs.shipmentUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notificationPrefs.shipmentUpdates ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationPrefs.shipmentUpdates ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                 </button>
               </div>
             </div>
@@ -679,7 +673,7 @@ export default function ProfilePage() {
               <LogOut className="w-4 h-4" />
               Çıkış Yap
             </button>
-            
+
             <button
               onClick={forceLogout}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { shipmentService } from '@/lib/services/shipments'
@@ -27,12 +27,7 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<ShipmentFormData>()
 
-  useEffect(() => {
-    loadData()
-    // eslint-disable-next-line
-  }, [params.id])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -54,7 +49,11 @@ export default function EditShipmentPage({ params }: { params: { id: string } })
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id, setValue])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const onSubmit = async (data: ShipmentFormData) => {
     try {

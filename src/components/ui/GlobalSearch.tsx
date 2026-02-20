@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Package, Users, BarChart3, Truck, FileText } from 'lucide-react'
 import { projectService } from '@/services/projectService'
 import { spoolService } from '@/services/spoolService'
@@ -39,16 +39,7 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  useEffect(() => {
-    if (query.length >= 2) {
-      performSearch()
-    } else {
-      setResults([])
-      setIsOpen(false)
-    }
-  }, [query])
-
-  const performSearch = async () => {
+  const performSearch = useCallback(async () => {
     if (query.length < 2) return
 
     setLoading(true)
@@ -157,7 +148,16 @@ export default function GlobalSearch() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [query])
+
+  useEffect(() => {
+    if (query.length >= 2) {
+      performSearch()
+    } else {
+      setResults([])
+      setIsOpen(false)
+    }
+  }, [query, performSearch])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {

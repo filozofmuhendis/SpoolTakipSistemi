@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { BarChart3, Download, Package, Users, Truck, Activity, Upload, File, Trash2, Eye, Save, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { projectService } from '@/lib/services/projects'
@@ -48,16 +48,11 @@ export default function ReportsPage() {
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadReportData()
-    loadSavedReports()
-  }, [])
-
-  const loadReportData = async () => {
+  const loadReportData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const [projects, spools, personnel, workOrders, shipments] = await Promise.all([
         projectService.getAllProjects(),
         spoolService.getAllSpools(),
@@ -79,9 +74,9 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
 
-  const loadSavedReports = async () => {
+  const loadSavedReports = useCallback(async () => {
     try {
       setLoadingReports(true)
       const reports = await storageService.getFilesByEntity('project', 'reports')
@@ -91,29 +86,34 @@ export default function ReportsPage() {
     } finally {
       setLoadingReports(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadReportData()
+    loadSavedReports()
+  }, [loadReportData, loadSavedReports])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    
+
     // Dosya tipi ve boyut kontrolü
     const validFiles = files.filter(file => {
       const allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/pdf', 'text/csv']
       const maxSize = 10 * 1024 * 1024 // 10MB
-      
+
       if (!storageService.isValidFileType(file, allowedTypes)) {
         showToast({ type: 'error', message: `${file.name} dosya tipi desteklenmiyor.` })
         return false
       }
-      
+
       if (!storageService.isValidFileSize(file, maxSize)) {
         showToast({ type: 'error', message: `${file.name} dosyası çok büyük. Maksimum 10MB olmalı.` })
         return false
       }
-      
+
       return true
     })
-    
+
     if (validFiles.length > 0) {
       setSelectedFiles(prev => [...prev, ...validFiles])
     }
@@ -126,7 +126,7 @@ export default function ReportsPage() {
   const uploadReportTemplates = async () => {
     const uploadPromises = selectedFiles.map(async (file) => {
       setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
-      
+
       try {
         const uploadedFile = await storageService.uploadFile(file, 'project', 'templates')
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
@@ -140,13 +140,13 @@ export default function ReportsPage() {
 
     const results = await Promise.all(uploadPromises)
     const successfulUploads = results.filter(result => result !== null)
-    
+
     if (successfulUploads.length > 0) {
       showToast({ type: 'success', message: `${successfulUploads.length} rapor şablonu başarıyla yüklendi.` })
       setSelectedFiles([])
       setShowUploadModal(false)
     }
-    
+
     // Progress'i temizle
     setTimeout(() => {
       setUploadProgress({})
@@ -159,18 +159,18 @@ export default function ReportsPage() {
       const ws = XLSX.utils.json_to_sheet(data)
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Rapor')
-      
+
       // Excel dosyasını blob'a çevir
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      
+
       // File objesi oluştur
       const fileName = `${reportType}-raporu-${new Date().toISOString().split('T')[0]}.xlsx`
       const file = new (window as any).File([blob], fileName)
-      
+
       // Dosyayı yükle
       const uploadedFile = await storageService.uploadFile(file, 'project', 'saved')
-      
+
       if (uploadedFile) {
         setSavedReports(prev => [uploadedFile, ...prev])
         showToast({ type: 'success', message: 'Rapor sisteme kaydedildi!' })
@@ -216,7 +216,7 @@ export default function ReportsPage() {
   const getFilteredData = () => {
     if (!reportData) return null
 
-    let filteredData = { ...reportData }
+    const filteredData = { ...reportData }
 
     // Proje filtresi
     if (projectFilter !== 'all') {
@@ -282,10 +282,10 @@ export default function ReportsPage() {
 
     const personnelPerformance = filteredData.personnel.map(person => {
       const personWorkOrders = filteredData.workOrders.filter(wo => wo.created_by === person.id)
-        return {
-          name: person.name,
+      return {
+        name: person.name,
         totalWorkOrders: personWorkOrders.length
-        }
+      }
     }).filter(p => p.totalWorkOrders > 0).sort((a, b) => b.totalWorkOrders - a.totalWorkOrders).slice(0, 10)
 
     return {
@@ -392,7 +392,7 @@ export default function ReportsPage() {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Rapor')
       XLSX.writeFile(wb, fileName)
-      
+
       showToast({ type: 'success', message: 'Rapor başarıyla indirildi!' })
     } catch (error) {
       showToast({ type: 'error', message: 'Rapor indirilirken bir hata oluştu.' })
@@ -490,7 +490,7 @@ export default function ReportsPage() {
   return (
     <div className="p-6 w-full max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Raporlar</h1>
+        <h1 className="text-3xl font-bold">Raporlar</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setShowUploadModal(true)}
@@ -499,85 +499,85 @@ export default function ReportsPage() {
             <Upload className="w-4 h-4" />
             Şablon Yükle
           </button>
-        <button
+          <button
             onClick={() => exportReport('production')}
             className="btn-secondary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Spool Raporu
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => exportReport('personnel')}
             className="btn-secondary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Personel Raporu
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => exportReport('shipment')}
             className="btn-secondary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Sevkiyat Raporu
-        </button>
-        <button
+          </button>
+          <button
             onClick={() => exportReport('project')}
             className="btn-secondary flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Proje Raporu
-        </button>
+          </button>
         </div>
       </div>
 
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-              <div className="flex items-center">
+            <div className="flex items-center">
               <Package className="w-8 h-8 text-blue-500" />
-                <div className="ml-4">
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Projeler</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.projects.total}</p>
-                </div>
-              </div>
-            </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-              <div className="flex items-center">
-              <BarChart3 className="w-8 h-8 text-green-500" />
-                <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Spool&apos;lar</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.spools.total}</p>
-                </div>
-              </div>
-            </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-              <div className="flex items-center">
-              <Users className="w-8 h-8 text-purple-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Personel</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.personnel.total}</p>
-                </div>
-              </div>
-            </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-              <div className="flex items-center">
-              <Activity className="w-8 h-8 text-orange-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">İş Emirleri</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.workOrders.total}</p>
-                </div>
-              </div>
-            </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-              <div className="flex items-center">
-              <Truck className="w-8 h-8 text-red-500" />
-                <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Sevkiyatlar</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.shipments.total}</p>
-                </div>
               </div>
             </div>
           </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center">
+              <BarChart3 className="w-8 h-8 text-green-500" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Spool&apos;lar</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.spools.total}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center">
+              <Users className="w-8 h-8 text-purple-500" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Personel</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.personnel.total}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center">
+              <Activity className="w-8 h-8 text-orange-500" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">İş Emirleri</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.workOrders.total}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <div className="flex items-center">
+              <Truck className="w-8 h-8 text-red-500" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Sevkiyatlar</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.shipments.total}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Kayıtlı Raporlar */}
@@ -601,7 +601,7 @@ export default function ReportsPage() {
             </button>
           </div>
         </div>
-        
+
         {loadingReports ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
@@ -627,7 +627,7 @@ export default function ReportsPage() {
                       <p className="text-xs text-gray-400">
                         {formatDate(file.uploadedAt)}
                       </p>
-                        </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -658,17 +658,17 @@ export default function ReportsPage() {
                     <Trash2 className="w-3 h-3" />
                     Sil
                   </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
-              ) : (
+              </div>
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-8 text-gray-500">
             <File className="mx-auto h-12 w-12 text-gray-300 mb-4" />
             <p>Henüz kayıtlı rapor bulunmuyor.</p>
           </div>
-              )}
-            </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {projectChartData && (
@@ -677,8 +677,8 @@ export default function ReportsPage() {
             <div className="h-64">
               {/* Chart component would go here */}
               <div className="text-center text-gray-500">Grafik bileşeni burada olacak</div>
-                        </div>
-                      </div>
+            </div>
+          </div>
         )}
 
         {personnelChartData && (
@@ -687,8 +687,8 @@ export default function ReportsPage() {
             <div className="h-64">
               {/* Chart component would go here */}
               <div className="text-center text-gray-500">Grafik bileşeni burada olacak</div>
-                    </div>
-                </div>
+            </div>
+          </div>
         )}
 
         {spoolChartData && (
@@ -697,9 +697,9 @@ export default function ReportsPage() {
             <div className="h-64">
               {/* Chart component would go here */}
               <div className="text-center text-gray-500">Grafik bileşeni burada olacak</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* Şablon Yükleme Modal */}
@@ -708,13 +708,13 @@ export default function ReportsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Rapor Şablonu Yükle</h2>
-            <button
+              <button
                 onClick={() => setShowUploadModal(false)}
                 className="text-gray-500 hover:text-gray-700"
-            >
+              >
                 <X className="w-6 h-6" />
-            </button>
-          </div>
+              </button>
+            </div>
 
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -733,7 +733,7 @@ export default function ReportsPage() {
                   <p className="text-xs text-gray-500 mt-1">
                     Excel, PDF, CSV dosyaları (Maksimum 10MB)
                   </p>
-                    </div>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -742,7 +742,7 @@ export default function ReportsPage() {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-          </div>
+              </div>
 
               {selectedFiles.length > 0 && (
                 <div className="space-y-2">
@@ -761,19 +761,19 @@ export default function ReportsPage() {
                           <span className="text-xs text-gray-500">
                             ({storageService.formatFileSize(file.size)})
                           </span>
-                              </div>
-            <button
+                        </div>
+                        <button
                           type="button"
                           onClick={() => removeSelectedFile(index)}
                           className="text-red-500 hover:text-red-700"
-            >
+                        >
                           <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+                        </button>
+                      </div>
                     ))}
-                    </div>
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
 
               {Object.keys(uploadProgress).length > 0 && (
                 <div className="space-y-2">
@@ -790,19 +790,19 @@ export default function ReportsPage() {
                       </div>
                       {progress !== -1 && (
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
+                          <div
                             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                             style={{ width: `${progress}%` }}
                           />
-              </div>
-            )}
-          </div>
+                        </div>
+                      )}
+                    </div>
                   ))}
-        </div>
-      )}
+                </div>
+              )}
 
               <div className="flex justify-end gap-4 pt-4">
-            <button
+                <button
                   onClick={() => setShowUploadModal(false)}
                   className="btn-secondary"
                 >
@@ -812,11 +812,11 @@ export default function ReportsPage() {
                   onClick={uploadReportTemplates}
                   disabled={selectedFiles.length === 0}
                   className="btn-primary"
-            >
+                >
                   Yükle
-            </button>
-          </div>
-                      </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

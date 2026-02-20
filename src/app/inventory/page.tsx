@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Package, TrendingUp, MapPin } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
 import { Inventory } from '@/types'
@@ -17,11 +17,7 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const { showToast } = useToast()
 
-  useEffect(() => {
-    loadInventory()
-  }, []) // eslint-disable-next-line react-hooks/exhaustive-deps
-
-  const loadInventory = async () => {
+  const loadInventory = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -34,7 +30,11 @@ export default function InventoryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
+
+  useEffect(() => {
+    loadInventory()
+  }, [loadInventory])
 
   const handleSearch = () => {
     // Client-side filtreleme zaten yapılıyor
@@ -42,7 +42,8 @@ export default function InventoryPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bu envanter öğesini silmek istediğinizden emin misiniz?')) {
+    // eslint-disable-next-line no-restricted-globals
+    if (!window.confirm('Bu envanter öğesini silmek istediğinizden emin misiniz?')) {
       return
     }
 

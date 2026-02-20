@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -62,9 +62,18 @@ export default function NewProjectPage() {
     }
   })
 
-  useEffect(() => {
-    personnelService.getManagers().then(setPersonnel)
+  const loadManagers = useCallback(async () => {
+    try {
+      const data = await personnelService.getManagers()
+      setPersonnel(data)
+    } catch (error) {
+      console.log('Yöneticiler yüklenirken hata:', error)
+    }
   }, [])
+
+  useEffect(() => {
+    loadManagers()
+  }, [loadManagers])
 
   const onSubmit = async (data: ProjectFormData) => {
     try {
@@ -77,10 +86,10 @@ export default function NewProjectPage() {
         manager_id: data.managerId,
         status: data.status ?? 'pending'
       }
-      
+
       if (data.description) projectData.description = data.description
       if (data.endDate) projectData.end_date = data.endDate
-      
+
       const project = await projectService.createProject(projectData)
       // 2. Spool dosyası varsa storage'a yükle ve documents tablosuna kaydet
       if (spoolFile && project.id && user?.id) {

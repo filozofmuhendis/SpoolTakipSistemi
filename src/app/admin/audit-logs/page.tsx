@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAuditLogs, AuditLog } from "@/lib/services/auditLogs";
 import { getAllPersonnelBasic } from '@/lib/services/personnel'
 import Loading from "@/components/ui/Loading";
@@ -18,15 +18,7 @@ export default function AuditLogsPage() {
   const [filter, setFilter] = useState({ table: "", action: "", user: "", from: "", to: "" });
   const [personnelList, setPersonnelList] = useState<{ id: string, name: string }[]>([]);
 
-  useEffect(() => {
-    fetchLogs();
-    getAllPersonnelBasic()
-      .then(list => setPersonnelList(list.map((p: { id: string, full_name: string | null }) => ({ id: p.id, name: p.full_name ?? "" }))))
-      .catch(() => {});
-    // eslint-disable-next-line
-  }, [filter]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -44,7 +36,14 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchLogs();
+    getAllPersonnelBasic()
+      .then(list => setPersonnelList(list.map((p: { id: string, full_name: string | null }) => ({ id: p.id, name: p.full_name ?? "" }))))
+      .catch(() => { });
+  }, [fetchLogs]);
 
   if (authLoading) return <Loading text="Yetki kontrolü..." />
   if (!user || user.role !== 'admin') {

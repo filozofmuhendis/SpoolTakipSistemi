@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
-import { spoolService } from '@/lib/services/spools'
-import { projectService } from '@/lib/services/projects'
 import { Project } from '@/types'
-import { Spool } from '@/lib/services/spools'
+import { spoolService, Spool } from '@/lib/services/spools'
+import { projectService } from '@/lib/services/projects'
 import Link from 'next/link'
 
 const spoolSchema = z.object({
@@ -41,11 +40,7 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
     resolver: zodResolver(spoolSchema)
   })
 
-  useEffect(() => {
-    loadData()
-  }, [params.id])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setInitialLoading(true)
       const [spoolData, projectsData] = await Promise.all([
@@ -74,7 +69,11 @@ export default function EditSpoolPage({ params }: { params: { id: string } }) {
     } finally {
       setInitialLoading(false)
     }
-  }
+  }, [params.id, reset])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const onSubmit = async (data: SpoolFormData) => {
     try {

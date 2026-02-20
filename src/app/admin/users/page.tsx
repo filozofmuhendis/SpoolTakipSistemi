@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -21,16 +21,7 @@ export default function UserManagement() {
   const { user } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      router.push('/')
-      return
-    }
-
-    fetchUsers()
-  }, [user])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
@@ -45,7 +36,16 @@ export default function UserManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      router.push('/')
+      return
+    }
+
+    fetchUsers()
+  }, [user, fetchUsers, router])
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
@@ -56,7 +56,7 @@ export default function UserManagement() {
 
       if (error) throw error
 
-      setUsers(users.map(user => 
+      setUsers(users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       ))
     } catch (error: any) {
@@ -126,7 +126,7 @@ export default function UserManagement() {
                       {new Date(user.created_at).toLocaleDateString('tr-TR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {user.last_sign_in_at 
+                      {user.last_sign_in_at
                         ? new Date(user.last_sign_in_at).toLocaleDateString('tr-TR')
                         : '-'}
                     </td>

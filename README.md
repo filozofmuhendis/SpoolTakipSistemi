@@ -137,6 +137,23 @@ Bu proje, endüstriyel spool üretim süreçlerini takip etmek için geliştiril
 - `inventory_summary` - Envanter özeti
 - `work_order_summary` - İş emri özeti
 - `personnel_workload` - Personel iş yükü
+- `auth_metrics` - Kimlik doğrulama performans metrikleri
+
+## 🛠️ Üretim Altyapısı (Production Infrastructure)
+
+Vercel ve benzeri serverless ortamlarda performans ve güvenlik için aşağıdaki bileşenler eklenmiştir:
+
+### ⚡ Redis & Rate Limiting
+- **Redis (Upstash)**: Dağıtık sistemlerde hız sınırlama (rate limiting) ve metrik takibi için kullanılır.
+- **Advanced Rate Limiting**: `middleware.ts` ve `authorize` callback seviyesinde IP ve Email tabanlı kayan pencere (sliding window) algoritması ile brute-force saldırılarına karşı koruma sağlar.
+
+### 📊 Performans İzleme
+- **Kimlik Doğrulama Metrikleri**: Başarılı/başarısız giriş denemeleri, gecikme (latency) süreleri ve hata oranları Redis üzerinde anlık olarak takip edilir.
+- **P95 Latency**: Giriş sistemindeki gecikme sürelerinin analizi için P95 metrikleri tutulur.
+
+### 🚀 Build Optimizasyonu
+- **Prisma Client**: Build sırasında otomatik olarak oluşturulur.
+- **Dependency Optimization**: `useCallback` ve `useEffect` bağımlılıkları temizlenmiş, optimize edilmiş Next.js build süreci.
 
 ## 🚀 Kurulum
 

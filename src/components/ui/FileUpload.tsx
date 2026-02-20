@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Upload, File, Image, FileText, Trash2, CheckCircle } from 'lucide-react'
+import { Upload, File, Image as ImageIcon, FileText, Trash2, CheckCircle } from 'lucide-react'
 import { storageService, FileUpload } from '@/lib/services/storage'
 
 interface FileUploadProps {
@@ -31,59 +31,13 @@ export default function FileUploadComponent({
   const [uploadedFiles, setUploadedFiles] = useState<FileUpload[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    handleFiles(files)
-  }, [])
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    handleFiles(files)
-  }, [])
-
-  const handleFiles = async (files: File[]) => {
-    if (uploadedFiles.length + files.length > maxFiles) {
-      onUploadError?.(`Maksimum ${maxFiles} dosya yükleyebilirsiniz.`)
-      return
-    }
-
-    for (const file of files) {
-      // Dosya tipi kontrolü
-      if (!storageService.isValidFileType(file, allowedTypes)) {
-        onUploadError?.(`${file.name} dosya tipi desteklenmiyor.`)
-        continue
-      }
-
-      // Dosya boyutu kontrolü
-      if (!storageService.isValidFileSize(file, maxSize)) {
-        onUploadError?.(`${file.name} dosyası çok büyük. Maksimum ${storageService.formatFileSize(maxSize)} olmalı.`)
-        continue
-      }
-
-      await uploadFile(file)
-    }
-  }
-
-  const uploadFile = async (file: File) => {
+  const uploadFile = useCallback(async (file: File) => {
     setUploading(true)
     setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
 
     try {
       const uploadedFile = await storageService.uploadFile(file, entityType, entityId)
-      
+
       if (uploadedFile) {
         setUploadedFiles(prev => [...prev, uploadedFile])
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
@@ -104,7 +58,53 @@ export default function FileUploadComponent({
         })
       }, 2000)
     }
-  }
+  }, [entityType, entityId, onUploadComplete, onUploadError])
+
+  const handleFiles = useCallback(async (files: File[]) => {
+    if (uploadedFiles.length + files.length > maxFiles) {
+      onUploadError?.(`Maksimum ${maxFiles} dosya yükleyebilirsiniz.`)
+      return
+    }
+
+    for (const file of files) {
+      // Dosya tipi kontrolü
+      if (!storageService.isValidFileType(file, allowedTypes)) {
+        onUploadError?.(`${file.name} dosya tipi desteklenmiyor.`)
+        continue
+      }
+
+      // Dosya boyutu kontrolü
+      if (!storageService.isValidFileSize(file, maxSize)) {
+        onUploadError?.(`${file.name} dosyası çok büyük. Maksimum ${storageService.formatFileSize(maxSize)} olmalı.`)
+        continue
+      }
+
+      await uploadFile(file)
+    }
+  }, [uploadedFiles.length, maxFiles, onUploadError, allowedTypes, maxSize, uploadFile])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    handleFiles(files)
+  }, [handleFiles])
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    handleFiles(files)
+  }, [handleFiles])
 
   const deleteFile = async (fileId: string) => {
     try {
@@ -121,7 +121,7 @@ export default function FileUploadComponent({
   }
 
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return <Image className="w-4 h-4" />
+    if (fileType.startsWith('image/')) return <ImageIcon className="w-4 h-4" />
     if (fileType === 'application/pdf') return <FileText className="w-4 h-4" />
     return <File className="w-4 h-4" />
   }
@@ -140,11 +140,10 @@ export default function FileUploadComponent({
     <div className={`space-y-4 ${className}`}>
       {/* Upload Area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-          isDragOver
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-        }`}
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
+          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+          }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

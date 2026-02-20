@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Package, Calendar, User } from 'lucide-react'
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
@@ -25,11 +25,7 @@ export default function ProjectsPage() {
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadProjects()
-  }, [])
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -69,7 +65,11 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
+
+  useEffect(() => {
+    loadProjects()
+  }, [loadProjects])
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

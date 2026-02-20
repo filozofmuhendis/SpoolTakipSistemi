@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Eye, Edit, Trash2, User, Phone } from 'lucide-react'
 import { personnelService, Personnel } from '@/lib/services/personnel'
@@ -18,15 +18,7 @@ export default function PersonnelPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; personnelId: string; personnelName: string } | null>(null)
 
-  useEffect(() => {
-    loadPersonnel()
-  }, [])
-
-  useEffect(() => {
-    filterPersonnel()
-  }, [personnel, searchTerm, departmentFilter])
-
-  const loadPersonnel = async () => {
+  const loadPersonnel = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -37,9 +29,9 @@ export default function PersonnelPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const filterPersonnel = () => {
+  const filterPersonnel = useCallback(() => {
     let filtered = personnel
 
     // Arama filtresi
@@ -58,7 +50,15 @@ export default function PersonnelPage() {
     }
 
     setFilteredPersonnel(filtered)
-  }
+  }, [personnel, searchTerm, departmentFilter])
+
+  useEffect(() => {
+    loadPersonnel()
+  }, [loadPersonnel])
+
+  useEffect(() => {
+    filterPersonnel()
+  }, [filterPersonnel])
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Tarih yok'

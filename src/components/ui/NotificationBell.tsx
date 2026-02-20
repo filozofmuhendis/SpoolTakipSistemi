@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, Check, Trash2, X, AlertTriangle, Info, CheckCircle } from 'lucide-react'
 import { notificationService, Notification } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,24 +12,9 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (user?.id) {
-      loadNotifications()
-      loadUnreadCount()
-      
-      // Periyodik güncelleme (30 saniyede bir)
-      const interval = setInterval(() => {
-        loadUnreadCount()
-      }, 30000)
-
-      return () => clearInterval(interval)
-    }
-    return undefined
-  }, [user?.id])
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!user?.id) return
-    
+
     try {
       setLoading(true)
       const data = await notificationService.getUserNotifications(user.id, 20)
@@ -39,23 +24,38 @@ export default function NotificationBell() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
     if (!user?.id) return
-    
+
     try {
       const count = await notificationService.getUnreadCount(user.id)
       setUnreadCount(count)
     } catch (error) {
       console.log('Okunmamış bildirim sayısı yüklenirken hata:', error)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications()
+      loadUnreadCount()
+
+      // Periyodik güncelleme (30 saniyede bir)
+      const interval = setInterval(() => {
+        loadUnreadCount()
+      }, 30000)
+
+      return () => clearInterval(interval)
+    }
+    return undefined
+  }, [user?.id, loadNotifications, loadUnreadCount])
 
   const markAsRead = async (notificationId: string) => {
     try {
       await notificationService.markAsRead(notificationId)
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
@@ -66,7 +66,7 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     if (!user?.id) return
-    
+
     try {
       await notificationService.markAllAsRead(user.id)
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
@@ -118,7 +118,7 @@ export default function NotificationBell() {
     const date = new Date(dateString)
     const now = new Date()
     const diffInMinutes = (now.getTime() - date.getTime()) / (1000 * 60)
-    
+
     if (diffInMinutes < 1) {
       return 'Az önce'
     } else if (diffInMinutes < 60) {
@@ -197,9 +197,8 @@ export default function NotificationBell() {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-l-4 ${
-                      getPriorityColor(notification.priority)
-                    } ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                    className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-l-4 ${getPriorityColor(notification.priority)
+                      } ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                   >
                     <div className="flex items-start space-x-3">
                       {getNotificationIcon(notification.type)}

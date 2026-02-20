@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Calendar } from 'lucide-react'
 import { shipmentService } from '@/lib/services/shipments'
 import { projectService } from '@/lib/services/projects'
@@ -24,15 +24,11 @@ export default function ShipmentsPage() {
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadShipments()
-  }, [])
-
-  const loadShipments = async () => {
+  const loadShipments = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       // Sevkiyatları ve projeleri paralel olarak çek
       const [shipmentsData, projectsData] = await Promise.all([
         shipmentService.getAllShipments(),
@@ -55,11 +51,15 @@ export default function ShipmentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
+
+  useEffect(() => {
+    loadShipments()
+  }, [loadShipments])
 
   const filteredShipments = shipments.filter(shipment => {
     const matchesSearch = shipment.project?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         shipment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      shipment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || shipment.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -157,20 +157,20 @@ export default function ShipmentsPage() {
                 </span>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <Calendar className="h-4 w-4 mr-2" />
                 {shipment.shipment_date ? new Date(shipment.shipment_date).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}
               </div>
-              
+
               {shipment.notes && (
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   <p className="line-clamp-2">{shipment.notes}</p>
                 </div>
               )}
             </div>
-            
+
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">
                 <Link

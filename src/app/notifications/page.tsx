@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, Search, Trash2, Check, Eye, Settings, RefreshCw } from 'lucide-react'
 import { notificationService, Notification } from '@/lib/services/notifications'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,60 +16,60 @@ export default function NotificationsPage() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   const [showSettings, setShowSettings] = useState(false)
 
-  useEffect(() => {
-    if (user?.id) {
-      loadNotifications()
-    }
-  }, [user?.id])
-
-  useEffect(() => {
-    filterNotifications()
-  }, [notifications, searchTerm, filterType, filterPriority])
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!user?.id) return
-    
+
     try {
       setLoading(true)
-      const data = await notificationService.getUserNotifications(user.id, 100)
+      const data = await notificationService.getUserNotifications(user.id)
       setNotifications(data)
+      setFilteredNotifications(data)
     } catch (error) {
       console.log('Bildirimler yüklenirken hata:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
-  const filterNotifications = () => {
-    let filtered = notifications
+  const filterNotifications = useCallback(() => {
+    let result = [...notifications]
 
-    // Arama filtresi
     if (searchTerm) {
-      filtered = filtered.filter(notification =>
-        notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        notification.message.toLowerCase().includes(searchTerm.toLowerCase())
+      result = result.filter(n =>
+        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        n.message.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Okunma durumu filtresi
-    if (filterType === 'unread') {
-      filtered = filtered.filter(notification => !notification.read)
-    } else if (filterType === 'read') {
-      filtered = filtered.filter(notification => notification.read)
+    if (filterType !== 'all') {
+      if (filterType === 'unread') {
+        result = result.filter(n => !n.read)
+      } else if (filterType === 'read') {
+        result = result.filter(n => n.read)
+      }
     }
 
-    // Öncelik filtresi
     if (filterPriority !== 'all') {
-      filtered = filtered.filter(notification => notification.priority === filterPriority)
+      result = result.filter(n => n.priority === filterPriority)
     }
 
-    setFilteredNotifications(filtered)
-  }
+    setFilteredNotifications(result)
+  }, [notifications, searchTerm, filterType, filterPriority])
+
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications()
+    }
+  }, [user?.id, loadNotifications])
+
+  useEffect(() => {
+    filterNotifications()
+  }, [notifications, searchTerm, filterType, filterPriority, filterNotifications])
 
   const markAsRead = async (notificationId: string) => {
     try {
       await notificationService.markAsRead(notificationId)
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       )
     } catch (error) {
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
       for (const id of selectedNotifications) {
         await notificationService.markAsRead(id)
       }
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => selectedNotifications.includes(n.id!) ? { ...n, read: true } : n)
       )
       setSelectedNotifications([])
@@ -114,8 +114,8 @@ export default function NotificationsPage() {
   }
 
   const toggleSelection = (notificationId: string) => {
-    setSelectedNotifications(prev => 
-      prev.includes(notificationId) 
+    setSelectedNotifications(prev =>
+      prev.includes(notificationId)
         ? prev.filter(id => id !== notificationId)
         : [...prev, notificationId]
     )
@@ -151,9 +151,9 @@ export default function NotificationsPage() {
     }
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${colors[priority as keyof typeof colors] || colors.normal}`}>
-        {priority === 'low' ? 'Düşük' : 
-         priority === 'normal' ? 'Normal' : 
-         priority === 'high' ? 'Yüksek' : 'Acil'}
+        {priority === 'low' ? 'Düşük' :
+          priority === 'normal' ? 'Normal' :
+            priority === 'high' ? 'Yüksek' : 'Acil'}
       </span>
     )
   }
@@ -162,7 +162,7 @@ export default function NotificationsPage() {
     const date = new Date(dateString)
     const now = new Date()
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    
+
     if (diffInHours < 1) {
       return 'Az önce'
     } else if (diffInHours < 24) {
@@ -302,9 +302,8 @@ export default function NotificationsPage() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    selectedNotifications.includes(notification.id!) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  } ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                  className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedNotifications.includes(notification.id!) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    } ${!notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                 >
                   <div className="flex items-start space-x-4">
                     {/* Checkbox */}

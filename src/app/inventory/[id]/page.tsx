@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Edit, Trash2, Package, MapPin, File, Download, Eye } from 'lucide-react'
 import { inventoryService } from '@/lib/services/inventory'
@@ -20,32 +20,7 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
   const [loadingFiles, setLoadingFiles] = useState(false)
   const { showToast } = useToast()
 
-  useEffect(() => {
-    loadInventory()
-  }, [params.id])
-
-  const loadInventory = async () => {
-    try {
-      setLoading(true)
-      const data = await inventoryService.getInventoryById(params.id)
-      if (!data) {
-        setError('Envanter öğesi bulunamadı')
-        return
-      }
-      setInventory(data)
-      
-      // Dosyaları yükle
-      await loadFiles()
-    } catch (error: any) {
-      console.log('Envanter yükleme hatası:', error)
-      setError(error.message || 'Envanter yüklenirken bir hata oluştu')
-      showToast({ type: 'error', message: 'Envanter yüklenirken bir hata oluştu' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       setLoadingFiles(true)
       const filesData = await storageService.getFilesByEntity('inventory', params.id)
@@ -55,10 +30,36 @@ export default function InventoryDetailPage({ params }: { params: { id: string }
     } finally {
       setLoadingFiles(false)
     }
-  }
+  }, [params.id])
+
+  const loadInventory = useCallback(async () => {
+    try {
+      setLoading(true)
+      const data = await inventoryService.getInventoryById(params.id)
+      if (!data) {
+        setError('Envanter öğesi bulunamadı')
+        return
+      }
+      setInventory(data)
+
+      // Dosyaları yükle
+      await loadFiles()
+    } catch (error: any) {
+      console.log('Envanter yükleme hatası:', error)
+      setError(error.message || 'Envanter yüklenirken bir hata oluştu')
+      showToast({ type: 'error', message: 'Envanter yüklenirken bir hata oluştu' })
+    } finally {
+      setLoading(false)
+    }
+  }, [params.id, loadFiles, showToast, setLoading, setError, setInventory]) // Added state setters to dependencies for completeness, though React often optimizes these.
+
+  useEffect(() => {
+    loadInventory()
+  }, [loadInventory])
 
   const handleDelete = async () => {
-    if (!confirm('Bu envanter öğesini silmek istediğinizden emin misiniz?')) {
+    // eslint-disable-next-line no-restricted-globals
+    if (!window.confirm('Bu envanter öğesini silmek istediğinizden emin misiniz?')) {
       return
     }
 

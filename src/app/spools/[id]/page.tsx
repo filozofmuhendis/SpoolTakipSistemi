@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Edit, Trash2, Package } from 'lucide-react'
 import { spoolService } from '@/lib/services/spools'
@@ -15,16 +15,12 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    loadSpool()
-  }, [params.id])
-
-  const loadSpool = async () => {
+  const loadSpool = useCallback(async () => {
     try {
       setLoading(true)
       const spoolData = await spoolService.getSpoolById(params.id)
       setSpool(spoolData)
-      
+
       if (spoolData?.project_id) {
         const projectData = await projectService.getProjectById(spoolData.project_id)
         setProject(projectData)
@@ -35,19 +31,24 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
 
-      const handleDeleteSpool = async () => {
-      if (confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
-        try {
-          await spoolService.deleteSpool(params.id)
-          router.push('/spools?deleted=true')
-        } catch (error) {
-          console.log('Ürün alt kalemi silme hatası:', error)
-          setError('Ürün alt kalemi silinirken bir hata oluştu')
-        }
+  useEffect(() => {
+    loadSpool()
+  }, [loadSpool])
+
+  const handleDeleteSpool = async () => {
+    // eslint-disable-next-line no-restricted-globals
+    if (window.confirm('Bu ürün alt kalemini silmek istediğinizden emin misiniz?')) {
+      try {
+        await spoolService.deleteSpool(params.id)
+        router.push('/spools?deleted=true')
+      } catch (error) {
+        console.log('Ürün alt kalemi silme hatası:', error)
+        setError('Ürün alt kalemi silinirken bir hata oluştu')
       }
     }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -115,7 +116,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
             <Edit className="w-4 h-4" />
             Düzenle
           </Link>
-          <button 
+          <button
             onClick={handleDeleteSpool}
             className="btn-danger flex items-center gap-2"
           >
@@ -138,7 +139,7 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
                 </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.name}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Durum
@@ -171,13 +172,13 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.diameter}</p>
               </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Kalınlık
-                  </label>
+                </label>
                 <p className="text-lg font-medium text-gray-900 dark:text-white">{spool.thickness}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Uzunluk
@@ -237,17 +238,17 @@ export default function SpoolDetailPage({ params }: { params: { id: string } }) 
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                   <span className="text-xs font-bold">L</span>
-            </div>
+                </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Uzunluk</p>
                   <p className="font-medium">{spool.length}</p>
-          </div>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                   <span className="text-xs font-bold">W</span>
                 </div>
-              <div>
+                <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Ağırlık</p>
                   <p className="font-medium">{spool.weight}</p>
                 </div>

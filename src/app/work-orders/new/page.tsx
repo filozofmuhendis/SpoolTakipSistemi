@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Upload, File, Trash2, ArrowLeft } from 'lucide-react'
 import { workOrderService } from '@/services/workOrderService'
@@ -32,18 +32,18 @@ export default function NewWorkOrderPage() {
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const projectsData = await projectService.getAllProjects()
       setProjects(projectsData)
     } catch (error) {
       console.log('Veri yüklenirken hata:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])

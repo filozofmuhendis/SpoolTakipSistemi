@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,11 +40,7 @@ export default function NewSpoolPage() {
     }
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const projectsData = await projectService.getAllProjects()
       setProjects(projectsData)
@@ -52,7 +48,11 @@ export default function NewSpoolPage() {
       console.log('Veri yüklenirken hata:', error)
       setError('Veriler yüklenirken bir hata oluştu')
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const onSubmit = async (data: SpoolFormData) => {
     try {

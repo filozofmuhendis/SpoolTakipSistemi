@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
@@ -44,11 +44,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PersonnelForm>()
 
-  useEffect(() => {
-    loadPersonnel()
-  }, [params.id])
-
-  const loadPersonnel = async () => {
+  const loadPersonnel = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -70,7 +66,11 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id, reset])
+
+  useEffect(() => {
+    loadPersonnel()
+  }, [loadPersonnel])
 
   const onSubmit = async (data: PersonnelForm) => {
     if (!personnel) return

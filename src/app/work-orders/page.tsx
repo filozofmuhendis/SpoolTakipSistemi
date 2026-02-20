@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { jobOrderService } from '@/lib/services/workOrders'
 import Link from 'next/link'
@@ -17,11 +17,7 @@ export default function WorkOrdersPage() {
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadWorkOrders()
-  }, [])
-
-  const loadWorkOrders = async () => {
+  const loadWorkOrders = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -33,12 +29,16 @@ export default function WorkOrdersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
+
+  useEffect(() => {
+    loadWorkOrders()
+  }, [loadWorkOrders])
 
   const filteredWorkOrders = workOrders.filter(workOrder => {
     const matchesSearch = workOrder.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workOrder.project_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workOrder.spool_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      workOrder.project_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      workOrder.spool_id?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || workOrder.status === statusFilter
     return matchesSearch && matchesStatus
   })
