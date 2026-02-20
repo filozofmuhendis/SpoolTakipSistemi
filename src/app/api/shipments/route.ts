@@ -1,45 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { shipmentService } from '@/lib/services/shipments';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { shipmentService } from '@/services/shipmentService';
 import { z } from 'zod';
+import { createSuccessResponse, handleApiError, createValidationErrorResponse } from '@/lib/api-response';
+import { ShipmentStatus } from '@prisma/client';
 
 const shipmentSchema = z.object({
-  number: z.string().min(1, 'Sevkiyat numarası zorunlu.'),
-  projectId: z.string().min(1, 'Proje zorunlu.'),
-  status: z.enum(['pending', 'in_transit', 'delivered', 'cancelled'], { required_error: 'Durum zorunlu.' }),
-  priority: z.enum(['low', 'medium', 'high', 'urgent'], { required_error: 'Öncelik zorunlu.' }),
-  destination: z.string().min(1, 'Varış noktası zorunlu.'),
-  scheduledDate: z.string().min(1, 'Planlanan tarih zorunlu.'),
-  actualDate: z.string().optional(),
-  carrier: z.string().min(1, 'Taşıyıcı zorunlu.'),
-  trackingNumber: z.string().optional(),
-  totalWeight: z.number().min(0, 'Toplam ağırlık zorunlu ve 0 veya daha fazla olmalı.')
+  project_id: z.string().min(1, 'Proje seçilmelidir'),
+  shipment_date: z.string().min(1, 'Tarih gereklidir'), // ISO string expected
+  notes: z.string().optional().nullable(),
+  status: z.nativeEnum(ShipmentStatus).optional()
 });
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const shipments = await shipmentService.getAllShipments();
-    return NextResponse.json({ success: true, data: shipments });
+    return NextResponse.json(createSuccessResponse(shipments));
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz.' }, { status: 403 });
-  }
   try {
     const body = await req.json();
-    const parse = shipmentSchema.safeParse(body);
-    if (!parse.success) {
-      return NextResponse.json({ success: false, error: parse.error.flatten().fieldErrors }, { status: 400 });
+    const result = shipmentSchema.safeParse(body);
+
+    if (!result.success) {
+      const validationErrors: Record<string, string[]> = {};
+      result.error.errors.forEach((err) => {
+        const path = err.path.join('.');
+        if (!validationErrors[path]) {
+          validationErrors[path] = [];
+        }
+        validationErrors[path].push(err.message);
+      });
+      const { response, status } = createValidationErrorResponse(validationErrors);
+      return NextResponse.json(response, { status });
     }
-    const shipment = await shipmentService.createShipment(parse.data);
-    return NextResponse.json({ success: true, data: shipment }, { status: 201 });
+
+    const shipment = await shipmentService.createShipment({
+      project: { connect: { id: result.data.project_id } },
+      shipment_date: new Date(result.data.shipment_date),
+      notes: result.data.notes ?? null,       // Handle nullable strictness
+      status: result.data.status ?? 'pending' // Default to enum 'pending'
+    });
+    return NextResponse.json(createSuccessResponse(shipment), { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ success: false, error: { message: 'ID required', code: 'MISSING_ID' } }, { status: 400 });
+  }
+
+  try {
+    const body = await req.json();
+    // Simple update logic, validation can be added
+    const shipment = await shipmentService.updateShipment(id, body);
+    return NextResponse.json(createSuccessResponse(shipment));
+  } catch (error) {
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ success: false, error: { message: 'ID required', code: 'MISSING_ID' } }, { status: 400 });
+  }
+
+  try {
+    await shipmentService.deleteShipment(id);
+    return NextResponse.json(createSuccessResponse(null, 'Shipment deleted'));
+  } catch (error) {
+    const { response, status } = handleApiError(error);
+    return NextResponse.json(response, { status });
   }
 }

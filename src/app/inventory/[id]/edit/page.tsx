@@ -69,7 +69,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
           description: inventoryData.description || '',
           quantity: inventoryData.quantity || 0,
           location: inventoryData.location || '',
-          notes: inventoryData.notes || ''
+          notes: '' // notes field not available in backend type
         })
 
         // Dosyaları yükle
@@ -99,25 +99,25 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    
+
     // Dosya tipi ve boyut kontrolü
     const validFiles = files.filter(file => {
       const allowedTypes = ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
       const maxSize = 5 * 1024 * 1024 // 5MB
-      
+
       if (!storageService.isValidFileType(file, allowedTypes)) {
         showToast({ type: 'error', message: `${file.name} dosya tipi desteklenmiyor.` })
         return false
       }
-      
+
       if (!storageService.isValidFileSize(file, maxSize)) {
         showToast({ type: 'error', message: `${file.name} dosyası çok büyük. Maksimum 5MB olmalı.` })
         return false
       }
-      
+
       return true
     })
-    
+
     if (validFiles.length > 0) {
       setSelectedFiles(prev => [...prev, ...validFiles])
     }
@@ -145,7 +145,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
   const uploadFiles = async () => {
     const uploadPromises = selectedFiles.map(async (file) => {
       setUploadProgress(prev => ({ ...prev, [file.name]: 0 }))
-      
+
       try {
         const uploadedFile = await storageService.uploadFile(file, 'inventory', params.id)
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }))
@@ -159,13 +159,13 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
 
     const results = await Promise.all(uploadPromises)
     const successfulUploads = results.filter(result => result !== null)
-    
+
     if (successfulUploads.length > 0) {
       setFiles(prev => [...prev, ...successfulUploads])
       setSelectedFiles([])
       showToast({ type: 'success', message: `${successfulUploads.length} dosya başarıyla yüklendi.` })
     }
-    
+
     // Progress'i temizle
     setTimeout(() => {
       setUploadProgress({})
@@ -197,15 +197,15 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
         quantity: data.quantity,
         location: data.location
       }
-      
+
       if (data.description) {
         updateData.description = data.description
       }
-      
+
       if (data.notes) {
         updateData.notes = data.notes
       }
-      
+
       await inventoryService.updateInventory(params.id, updateData)
 
       // Yeni dosyaları yükle
@@ -318,7 +318,7 @@ export default function EditInventoryPage({ params }: { params: { id: string } }
           {/* Dosya Yönetimi */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Dosyalar</h3>
-            
+
             {/* Mevcut Dosyalar */}
             {files.length > 0 && (
               <div className="mb-6">

@@ -38,7 +38,7 @@ export default function Home() {
     const completedSpools = spools.filter(s => s.status === 'completed').length
     const progress = totalSpools > 0 ? ((completedSpools / totalSpools) * 100).toFixed(1) : '0'
     const activePersonelCount = personnel.filter(p => p.status === 'active').length
-    const delayedShipments = shipments.filter(s => s.status === 'pending' && new Date(s.scheduled_date) < new Date()).length
+    const delayedShipments = shipments.filter(s => s.status === 'pending' && s.shipment_date && new Date(s.shipment_date) < new Date()).length
 
     return {
       activeProjects,
@@ -91,7 +91,7 @@ export default function Home() {
           id: `shipment-${s.id}`,
           type: 'shipment_started',
           title: 'Sevkiyat Başladı',
-          description: `${s.number} nolu sevkiyat yola çıktı`,
+          description: `Sevkiyat yola çıktı`,
           timestamp: new Date(s.updated_at!).toLocaleDateString('tr-TR'),
           color: 'bg-purple-500'
         })

@@ -45,7 +45,7 @@ export default function PersonnelPage() {
     // Arama filtresi
     if (searchTerm) {
       filtered = filtered.filter(person =>
-        person.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (person.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (person.department && person.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (person.position && person.position.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -60,12 +60,13 @@ export default function PersonnelPage() {
     setFilteredPersonnel(filtered)
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Tarih yok'
     return new Date(dateString).toLocaleDateString('tr-TR')
   }
 
   const getDepartments = () => {
-    const departments = Array.from(new Set(personnel.map(p => p.department).filter(Boolean)))
+    const departments = Array.from(new Set(personnel.map(p => p.department).filter((d): d is string => !!d)))
     return departments.sort()
   }
 
@@ -149,8 +150,8 @@ export default function PersonnelPage() {
 
         {/* Personnel List */}
         {personnel.length === 0 ? (
-          <EmptyState 
-            title="Personel bulunamadı" 
+          <EmptyState
+            title="Personel bulunamadı"
             description="Henüz kayıtlı personel yok. Yeni personel eklemek için yukarıdaki butonu kullanın."
             icon={<User className="w-12 h-12" />}
           />
@@ -233,10 +234,10 @@ export default function PersonnelPage() {
                             <Edit className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => setDeleteModal({ 
-                              show: true, 
-                              personnelId: person.id, 
-                              personnelName: person.full_name 
+                            onClick={() => setDeleteModal({
+                              show: true,
+                              personnelId: person.id,
+                              personnelName: person.full_name || 'İsimsiz'
                             })}
                             className="text-red-600 hover:text-red-500 p-1"
                             title="Sil"

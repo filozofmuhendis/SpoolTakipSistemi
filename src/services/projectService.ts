@@ -1,29 +1,31 @@
 import { projectRepository, ProjectInsert, ProjectUpdate } from '@/repositories/projectRepository'
 
 export class ProjectService {
-    async getAllProjects() {
-        return await projectRepository.findAll()
+    async getAllProjects(page: number = 1, limit: number = 10) {
+        const skip = (page - 1) * limit;
+        return await projectRepository.findAll(skip, limit)
     }
 
     async createProject(data: ProjectInsert) {
         // Business Logic: Validate dates, check duplication if needed, etc.
         // For now, simple pass-through with potential for expansion
-        if (new Date(data.start_date) > new Date(data.end_date!)) {
+        if (data.start_date && data.end_date && new Date(data.start_date) > new Date(data.end_date as any)) {
             throw new Error('Start date cannot be after end date')
         }
         return await projectRepository.create(data)
     }
 
     async updateProject(id: string, data: ProjectUpdate) {
-        if (data.start_date && data.end_date && new Date(data.start_date) > new Date(data.end_date)) {
+        if (data.start_date && data.end_date && new Date(data.start_date as any) > new Date(data.end_date as any)) {
             throw new Error('Start date cannot be after end date')
         }
         return await projectRepository.update(id, data)
     }
 
-    async deleteProject(id: string) {
-        // Business Logic: Check if project has active spools/orders before deletion?
-        // Supabase Cascade might handle it, but strict service layer might want to check first.
+    async deleteProject(id: string, actor: { id: string, role: string }) {
+        if (!['admin', 'manager'].includes(actor.role)) {
+            throw new Error('Unauthorized: Insufficient permissions')
+        }
         return await projectRepository.delete(id)
     }
 

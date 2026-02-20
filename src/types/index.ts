@@ -17,112 +17,114 @@ export interface Profile {
 export interface Project {
   id: string;
   name: string;
-  shipyard?: string;
-  ship?: string;
-  start_date?: string;
-  delivery_date?: string;
-  created_by?: string;
-  manager_id?: string;
-  client_name?: string;
-  description?: string;
-  end_date?: string;
-  status?: string;
-  priority?: string;
-  project_code?: string;
+  shipyard?: string | null;
+  ship?: string | null;
+  start_date?: string; // Assume required or handled
+  delivery_date?: string | null;
+  created_by?: string | null;
+  manager_id?: string | null;
+  client_name?: string | null;
+  description?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  project_code?: string | null;
 }
 
 export interface UrunAltKalemi {
   id: string;
-  project_id?: string;
-  name?: string;
-  description?: string;
-  material?: string;
-  diameter?: number;
-  thickness?: number;
-  length?: number;
-  weight?: number;
-  status?: string;
-  notes?: string;
-  created_by?: string;
+  project_id?: string | null;
+  name?: string | null;
+  description?: string | null;
+  material?: string | null;
+  diameter?: number | null;
+  thickness?: number | null;
+  length?: number | null;
+  weight?: number | null;
+  status?: string | null;
+  notes?: string | null;
+  created_by?: string | null;
 }
 
 export interface JobOrder {
   id: string;
-  project_id?: string;
-  urun_alt_kalemi_id?: string;
-  title?: string;
-  description?: string;
-  status?: string;
-  planned_start_date?: string;
-  planned_end_date?: string;
-  actual_start_date?: string;
-  actual_end_date?: string;
-  created_by?: string;
+  project_id?: string | null;
+  urun_alt_kalemi_id?: string | null;
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  planned_start_date?: string | null;
+  planned_end_date?: string | null;
+  actual_start_date?: string | null;
+  actual_end_date?: string | null;
+  created_by?: string | null;
 }
 
 export interface Shipment {
   id: string;
-  project_id?: string;
-  number?: string;
-  destination?: string;
-  shipment_date?: string;
-  status?: string;
-  notes?: string;
-  created_by?: string;
+  project_id?: string | null;
+  number?: string | null;
+  destination?: string | null;
+  shipment_date?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface Inventory {
   id: string;
   name: string;
-  code?: string;
-  category?: string;
-  type?: 'raw_material' | 'finished_product' | 'semi_finished' | 'consumable';
-  quantity: number;
-  unit?: string;
-  min_stock?: number;
-  max_stock?: number;
-  location: string;
-  supplier?: string;
-  project_id?: string;
-  description?: string;
-  specifications?: string;
-  cost?: number;
-  status?: 'active' | 'inactive' | 'discontinued';
-  last_updated?: string;
-  reorder_point?: number;
-  lead_time_days?: number;
-  created_at?: string;
-  updated_at?: string;
-  notes?: string;
-  created_by?: string;
+  code?: string | null;
+  category?: string | null;
+  type?: 'raw_material' | 'finished_product' | 'semi_finished' | 'consumable' | null; // Allow null
+  quantity: number | null;
+  unit?: string | null;
+  min_stock?: number | null;
+  max_stock?: number | null;
+  location: string | null;
+  supplier?: string | null;
+  project_id?: string | null;
+  description?: string | null;
+  specifications?: string | null;
+  cost?: number | null;
+  status?: 'active' | 'inactive' | 'discontinued' | null;
+  last_updated?: string | null;
+  reorder_point?: number | null;
+  lead_time_days?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  notes?: string | null;
+  created_by?: string | null;
 }
 
 export interface Document {
   id: string;
-  project_id?: string;
-  name?: string;
-  url?: string;
-  uploaded_by?: string;
-  uploaded_at?: string;
-  notes?: string;
+  project_id?: string | null;
+  name?: string | null;
+  url?: string | null;
+  uploaded_by?: string | null;
+  uploaded_at?: string | null;
+  notes?: string | null;
 }
 
 export interface Personnel {
   id: string;
-  full_name: string;
+  full_name: string | null;
   email: string;
-  phone?: string;
-  department?: string;
-  position?: string;
-  hire_date?: string;
-  status?: string;
-  salary?: number;
-  emergency_contact?: string;
-  emergency_phone?: string;
-  address?: string;
-  skills?: string[];
-  created_at?: string;
-  updated_at?: string;
+  phone?: string | null;
+  department?: string | null;
+  position?: string | null;
+  hire_date?: string | null;
+  status?: string | null;
+  salary?: number | null;
+  emergency_contact?: string | null;
+  emergency_phone?: string | null;
+  address?: string | null;
+  skills?: string[] | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface InventoryTransaction {
@@ -130,54 +132,54 @@ export interface InventoryTransaction {
   inventory_id: string;
   transaction_type: 'in' | 'out' | 'adjustment' | 'transfer';
   quantity: number;
-  unit_cost?: number;
-  total_cost?: number;
-  reference_type?: string;
-  reference_id?: string;
-  notes?: string;
-  performed_by?: string;
-  transaction_date?: string;
-  created_at?: string;
+  unit_cost?: number | null;
+  total_cost?: number | null;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  notes?: string | null;
+  performed_by?: string | null;
+  transaction_date?: string | null;
+  created_at?: string | null;
 }
 
 export interface MaterialRequest {
   id: string;
   request_number: string;
-  project_id?: string;
-  urun_alt_kalemi_id?: string;
-  requested_by?: string;
-  status?: string;
-  priority?: string;
-  request_date?: string;
-  required_date?: string;
-  approved_by?: string;
-  approved_at?: string;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
+  project_id?: string | null;
+  urun_alt_kalemi_id?: string | null;
+  requested_by?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  request_date?: string | null;
+  required_date?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface MaterialRequestItem {
   id: string;
   request_id: string;
-  inventory_id?: string;
+  inventory_id?: string | null;
   quantity: number;
   unit: string;
-  notes?: string;
-  created_at?: string;
+  notes?: string | null;
+  created_at?: string | null;
 }
 
 export interface QualityCheck {
   id: string;
   urun_alt_kalemi_id: string;
-  work_order_id?: string;
-  inspector_id?: string;
+  work_order_id?: string | null;
+  inspector_id?: string | null;
   check_date: string;
-  status?: string;
-  notes?: string;
+  status?: string | null;
+  notes?: string | null;
   measurements?: any;
-  photos?: string[];
-  next_check_date?: string;
-  created_at?: string;
-  updated_at?: string;
+  photos?: string[] | null;
+  next_check_date?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }

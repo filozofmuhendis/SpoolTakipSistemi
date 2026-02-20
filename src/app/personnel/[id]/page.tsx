@@ -33,13 +33,14 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
     fetchPersonnel()
   }, [params.id])
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Tarih yok'
     return new Date(dateString).toLocaleDateString('tr-TR')
   }
 
   const handleDelete = async () => {
     if (!personnel) return
-    
+
     try {
       const success = await personnelService.deletePersonnel(personnel.id)
       if (success) {
@@ -68,8 +69,8 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Link 
-              href="/personnel" 
+            <Link
+              href="/personnel"
               className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <ArrowLeft className="w-6 h-6" />
@@ -89,7 +90,7 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
               <Edit className="w-4 h-4" />
               Düzenle
             </Link>
-            <button 
+            <button
               onClick={() => setDeleteModal(true)}
               className="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 transition-colors"
             >
@@ -181,7 +182,7 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
                     {formatDate(personnel.created_at)} - Günümüz
                   </p>
                   <p className="text-xs text-gray-500">
-                    {Math.floor((new Date().getTime() - new Date(personnel.created_at).getTime()) / (1000 * 60 * 60 * 24))} gün
+                    {personnel.created_at ? Math.floor((new Date().getTime() - new Date(personnel.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0} gün
                   </p>
                 </div>
               </div>
@@ -232,7 +233,7 @@ export default function PersonnelDetail({ params }: { params: { id: string } }) 
               <p className="font-medium text-gray-900 dark:text-white">Şifre Değiştir</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Kullanıcı şifresini güncelle</p>
             </button>
-            <button 
+            <button
               onClick={() => setDeleteModal(true)}
               className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
             >

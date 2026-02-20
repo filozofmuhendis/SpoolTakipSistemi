@@ -6,24 +6,24 @@ import { z } from 'zod'
 
 const inventorySchema = z.object({
   name: z.string().min(1, 'Malzeme adı gereklidir'),
-  code: z.string().optional(),
-  category: z.string().optional(),
-  type: z.enum(['raw_material', 'finished_product', 'semi_finished', 'consumable']).optional(),
+  code: z.string().optional(), // Will be generated if missing
+  category: z.string().min(1, 'Kategori gereklidir'),
+  type: z.string().min(1, 'Tip gereklidir'), // Changed from enum to string as per schema.prisma
   quantity: z.number().min(0, 'Miktar 0 veya daha fazla olmalıdır'),
-  unit: z.string().optional(),
-  min_stock: z.number().min(0).optional(),
-  max_stock: z.number().min(0).optional(),
-  location: z.string().min(1, 'Konum gereklidir'),
-  supplier: z.string().optional(),
-  project_id: z.string().optional(),
-  description: z.string().optional(),
-  specifications: z.string().optional(),
-  cost: z.number().min(0).optional(),
-  status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
-  reorder_point: z.number().min(0).optional(),
-  lead_time_days: z.number().min(0).optional(),
-  notes: z.string().optional(),
-  created_by: z.string().optional()
+  unit: z.string().min(1, 'Birim gereklidir'),
+  // min_stock: z.number().min(0).optional(), // Not in Prisma Schema
+  // max_stock: z.number().min(0).optional(), // Not in Prisma Schema
+  location: z.string().optional().nullable(),
+  supplier: z.string().optional().nullable(),
+  project_id: z.string().uuid().optional().nullable(),
+  description: z.string().optional().nullable(),
+  // specifications: z.string().optional(), // Not in Prisma Schema
+  cost: z.number().min(0).default(0),
+  // status: z.enum(['active', 'inactive', 'discontinued']).default('active'), // Not in Prisma Schema
+  // reorder_point: z.number().min(0).optional(), // Not in Prisma Schema
+  // lead_time_days: z.number().min(0).optional(), // Not in Prisma Schema
+  // notes: z.string().optional(), // Not in Prisma Schema
+  created_by: z.string().uuid().optional().nullable()
 })
 
 export async function GET(req: NextRequest) {
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
+    // Align with legacy frontend which might send 'projects' equivalent keys or extra fields
     const parse = inventorySchema.safeParse(body)
 
     if (!parse.success) {
@@ -77,14 +78,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Filter out undefined values and prepare inventory data
-    const inventoryData = Object.fromEntries(
-      Object.entries(parse.data).filter(([_, value]) => value !== undefined)
-    )
+    // Strict alignment with Prisma.InventoryCreateInput
+    const inventoryData = {
+      name: parse.data.name,
+      code: parse.data.code || `INV-${Date.now()}`,
+      category: parse.data.category,
+      type: parse.data.type,
+      quantity: parse.data.quantity,
+      unit: parse.data.unit,
+      cost: parse.data.cost,
+      location: parse.data.location ?? null,
+      supplier: parse.data.supplier ?? null,
+      project_id: parse.data.project_id ?? null,
+      description: parse.data.description ?? null,
+      created_by: session.user.id // Audit
+    }
 
-    // Type assertion is safe here because we validated, but we need to ensure keys match DB columns
-    // The schema matches the DB structure (name, code, category, type...) so direct mapping is fine.
-    const inventory = await inventoryService.createInventory(inventoryData as any)
+    const inventory = await inventoryService.createInventory(inventoryData)
 
     return NextResponse.json({ success: true, data: inventory }, { status: 201 })
   } catch (error) {

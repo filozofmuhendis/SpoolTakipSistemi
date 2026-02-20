@@ -1,4 +1,5 @@
 import { inventoryRepository, InventoryInsert, InventoryUpdate } from '@/repositories/inventoryRepository'
+import prisma from '@/lib/prisma'
 
 export class InventoryService {
     async getAllInventory() {
@@ -21,7 +22,7 @@ export class InventoryService {
     }
 
     async updateInventory(id: string, data: InventoryUpdate) {
-        if (data.quantity !== undefined && data.quantity < 0) {
+        if (typeof data.quantity === 'number' && data.quantity < 0) {
             throw new Error('Quantity cannot be negative')
         }
         return await inventoryRepository.update(id, data)
@@ -49,6 +50,65 @@ export class InventoryService {
 
     async searchInventory(term: string) {
         return await inventoryRepository.search(term)
+    }
+
+    // Atomic Add Stock with Ledger
+    async addStock(id: string, amount: number, userId: string) {
+        if (amount <= 0) throw new Error('Amount must be positive')
+
+        return await prisma.$transaction(async (tx) => {
+            const item = await tx.inventory.update({
+                where: { id },
+                data: {
+                    quantity: { increment: amount }
+                }
+            })
+
+            await tx.inventoryTransaction.create({
+                data: {
+                    inventory_id: id,
+                    delta: amount,
+                    type: 'IN',
+                    user_id: userId
+                }
+            })
+
+            return item
+        })
+    }
+
+    // Atomic Consume Stock with Ledger
+    async consumeStock(id: string, amount: number, userId: string) {
+        if (amount <= 0) throw new Error('Amount must be positive')
+
+        return await prisma.$transaction(async (tx) => {
+            // Optional: Check stock first if we want strict non-negative in App layer
+            // const current = await tx.inventory.findUnique({ where: { id } })
+            // if (!current || current.quantity < amount) throw new Error('Insufficient stock')
+
+            const item = await tx.inventory.update({
+                where: { id },
+                data: {
+                    quantity: { decrement: amount }
+                }
+            })
+
+            await tx.inventoryTransaction.create({
+                data: {
+                    inventory_id: id,
+                    delta: -amount,
+                    type: 'OUT',
+                    user_id: userId
+                }
+            })
+
+            // Verify non-negative after update if strict constraint not in DB
+            if (item.quantity < 0) {
+                throw new Error('Insufficient stock (Rolled back)')
+            }
+
+            return item
+        })
     }
 }
 

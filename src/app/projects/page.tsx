@@ -33,7 +33,7 @@ export default function ProjectsPage() {
     try {
       setLoading(true)
       setError(null)
-      
+
       // Projeleri ve spool'ları paralel olarak çek
       const [projectsData, spoolsData] = await Promise.all([
         projectService.getAllProjects().catch(err => {
@@ -48,8 +48,8 @@ export default function ProjectsPage() {
 
       // Her proje için spool istatistiklerini hesapla
       const projectsWithStats = projectsData.map((project: Project) => {
-        const projectSpools = spoolsData.filter((spool: { project_id: string }) => spool.project_id === project.id)
-        const completedSpools = projectSpools.filter((spool: { status: string }) => spool.status === 'completed').length
+        const projectSpools = spoolsData.filter((spool) => spool.project_id === project.id)
+        const completedSpools = projectSpools.filter((spool) => spool.status === 'completed').length
         const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0
 
         return {
@@ -73,7 +73,7 @@ export default function ProjectsPage() {
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.manager_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      (project.manager_id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -159,38 +159,38 @@ export default function ProjectsPage() {
                 {getStatusText(project.status)}
               </span>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <User className="h-4 w-4 mr-2" />
                 {project.manager_id || 'Atanmamış'}
               </div>
-              
+
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <Calendar className="h-4 w-4 mr-2" />
                 {project.start_date ? new Date(project.start_date).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'}
                 {project.end_date && ` - ${new Date(project.end_date).toLocaleDateString('tr-TR')}`}
               </div>
-              
+
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <Package className="h-4 w-4 mr-2" />
                 {project.completedSpools}/{project.spoolCount} Spool
               </div>
-              
+
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-600 dark:text-gray-400">İlerleme</span>
                   <span className="font-medium">{project.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
-                    style={{width: `${project.progress}%`}}
+                  <div
+                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${project.progress}%` }}
                   ></div>
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex gap-2">
               <Link href={`/projects/${project.id}`} className="flex-1 btn-secondary text-sm text-center">
                 Detaylar

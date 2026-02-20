@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { personnelService } from '@/services/personnelService'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
   try {
     const body = await request.json()
     const { email, password, full_name, phone, department, position } = body
@@ -28,6 +34,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user.role !== 'admin' && session.user.role !== 'manager')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

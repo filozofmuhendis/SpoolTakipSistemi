@@ -20,19 +20,19 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-    
+
     try {
       const updateData: any = {
         full_name: formData.full_name,
         email: formData.email
       }
-      
+
       if (formData.phone) updateData.phone = formData.phone
       if (formData.position) updateData.position = formData.position
       if (formData.department) updateData.department = formData.department
-      
+
       const updatedPersonnel = await personnelService.updatePersonnel(personnel.id, updateData)
-      
+
       if (updatedPersonnel) {
         onSave(updatedPersonnel)
       }
@@ -67,7 +67,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Ad Soyad</label>
               <input
                 type="text"
-                value={formData.full_name}
+                value={formData.full_name || ''}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
@@ -78,7 +78,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">E-posta</label>
               <input
                 type="email"
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
@@ -89,7 +89,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Pozisyon</label>
               <input
                 type="text"
-                value={formData.position}
+                value={formData.position || ''}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
@@ -100,7 +100,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Departman</label>
               <input
                 type="text"
-                value={formData.department}
+                value={formData.department || ''}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="w-full p-2 border rounded-lg"
                 required
@@ -111,7 +111,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
               <label className="block text-sm font-medium mb-2">Telefon</label>
               <input
                 type="tel"
-                value={formData.phone}
+                value={formData.phone || ''}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full p-2 border rounded-lg"
               />
@@ -120,7 +120,7 @@ export default function EditPersonnelModal({ personnel, onClose, onSave }: EditP
             <div>
               <label className="block text-sm font-medium mb-2">Durum</label>
               <select
-                value={formData.status}
+                value={formData.status || 'active'}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'on_leave' })}
                 className="w-full p-2 border rounded-lg"
               >

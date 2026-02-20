@@ -19,7 +19,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     loadInventory()
-  }, [])
+  }, []) // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const loadInventory = async () => {
     try {
@@ -58,8 +58,8 @@ export default function InventoryPage() {
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.location?.toLowerCase().includes(searchTerm.toLowerCase())
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.location?.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
@@ -77,10 +77,10 @@ export default function InventoryPage() {
             Yeni Malzeme
           </Link>
         </div>
-        <EmptyState 
+        <EmptyState
           title="Envanter bulunamadı"
-          description={searchTerm 
-            ? "Arama kriterlerinize uygun malzeme bulunamadı." 
+          description={searchTerm
+            ? "Arama kriterlerinize uygun malzeme bulunamadı."
             : "Henüz hiç malzeme eklenmemiş."}
         />
       </div>
@@ -156,13 +156,13 @@ export default function InventoryPage() {
               />
             </div>
           </div>
-            <button
+          <button
             onClick={handleSearch}
             className="btn-primary flex items-center gap-2"
-            >
+          >
             <Search className="w-4 h-4" />
             Ara
-            </button>
+          </button>
         </div>
       </div>
 

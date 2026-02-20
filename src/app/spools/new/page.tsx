@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
-import { spoolService } from '@/lib/services/spools'
+import { spoolService } from '@/services/spoolService'
 import { projectService } from '@/lib/services/projects'
 import { Project } from '@/types'
 import Link from 'next/link'
@@ -14,12 +14,10 @@ import Link from 'next/link'
 const spoolSchema = z.object({
   name: z.string().min(1, 'Ürün alt kalemi adı gereklidir'),
   project_id: z.string().min(1, 'Proje seçilmelidir'),
-  material: z.string().min(1, 'Malzeme gereklidir'),
-  diameter: z.string().min(1, 'Çap gereklidir'),
-  thickness: z.string().min(1, 'Kalınlık gereklidir'),
-  length: z.string().min(1, 'Uzunluk gereklidir'),
+  material_type: z.string().min(1, 'Malzeme tipi gereklidir'),
+  dimensions: z.string().min(1, 'Boyutlar gereklidir'),
   weight: z.string().min(1, 'Ağırlık gereklidir'),
-  status: z.enum(['pending', 'active', 'completed']),
+  status: z.enum(['pending', 'in_progress', 'completed', 'on_hold']),
   notes: z.string().optional()
 })
 
@@ -63,15 +61,13 @@ export default function NewSpoolPage() {
 
       await spoolService.createSpool({
         name: data.name,
-        project_id: data.project_id,
-        material: data.material,
-        diameter: parseFloat(data.diameter) || 0,
-        thickness: parseFloat(data.thickness) || 0,
-        length: parseFloat(data.length) || 0,
+        project: { connect: { id: data.project_id } },
+        material_type: data.material_type,
+        dimensions: data.dimensions,
         weight: parseFloat(data.weight) || 0,
-        status: data.status,
-        notes: data.notes || ''
-      })
+        status: data.status as any,
+        quantity: 1
+      } as any)
 
       router.push('/spools?success=true')
     } catch (error: any) {
@@ -146,67 +142,35 @@ export default function NewSpoolPage() {
               )}
             </div>
 
-            {/* Malzeme */}
+            {/* Malzeme Tipi */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Malzeme *
+                Malzeme Tipi *
               </label>
               <input
                 type="text"
-                {...register('material')}
+                {...register('material_type')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Örn: Çelik, Paslanmaz Çelik"
+                placeholder="Örn: Karbon Çelik, ASTM A106"
               />
-              {errors.material && (
-                <p className="mt-1 text-sm text-red-600">{errors.material.message}</p>
+              {errors.material_type && (
+                <p className="mt-1 text-sm text-red-600">{errors.material_type.message}</p>
               )}
             </div>
 
-            {/* Çap */}
+            {/* Boyutlar */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Çap *
+                Boyutlar *
               </label>
               <input
                 type="text"
-                {...register('diameter')}
+                {...register('dimensions')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Örn: 50mm, 2 inch"
+                placeholder="Örn: 24 in x 12.7mm x 6000mm"
               />
-              {errors.diameter && (
-                <p className="mt-1 text-sm text-red-600">{errors.diameter.message}</p>
-              )}
-            </div>
-
-            {/* Kalınlık */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Kalınlık *
-              </label>
-              <input
-                type="text"
-                {...register('thickness')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Örn: 3mm, 0.125 inch"
-              />
-              {errors.thickness && (
-                <p className="mt-1 text-sm text-red-600">{errors.thickness.message}</p>
-              )}
-            </div>
-
-            {/* Uzunluk */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Uzunluk *
-              </label>
-              <input
-                type="text"
-                {...register('length')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="Örn: 5m, 16.4 ft"
-              />
-              {errors.length && (
-                <p className="mt-1 text-sm text-red-600">{errors.length.message}</p>
+              {errors.dimensions && (
+                <p className="mt-1 text-sm text-red-600">{errors.dimensions.message}</p>
               )}
             </div>
 
@@ -236,8 +200,9 @@ export default function NewSpoolPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               >
                 <option value="pending">Beklemede</option>
-                <option value="active">Aktif</option>
+                <option value="in_progress">Üretimde</option>
                 <option value="completed">Tamamlandı</option>
+                <option value="on_hold">Beklemede (Durduruldu)</option>
               </select>
             </div>
           </div>
@@ -269,7 +234,7 @@ export default function NewSpoolPage() {
               disabled={loading}
               className="btn-primary flex items-center gap-2"
             >
-                <Save className="w-4 h-4" />
+              <Save className="w-4 h-4" />
               {loading ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>

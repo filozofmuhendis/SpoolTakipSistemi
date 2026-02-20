@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Package, Users, BarChart3, Truck, FileText } from 'lucide-react'
-import { projectService } from '@/lib/services/projects'
-import { spoolService } from '@/lib/services/spools'
-import { personnelService } from '@/lib/services/personnel'
-import { jobOrderService } from '@/lib/services/workOrders'
-import { shipmentService } from '@/lib/services/shipments'
+import { projectService } from '@/services/projectService'
+import { spoolService } from '@/services/spoolService'
+import { personnelService } from '@/services/personnelService'
+import { workOrderService } from '@/services/workOrderService'
+import { shipmentService } from '@/services/shipmentService'
 import { useRouter } from 'next/navigation'
 
 interface SearchResult {
@@ -60,7 +60,7 @@ export default function GlobalSearch() {
       // Projelerde arama
       const projects = await projectService.getAllProjects()
       const projectResults = projects
-        .filter(project => 
+        .filter(project =>
           project.name.toLowerCase().includes(query.toLowerCase()) ||
           project.description?.toLowerCase().includes(query.toLowerCase())
         )
@@ -77,7 +77,7 @@ export default function GlobalSearch() {
       // Ürün alt kalemlerinde arama
       const spools = await spoolService.getAllSpools()
       const spoolResults = spools
-        .filter(spool => 
+        .filter(spool =>
           spool.name?.toLowerCase().includes(query.toLowerCase())
         )
         .map(spool => ({
@@ -93,15 +93,15 @@ export default function GlobalSearch() {
       // Personelde arama
       const personnel = await personnelService.getAllPersonnel()
       const personnelResults = personnel
-        .filter(person => 
-          person.full_name?.toLowerCase().includes(query.toLowerCase()) ||
-          person.email?.toLowerCase().includes(query.toLowerCase()) ||
-          person.department?.toLowerCase().includes(query.toLowerCase())
+        .filter(person =>
+          (person.name || '').toLowerCase().includes(query.toLowerCase()) ||
+          person.email.toLowerCase().includes(query.toLowerCase()) ||
+          (person.department || '').toLowerCase().includes(query.toLowerCase())
         )
         .map(person => ({
           id: person.id,
           type: 'personnel' as const,
-          title: person.full_name || 'İsimsiz',
+          title: person.name || 'İsimsiz Personel',
           subtitle: `${person.department || 'Departman yok'} - ${person.position || 'Pozisyon yok'}`,
           status: 'active',
           url: `/personnel/${person.id}`,
@@ -109,16 +109,17 @@ export default function GlobalSearch() {
         }))
 
       // İş emirlerinde arama
-      const workOrders = await jobOrderService.getAllJobOrders()
+      const workOrders = await workOrderService.getAllWorkOrders()
       const workOrderResults = workOrders
-        .filter(wo => 
+        .filter((wo: any) =>
+          wo.title?.toLowerCase().includes(query.toLowerCase()) ||
           wo.description?.toLowerCase().includes(query.toLowerCase())
         )
-        .map(wo => ({
+        .map((wo: any) => ({
           id: wo.id,
           type: 'workOrder' as const,
-          title: wo.description || 'Açıklama yok',
-          subtitle: 'Proje bilgisi yok',
+          title: wo.title || 'İş Emri',
+          subtitle: wo.description || 'Açıklama yok',
           status: wo.status,
           url: `/work-orders/${wo.id}`,
           icon: <FileText className="w-4 h-4" />
@@ -127,7 +128,7 @@ export default function GlobalSearch() {
       // Sevkiyatlarda arama
       const shipments = await shipmentService.getAllShipments()
       const shipmentResults = shipments
-        .filter(shipment => 
+        .filter(shipment =>
           shipment.id.toLowerCase().includes(query.toLowerCase())
         )
         .map(shipment => ({
@@ -161,7 +162,7 @@ export default function GlobalSearch() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(prev => 
+      setSelectedIndex(prev =>
         prev < results.length - 1 ? prev + 1 : prev
       )
     } else if (e.key === 'ArrowUp') {
@@ -265,9 +266,8 @@ export default function GlobalSearch() {
                 <button
                   key={`${result.type}-${result.id}`}
                   onClick={() => handleResultClick(result)}
-                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''
-                  }`}
+                  className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${index === selectedIndex ? 'bg-gray-50 dark:bg-gray-700' : ''
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="text-gray-400">

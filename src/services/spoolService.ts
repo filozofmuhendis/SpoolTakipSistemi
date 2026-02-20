@@ -1,8 +1,9 @@
 import { spoolRepository, SpoolInsert, SpoolUpdate } from '@/repositories/spoolRepository'
 
 export class SpoolService {
-    async getAllSpools() {
-        return await spoolRepository.findAll()
+    async getAllSpools(page: number = 1, limit: number = 10) {
+        const skip = (page - 1) * limit;
+        return await spoolRepository.findAll(skip, limit)
     }
 
     async searchSpools(search: string) {
@@ -11,14 +12,14 @@ export class SpoolService {
 
     async createSpool(data: SpoolInsert) {
         // Validation: Check quantity > 0
-        if (data.quantity != null && data.quantity < 1) {
+        if (data.quantity !== null && data.quantity !== undefined && data.quantity < 1) {
             throw new Error('Quantity must be at least 1')
         }
         return await spoolRepository.create(data)
     }
 
     async updateSpool(id: string, data: SpoolUpdate) {
-        if (data.quantity != null && data.quantity < 1) {
+        if (typeof data.quantity === 'number' && data.quantity < 1) {
             throw new Error('Quantity must be at least 1')
         }
         return await spoolRepository.update(id, data)

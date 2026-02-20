@@ -1,66 +1,83 @@
-import { supabase } from '@/lib/supabase'
-import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
-export type JobOrder = Tables<'work_orders'>
-export type JobOrderInsert = TablesInsert<'work_orders'>
-export type JobOrderUpdate = TablesUpdate<'work_orders'>
+export type WorkOrderCreateInput = Prisma.WorkOrderCreateInput
+export type WorkOrderUpdateInput = Prisma.WorkOrderUpdateInput
+export type JobOrderInsert = WorkOrderCreateInput
+export type JobOrderUpdate = WorkOrderUpdateInput
 
 export const workOrderRepository = {
-    // Tüm iş emirlerini getir
+    // Get all active work orders
     async findAll() {
-        const { data, error } = await supabase
-            .from('work_orders')
-            .select('*')
-            .is('deleted_at', null)
-            .order('start_date', { ascending: false })
-
-        if (error) throw error
-        return data as JobOrder[]
+        return await prisma.workOrder.findMany({
+            where: {
+                deleted_at: null
+            },
+            include: {
+                assignee: true, // Include User
+                project: { select: { name: true } },
+                spool: { select: { name: true } }
+            },
+            orderBy: {
+                start_date: 'desc'
+            }
+        })
     },
 
-    async create(workOrder: JobOrderInsert) {
-        const { data, error } = await supabase
-            .from('work_orders')
-            .insert(workOrder)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as JobOrder
+    // Create work order
+    async create(data: WorkOrderCreateInput) {
+        return await prisma.workOrder.create({
+            data
+        })
     },
 
-    async update(id: string, updates: JobOrderUpdate) {
-        const { data, error } = await supabase
-            .from('work_orders')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as JobOrder
+    // Update work order
+    async update(id: string, data: WorkOrderUpdateInput) {
+        return await prisma.workOrder.update({
+            where: { id },
+            data
+        })
     },
 
+    // Soft delete work order
     async delete(id: string) {
-        // Soft delete
-        const { error } = await supabase
-            .from('work_orders')
-            .update({ deleted_at: new Date().toISOString() } as any)
-            .eq('id', id)
-
-        if (error) throw error
+        await prisma.workOrder.update({
+            where: { id },
+            data: {
+                deleted_at: new Date()
+            }
+        })
         return true
     },
 
+    // Find work order by ID
     async findById(id: string) {
-        const { data, error } = await supabase
-            .from('work_orders')
-            .select('*')
-            .eq('id', id)
-            .is('deleted_at', null)
-            .single()
+        return await prisma.workOrder.findFirst({
+            where: {
+                id,
+                deleted_at: null
+            },
+            include: {
+                assignee: true,
+                project: { select: { name: true } },
+                spool: { select: { name: true } }
+            }
+        })
+    },
 
-        if (error) return null
-        return data as JobOrder
+    async findByAssignee(userId: string) {
+        return await prisma.workOrder.findMany({
+            where: {
+                assigned_to: userId,
+                deleted_at: null
+            },
+            include: {
+                project: { select: { name: true } },
+                spool: { select: { name: true } }
+            },
+            orderBy: {
+                start_date: 'asc'
+            }
+        })
     }
 }

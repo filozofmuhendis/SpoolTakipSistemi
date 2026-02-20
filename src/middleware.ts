@@ -1,8 +1,13 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Rate limiting store (in production, use Redis or similar)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+// Rate limiting configuration
+const RATE_LIMIT = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 50,
+  apiWindowMs: 1 * 60 * 1000, // 1 minute
+  apiMaxRequests: 30,
+}
 
 // Security headers
 const securityHeaders = {
@@ -15,16 +20,8 @@ const securityHeaders = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 }
 
-// Rate limiting configuration
-const RATE_LIMIT = {
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 100, // limit each IP to 100 requests per windowMs
-  apiWindowMs: 1 * 60 * 1000, // 1 minute for API routes
-  apiMaxRequests: 20, // limit each IP to 20 API requests per minute
-}
-
 // Sayfa bazlı rol gereksinimleri
-const roleRequirements = {
+const roleRequirements: Record<string, string[]> = {
   '/admin': ['admin'],
   '/reports': ['admin', 'manager'],
   '/materials/manage': ['admin', 'manager'],
@@ -35,69 +32,31 @@ const roleRequirements = {
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
   const realIP = request.headers.get('x-real-ip')
-  
-  if (forwarded) {
-    return forwarded.split(',')[0]?.trim() || 'unknown'
-  }
-  
-  if (realIP) {
-    return realIP
-  }
-  
+  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
+  if (realIP) return realIP
   return 'unknown'
 }
 
-function isRateLimited(ip: string, isApiRoute: boolean): boolean {
-  const now = Date.now()
-  const windowMs = isApiRoute ? RATE_LIMIT.apiWindowMs : RATE_LIMIT.windowMs
-  const maxRequests = isApiRoute ? RATE_LIMIT.apiMaxRequests : RATE_LIMIT.maxRequests
-  
-  const key = `${ip}:${isApiRoute ? 'api' : 'web'}`
-  const record = rateLimitStore.get(key)
-  
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + windowMs,
-    })
-    return false
-  }
-  
-  if (record.count >= maxRequests) {
-    return true
-  }
-  
-  record.count++
-  return false
-}
-
-function cleanupRateLimit(): void {
-  const now = Date.now()
-  for (const [key, record] of rateLimitStore.entries()) {
-    if (now > record.resetTime) {
-      rateLimitStore.delete(key)
-    }
-  }
-}
-
-// Clean up rate limit store every 5 minutes
-setInterval(cleanupRateLimit, 5 * 60 * 1000)
-
 export default withAuth(
-  function middleware(req) {
+  async function middleware(req) {
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
     const ip = getClientIP(req as NextRequest)
     const isApiRoute = path.startsWith('/api')
-    
+
     // Apply security headers
     const response = NextResponse.next()
     Object.entries(securityHeaders).forEach(([key, value]) => {
       response.headers.set(key, value)
     })
-    
-    // Rate limiting
-    if (isRateLimited(ip, isApiRoute)) {
+
+    // Advanced Rate Limiting
+    const { isRateLimited } = await import('./lib/rateLimit')
+    const limit = isApiRoute ? RATE_LIMIT.apiMaxRequests : RATE_LIMIT.maxRequests
+    const windowSecs = (isApiRoute ? RATE_LIMIT.apiWindowMs : RATE_LIMIT.windowMs) / 1000
+    const rateLimited = await isRateLimited(`${ip}:${isApiRoute ? 'api' : 'web'}`, limit, windowSecs)
+
+    if (rateLimited) {
       if (isApiRoute) {
         return NextResponse.json(
           {
@@ -121,25 +80,22 @@ export default withAuth(
 
     // Rol kontrolü
     if (token?.role) {
-      // Sayfa için rol gereksinimi var mı kontrol et
-      const requiredRoles = Object.entries(roleRequirements).find(([route]) => 
+      const requiredRoles = Object.entries(roleRequirements).find(([route]) =>
         path.startsWith(route)
       )?.[1]
 
-      // Eğer sayfa rol gerektiriyorsa ve kullanıcının rolü uygun değilse
       if (requiredRoles && !requiredRoles.includes(token.role as string)) {
-        // Ana sayfaya yönlendir
         return NextResponse.redirect(new URL('/', req.url))
       }
     }
-    
+
     // Add user info to headers for API routes
     if (isApiRoute && token) {
       response.headers.set('x-user-id', token.sub || '')
       response.headers.set('x-user-email', token.email || '')
       response.headers.set('x-user-role', (token.role as string) || 'user')
     }
-    
+
     return response
   },
   {
@@ -155,6 +111,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|login|register|reset-password|new-password|error|test-profiles).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|login|register|reset-password|new-password|error|test-profiles).*)',
   ]
 }

@@ -28,11 +28,11 @@ export function createSuccessResponse<T>(
     data,
     timestamp: new Date().toISOString()
   }
-  
+
   if (message !== undefined) {
     response.message = message
   }
-  
+
   return response
 }
 
@@ -69,7 +69,7 @@ export function createDatabaseErrorResponse(
   error: any
 ): { response: ApiResponse; status: number } {
   const isDevelopment = process.env.NODE_ENV === 'development'
-  
+
   return createErrorResponse(
     isDevelopment ? error.message : 'Veritabanı hatası',
     500,
@@ -122,7 +122,7 @@ export function createRateLimitErrorResponse(): { response: ApiResponse; status:
 // Generic error handler for API routes
 export function handleApiError(error: any): { response: ApiResponse; status: number } {
   console.log('API Error:', error)
-  
+
   // Network errors (check before Supabase errors)
   if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
     return createErrorResponse(
@@ -131,7 +131,7 @@ export function handleApiError(error: any): { response: ApiResponse; status: num
       'Servis şu anda kullanılamıyor'
     )
   }
-  
+
   // Supabase errors
   if (error.code) {
     switch (error.code) {
@@ -157,7 +157,7 @@ export function handleApiError(error: any): { response: ApiResponse; status: num
         return createDatabaseErrorResponse(error)
     }
   }
-  
+
   // Validation errors (Zod)
   if (error.name === 'ZodError') {
     const validationErrors: Record<string, string[]> = {}
@@ -170,7 +170,7 @@ export function handleApiError(error: any): { response: ApiResponse; status: num
     })
     return createValidationErrorResponse(validationErrors)
   }
-  
+
   // Network errors
   if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
     return createErrorResponse(
@@ -179,7 +179,7 @@ export function handleApiError(error: any): { response: ApiResponse; status: num
       'Servis şu anda kullanılamıyor'
     )
   }
-  
+
   // Default error
   const isDevelopment = process.env.NODE_ENV === 'development'
   return createErrorResponse(
@@ -196,12 +196,12 @@ export function withErrorHandling<T>(
   return async (request: any) => {
     try {
       const result = await handler(request)
-      
+
       // If handler returns a Response object, return it as is
       if (result && typeof result === 'object' && 'status' in result && 'json' in result) {
         return result
       }
-      
+
       // Otherwise wrap the data in a success response
       return {
         json: async () => createSuccessResponse(result),

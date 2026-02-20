@@ -14,7 +14,7 @@ export class WorkOrderService {
     }
 
     async updateWorkOrder(id: string, data: JobOrderUpdate) {
-        if (data.start_date && data.due_date && new Date(data.start_date) > new Date(data.due_date)) {
+        if (data.start_date && data.due_date && new Date(data.start_date as any) > new Date(data.due_date as any)) {
             throw new Error('Start date cannot be after due date')
         }
         return await workOrderRepository.update(id, data)

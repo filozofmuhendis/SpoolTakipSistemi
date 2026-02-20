@@ -1,69 +1,65 @@
-import { supabase } from '@/lib/supabase'
-import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
-export type Project = Tables<'projects'>
-export type ProjectInsert = TablesInsert<'projects'>
-export type ProjectUpdate = TablesUpdate<'projects'>
+export type ProjectCreateInput = Prisma.ProjectCreateInput
+export type ProjectUpdateInput = Prisma.ProjectUpdateInput
+export type ProjectInsert = ProjectCreateInput
+export type ProjectUpdate = ProjectUpdateInput
 
 export const projectRepository = {
-    // Tüm projeleri getir (Active only)
-    async findAll() {
-        const { data, error } = await supabase
-            .from('projects')
-            .select('*')
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false })
-
-        if (error) throw error
-        return data as Project[]
+    // Get all active projects with optional pagination
+    async findAll(skip?: number, take?: number) {
+        return await prisma.project.findMany({
+            ...(skip !== undefined && { skip }),
+            ...(take !== undefined && { take }),
+            where: {
+                deleted_at: null
+            },
+            include: {
+                manager: true // Include User
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
     },
 
-    // Proje oluştur
-    async create(project: ProjectInsert) {
-        const { data, error } = await supabase
-            .from('projects')
-            .insert(project)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as Project
+    // Create a new project
+    async create(data: ProjectCreateInput) {
+        return await prisma.project.create({
+            data
+        })
     },
 
-    // Proje güncelle
-    async update(id: string, updates: ProjectUpdate) {
-        const { data, error } = await supabase
-            .from('projects')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as Project
+    // Update a project
+    async update(id: string, data: ProjectUpdateInput) {
+        return await prisma.project.update({
+            where: { id },
+            data
+        })
     },
 
-    // Soft delete
+    // Soft delete a project
     async delete(id: string) {
-        const { error } = await supabase
-            .from('projects')
-            .update({ deleted_at: new Date().toISOString() } as any) // Cast to any if deleted_at not in types yet
-            .eq('id', id)
-
-        if (error) throw error
+        await prisma.project.update({
+            where: { id },
+            data: {
+                deleted_at: new Date()
+            }
+        })
         return true
     },
 
-    // Proje detayını getir
+    // Find project by ID (Active only)
     async findById(id: string) {
-        const { data, error } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('id', id)
-            .is('deleted_at', null)
-            .single()
-
-        if (error) return null
-        return data as Project
+        return await prisma.project.findFirst({
+            where: {
+                id,
+                deleted_at: null
+            },
+            include: {
+                manager: true
+            }
+        })
     }
 }

@@ -1,83 +1,89 @@
-import { supabase } from '@/lib/supabase'
-import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
-export type Spool = Tables<'spools'>
-export type SpoolInsert = TablesInsert<'spools'>
-export type SpoolUpdate = TablesUpdate<'spools'>
+export type SpoolCreateInput = Prisma.SpoolCreateInput
+export type SpoolUpdateInput = Prisma.SpoolUpdateInput
+export type SpoolInsert = SpoolCreateInput
+export type SpoolUpdate = SpoolUpdateInput
 
 export const spoolRepository = {
-    // Tüm makaraları getir
-    async findAll() {
-        const { data, error } = await supabase
-            .from('spools')
-            .select('*, projects:project_id(name)')
-            .is('deleted_at', null)
-            .order('created_at', { ascending: false })
-
-        if (error) throw error
-        return data as Spool[]
+    // Get all active spools with optional pagination
+    async findAll(skip?: number, take?: number) {
+        return await prisma.spool.findMany({
+            ...(skip !== undefined && { skip }),
+            ...(take !== undefined && { take }),
+            where: {
+                deleted_at: null
+            },
+            include: {
+                project: {
+                    select: {
+                        name: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
     },
 
-    // Arama yap
+    // Search spools
     async search(query: string) {
-        const { data, error } = await supabase
-            .from('spools')
-            .select('*, projects:project_id(name)')
-            .is('deleted_at', null)
-            .ilike('name', `%${query}%`)
-            .order('created_at', { ascending: false })
-
-        if (error) throw error
-        return data as Spool[]
+        return await prisma.spool.findMany({
+            where: {
+                deleted_at: null,
+                name: {
+                    contains: query,
+                    mode: 'insensitive'
+                }
+            },
+            include: {
+                project: {
+                    select: {
+                        name: true
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
     },
 
-    // Ürün alt kalemi oluştur
-    async create(spool: SpoolInsert) {
-        const { data, error } = await supabase
-            .from('spools')
-            .insert(spool)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as Spool
+    // Create a new spool
+    async create(data: SpoolCreateInput) {
+        return await prisma.spool.create({
+            data
+        })
     },
 
-    // Ürün alt kalemi güncelle
-    async update(id: string, updates: SpoolUpdate) {
-        const { data, error } = await supabase
-            .from('spools')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as Spool
+    // Update a spool
+    async update(id: string, data: SpoolUpdateInput) {
+        return await prisma.spool.update({
+            where: { id },
+            data
+        })
     },
 
-    // Ürün alt kalemi sil
+    // Soft delete a spool
     async delete(id: string) {
-        // Soft delete
-        const { error } = await supabase
-            .from('spools')
-            .update({ deleted_at: new Date().toISOString() } as any)
-            .eq('id', id)
-
-        if (error) throw error
+        await prisma.spool.update({
+            where: { id },
+            data: {
+                deleted_at: new Date()
+            }
+        })
         return true
     },
 
-    // Ürün alt kalemi detayını getir
+    // Find spool by ID
     async findById(id: string) {
-        const { data, error } = await supabase
-            .from('spools')
-            .select('*')
-            .eq('id', id)
-            .is('deleted_at', null)
-            .single()
-
-        if (error) return null
-        return data as Spool
+        return await prisma.spool.findFirst({
+            where: {
+                id,
+                deleted_at: null
+            }
+        })
     }
 }

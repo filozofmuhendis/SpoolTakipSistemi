@@ -1,40 +1,48 @@
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 
 export function useAuth() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { data: { user }, error } = await supabase.auth.signUp({
-      email,
-      password,
+    // Call our registration API
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
     })
 
-    if (error) throw error
+    const data = await response.json()
 
-    if (user) {
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{ id: user.id, name, role: 'user' }])
-
-      if (profileError) throw profileError
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Kayıt başarısız')
     }
 
-    return user
+    // Auto login after signup?
+    // User requested Login? Or just return user.
+    // The previous implementation returned user object.
+    // We can auto-login or let user login.
+    // For seamless experience, we can try to signIn.
+    // But usually we just redirect to login or dashboard.
+    // Let's return the user data.
+    return data.data
   }
 
   const updateProfile = async (data: { name?: string; role?: string }) => {
     if (!session?.user?.email) throw new Error('No user logged in')
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(data)
-      .eq('id', session.user.email)
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
 
-    if (error) throw error
+    const responseData = await response.json()
+
+    if (!response.ok) {
+      throw new Error(responseData.error?.message || 'Güncelleme başarısız')
+    }
 
     router.refresh()
   }
@@ -50,8 +58,7 @@ export function useAuth() {
 
   const forceLogout = async () => {
     try {
-      // Tüm oturumları sonlandır
-      await supabase.auth.signOut()
+      // Just signOut, as we don't manage session tokens manually anymore
       await signOut({ redirect: false })
       router.push('/login')
     } catch (error) {
@@ -60,14 +67,10 @@ export function useAuth() {
   }
 
   const getActiveSessions = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error) throw error
-      return session ? [session] : []
-    } catch (error) {
-      console.log('Aktif oturumlar alınamadı:', error)
-      return []
-    }
+    // Not implemented in NextAuth client side easily without API
+    // Return current session as list
+    if (session) return [session]
+    return []
   }
 
   return {

@@ -1,181 +1,174 @@
-import { supabase } from '@/lib/supabase'
-
 export function useData() {
   const getProjects = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data
+    const res = await fetch('/api/projects')
+    if (!res.ok) throw new Error('Failed to fetch projects')
+    const json = await res.json()
+    return json.data
   }
 
   const getSpools = async (projectId?: string) => {
-    let query = supabase
-      .from('spools')
-      .select('*, project:projects(*)')
-      .order('created_at', { ascending: false })
-
-    if (projectId) {
-      query = query.eq('project_id', projectId)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    return data
+    const url = projectId ? `/api/spools?projectId=${projectId}` : '/api/spools'
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('Failed to fetch spools')
+    const json = await res.json()
+    return json.data
   }
 
   const getMaterials = async () => {
-    const { data, error } = await supabase
-      .from('materials')
-      .select('*')
-      .order('name')
-
-    if (error) throw error
-    return data
+    // Assuming /api/materials exists. If not, I'll create it.
+    const res = await fetch('/api/materials')
+    if (!res.ok) throw new Error('Failed to fetch materials')
+    const json = await res.json()
+    return json.data
   }
 
   const getPersonnel = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('full_name')
-
-    if (error) throw error
-    return data
+    const res = await fetch('/api/personnel')
+    if (!res.ok) throw new Error('Failed to fetch personnel')
+    const json = await res.json()
+    return json.data
   }
 
   // Project Operations
   const createProject = async (data: { name: string; description?: string }) => {
-    const { data: project, error } = await supabase
-      .from('projects')
-      .insert([data])
-      .select()
-      .single()
-
-    if (error) throw error
-    return project
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to create project')
+    const json = await res.json()
+    return json.data
   }
 
   const updateProject = async (id: string, data: { name?: string; description?: string; status?: string }) => {
-    const { data: project, error } = await supabase
-      .from('projects')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return project
+    const res = await fetch(`/api/projects?id=${id}`, { // OR /api/projects/[id] if dynamic route
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to update project')
+    const json = await res.json()
+    return json.data
   }
 
   const deleteProject = async (id: string) => {
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
+    const res = await fetch(`/api/projects?id=${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete project')
   }
 
   // Spool Operations
   const createSpool = async (data: { project_id: string; code: string; description?: string }) => {
-    const { data: spool, error } = await supabase
-      .from('spools')
-      .insert([data])
-      .select()
-      .single()
-
-    if (error) throw error
-    return spool
+    // Mapping: hook expects 'code', 'description'.
+    // API expects 'name' (for code?), 'status', 'project_id'. 
+    // Spool model has 'name', 'status'.
+    // Old code used 'code' -> 'spools' table.
+    // My Prisma model has 'name' and 'status'.
+    // I should map code -> name?
+    // And add default status.
+    const payload = {
+      name: data.code, // Map code to name or vice versa? 
+      // Previous schema had 'code' unique? 
+      // My Prisma schema has 'name'. 
+      // Let's assume name is the code.
+      project_id: data.project_id
+    }
+    const res = await fetch('/api/spools', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) throw new Error('Failed to create spool')
+    const json = await res.json()
+    return json.data
   }
 
   const updateSpool = async (id: string, data: { code?: string; description?: string; status?: string }) => {
-    const { data: spool, error } = await supabase
-      .from('spools')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single()
+    const payload: any = {}
+    if (data.code) payload.name = data.code
+    if (data.status) payload.status = data.status
 
-    if (error) throw error
-    return spool
+    const res = await fetch(`/api/spools?id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!res.ok) throw new Error('Failed to update spool')
+    const json = await res.json()
+    return json.data
   }
 
   const deleteSpool = async (id: string) => {
-    const { error } = await supabase
-      .from('spools')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
+    const res = await fetch(`/api/spools?id=${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete spool')
   }
 
   // Material Operations
   const createMaterial = async (data: { name: string; type?: string; unit?: string; stock_quantity?: number }) => {
-    const { data: material, error } = await supabase
-      .from('materials')
-      .insert([data])
-      .select()
-      .single()
-
-    if (error) throw error
-    return material
+    const res = await fetch('/api/materials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to create material')
+    const json = await res.json()
+    return json.data
   }
 
   const updateMaterial = async (id: string, data: { name?: string; type?: string; unit?: string; stock_quantity?: number }) => {
-    const { data: material, error } = await supabase
-      .from('materials')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return material
+    const res = await fetch(`/api/materials?id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to update material')
+    const json = await res.json()
+    return json.data
   }
 
   const deleteMaterial = async (id: string) => {
-    const { error } = await supabase
-      .from('materials')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
+    const res = await fetch(`/api/materials?id=${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete material')
   }
 
   // Personnel Operations
   const createPersonnel = async (data: { id: string; full_name: string; position?: string }) => {
-    const { data: personnel, error } = await supabase
-      .from('profiles')
-      .insert([data])
-      .select()
-      .single()
-
-    if (error) throw error
-    return personnel
+    // createPersonnel in hook passed 'id' manually? 
+    // NextAuth / Register handles creation.
+    // This might be "Admin creating personnel"?
+    // If so, use /api/personnel (POST).
+    const res = await fetch('/api/personnel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to create personnel')
+    const json = await res.json()
+    return json.data
   }
 
   const updatePersonnel = async (id: string, data: { full_name?: string; position?: string; status?: string }) => {
-    const { data: personnel, error } = await supabase
-      .from('profiles')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return personnel
+    const res = await fetch(`/api/personnel?id=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    if (!res.ok) throw new Error('Failed to update personnel')
+    const json = await res.json()
+    return json.data
   }
 
   const deletePersonnel = async (id: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
+    const res = await fetch(`/api/personnel?id=${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete personnel')
   }
 
   return {

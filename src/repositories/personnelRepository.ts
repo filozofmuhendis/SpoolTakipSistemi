@@ -1,86 +1,82 @@
-import { supabase } from '@/lib/supabase'
-import { Tables, TablesInsert, TablesUpdate } from '@/types/supabase'
+import prisma from '@/lib/prisma'
+import { Prisma, User } from '@prisma/client'
 
-export type Personnel = Tables<'profiles'>
-export type PersonnelInsert = TablesInsert<'profiles'>
-export type PersonnelUpdate = TablesUpdate<'profiles'>
+export type Personnel = User
+export type PersonnelInsert = Prisma.UserCreateInput
+export type PersonnelUpdate = Prisma.UserUpdateInput
 
 export const personnelRepository = {
-    // Tüm personeli getir
+    // Get all personnel sorted by name
     async findAll() {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('full_name', { ascending: true })
-
-        if (error) throw error
-        return data as Personnel[]
+        return await prisma.user.findMany({
+            orderBy: {
+                name: 'asc'
+            }
+        })
     },
 
+    // Get active personnel
     async findActive() {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('status', 'active')
-            .order('full_name', { ascending: true })
-
-        if (error) throw error
-        return data as Personnel[]
+        return await prisma.user.findMany({
+            where: {
+                status: 'active'
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        })
     },
 
+    // Get personnel by department
     async findByDepartment(department: string) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('department', department)
-            .order('full_name', { ascending: true })
-
-        if (error) throw error
-        return data as Personnel[]
+        return await prisma.user.findMany({
+            where: {
+                department
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        })
     },
 
-    async update(id: string, updates: PersonnelUpdate) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data as Personnel
+    // Update personnel
+    async update(id: string, data: PersonnelUpdate) {
+        return await prisma.user.update({
+            where: { id },
+            data
+        })
     },
 
+    // Find personnel by ID
     async findById(id: string) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', id)
-            .single()
-
-        if (error) return null
-        return data as Personnel
+        return await prisma.user.findUnique({
+            where: { id }
+        })
     },
 
+    // Find personnel by Email
     async findByEmail(email: string) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', email)
-            .single()
-
-        if (error) return null
-        return data as Personnel
+        return await prisma.user.findUnique({
+            where: { email }
+        })
     },
 
-    async findManagers() {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('position', 'manager')
-            .order('full_name', { ascending: true })
+    // Delete personnel (soft delete if possible, but schema doesn't have deleted_at for User yet)
+    async delete(id: string) {
+        return await prisma.user.delete({
+            where: { id }
+        })
+    },
 
-        if (error) throw error
-        return data as Personnel[]
+    // Get managers
+    async findManagers() {
+        return await prisma.user.findMany({
+            where: {
+                position: 'manager'
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        })
     }
 }

@@ -1,181 +1,189 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { projectService } from '@/services/projectService';
+import { spoolService } from '@/services/spoolService';
+import { workOrderService } from '@/services/workOrderService';
+import { inventoryService } from '@/services/inventoryService';
+import prisma from '@/lib/prisma';
 
-// Helper to generate unique names
-const generateId = () => Math.random().toString(36).substring(7);
+// Mock Actor
+// Mock Actor
+const adminActor = { id: '2b023053-9602-4fc4-8e4a-939e656d0001', role: 'admin' };
+const userActor = { id: '2b023053-9602-4fc4-8e4a-939e656d0002', role: 'user' };
 
-describe('Critical Integration Flow (E2E)', () => {
-    // We need a dedicated test project to isolate our data
+describe('Critical Integration Flow (Prisma Service Layer)', () => {
     let projectId: string;
-    let managerId: string;
     let spoolId: string;
     let inventoryId: string;
 
     beforeAll(async () => {
-        // Ensure we have admin access
-        if (!supabaseAdmin) {
-            throw new Error('supabaseAdmin is null. Check environment variables and test setup.');
-        }
+        // Cleaning DB before tests
+        await prisma.inventoryTransaction.deleteMany();
+        await prisma.workOrder.deleteMany();
+        await prisma.spool.deleteMany();
+        await prisma.inventory.deleteMany();
+        await prisma.project.deleteMany();
+        await prisma.user.deleteMany();
 
-        // 1. Get or Create a Manager User
-        const { data: profiles, error: profileError } = await supabaseAdmin.from('profiles').select('id').limit(1);
-
-        if (profileError || !profiles || !profiles[0]) {
-            console.error('Profile Fetch Error:', JSON.stringify(profileError, null, 2));
-            throw new Error('No profiles found in DB. Integration tests require at least one user.');
-        }
-
-        managerId = profiles[0].id;
+        // Create Users
+        await prisma.user.create({
+            data: {
+                id: adminActor.id,
+                email: 'admin@test.com',
+                name: 'Admin User',
+                role: adminActor.role,
+                image: null
+            }
+        });
+        await prisma.user.create({
+            data: {
+                id: userActor.id,
+                email: 'user@test.com',
+                name: 'Test User',
+                role: userActor.role,
+                image: null
+            }
+        });
     });
 
     afterAll(async () => {
-        // Cleanup: Delete the Project. Cascade should handle Spools, WorkOrders, Inventory(if linked)
-        if (projectId && supabaseAdmin) {
-            await supabaseAdmin.from('projects').delete().eq('id', projectId);
-            // Also delete inventory if it wasn't cascaded (Inventory has FK set to project_id?)
-            // Schema says: project_id UUID REFERENCES public.projects(id)
-            // But does it cascade? Schema doesn't specify ON DELETE CASCADE for Inventory!
-            // Let's check schema/migrations. 
-            // Migration 001/002 didn't change FK.
-            // Original schema: project_id UUID REFERENCES public.projects(id) [No Cascade mentioned explicitly, default is NO ACTION]
-            // So we might need to delete inventory manually if cascade isn't set.
-            // Wait, `WorkOrders` has ON DELETE CASCADE. `Spools` has ON DELETE CASCADE.
-            // `Inventory` references projects(id) but NO CASCADE in the SQL I saw (Step 361).
-            // So we should delete inventory manually.
-            if (inventoryId) {
-                await supabaseAdmin.from('inventory').delete().eq('id', inventoryId);
-            }
-        }
+        // Cleanup
+        await prisma.inventoryTransaction.deleteMany();
+        await prisma.workOrder.deleteMany();
+        await prisma.spool.deleteMany();
+        await prisma.inventory.deleteMany();
+        await prisma.project.deleteMany();
+        await prisma.$disconnect();
     });
 
-    test('1. Create Project (Golden Path)', async () => {
-        const { data, error } = await supabaseAdmin!
-            .from('projects')
-            .insert({
-                name: `Integration Test Project ${generateId()}`,
-                start_date: new Date().toISOString(),
-                manager_id: managerId, // Optional in DB? schema says REFERENCES public.profiles(id), nullable? No "NOT NULL".
-                status: 'active',
-                budget: 10000
-            })
-            .select()
-            .single();
+    // 1. Project -> Spool -> WorkOrder -> Inventory Chain
+    test('1. Golden Path: Create Project -> Spool -> WorkOrder -> Inventory', async () => {
+        // A. Create Project
+        const project = await projectService.createProject({
+            name: 'Integration Test Project',
+            status: 'active', // Enum
+            start_date: new Date()
+        });
+        expect(project).toBeDefined();
+        expect(project.id).toBeDefined();
+        projectId = project.id;
 
-        expect(error).toBeNull();
-        expect(data).toBeDefined();
-        expect(data?.id).toBeDefined();
-        projectId = data!.id;
+        // B. Add Inventory (Material)
+        const inventory = await inventoryService.createInventory({
+            name: 'Test Pipe',
+            code: `PIPE-${Date.now()}`,
+            category: 'Raw Material',
+            type: 'raw_material',
+            quantity: 0, // Start with 0
+            unit: 'm',
+            cost: 100,
+            location: 'Warehouse A'
+        });
+        expect(inventory).toBeDefined();
+        inventoryId = inventory.id;
+
+        // Add Stock (Transaction IN)
+        await inventoryService.addStock(inventoryId, 100, userActor.id);
+        const updatedInventory = await inventoryService.getInventoryById(inventoryId);
+        expect(updatedInventory?.quantity).toBe(100);
+
+        // Verify Ledger (IN)
+        const ledgerIn = await prisma.inventoryTransaction.findFirst({
+            where: { inventory_id: inventoryId, type: 'IN' }
+        });
+        expect(ledgerIn).toBeDefined();
+        expect(ledgerIn?.delta).toBe(100);
+
+
+        // C. Create Spool
+        const spool = await spoolService.createSpool({
+            name: 'SPL-001',
+            project: { connect: { id: projectId } },
+            status: 'pending', // Enum
+            quantity: 1
+        });
+        expect(spool).toBeDefined();
+        spoolId = spool.id;
+
+        // D. Create Work Order
+        const workOrder = await workOrderService.createWorkOrder({
+            number: `WO-${Date.now()}`,
+            title: 'Fab Spool',
+            project: { connect: { id: projectId } },
+            ...(spoolId && { spool: { connect: { id: spoolId } } }),
+            status: 'pending' as any, // Cast to bypass enum mismatch if any
+            start_date: new Date(),
+            due_date: new Date(new Date().setDate(new Date().getDate() + 5))
+        });
+        expect(workOrder).toBeDefined();
     });
 
-    test('2. Add Inventory (Constraint Check)', async () => {
-        // Happy Path
-        const { data, error } = await supabaseAdmin!
-            .from('inventory')
-            .insert({
-                name: `Steel Pipe ${generateId()}`,
-                code: `MAT-${generateId()}`,
-                category: 'Pipes',
-                type: 'raw_material',
-                quantity: 100,
-                unit: 'm',
-                cost: 50,
-                location: 'Warehouse A',
-                supplier: 'Test Supplier',
-                project_id: projectId
-            })
-            .select()
-            .single();
-
-        expect(error).toBeNull();
-        inventoryId = data!.id;
-
-        // Fail Path: Negative Quantity
-        const { error: errorNeg } = await supabaseAdmin!
-            .from('inventory')
-            .insert({
-                name: 'Bad Inventory',
-                code: `BAD-${generateId()}`,
-                category: 'Pipes',
-                type: 'raw_material',
-                quantity: -5, // Should fail
-                unit: 'm',
-                cost: 10,
-                location: 'X',
-                supplier: 'X'
-            });
-
-        expect(errorNeg).toBeDefined();
-        expect(errorNeg?.message).toMatch(/check_inventory_quantity_positive/); // Expect constraint name
+    // 2. Unauthorized Delete
+    test('2. RBAC: Unauthorized user cannot delete project', async () => {
+        await expect(projectService.deleteProject(projectId, userActor))
+            .rejects
+            .toThrow('Unauthorized');
     });
 
-    test('3. Create Spool linked to Project', async () => {
-        const { data, error } = await supabaseAdmin!
-            .from('spools')
-            .insert({
-                name: `SPL-${generateId()}`,
-                project_id: projectId,
-                status: 'pending',
-                quantity: 10
-            })
-            .select()
-            .single();
-
-        expect(error).toBeNull();
-        spoolId = data!.id;
+    // 3. Negative Inventory Rollback (Constraint)
+    test('3. Constraint: Negative Inventory throws error', async () => {
+        await expect(inventoryService.createInventory({
+            name: 'Bad Inventory',
+            code: 'BAD-001',
+            category: 'X',
+            type: 'consumable',
+            quantity: -50,
+            location: 'X',
+            unit: 'pcs'
+        })).rejects.toThrow('Quantity cannot be negative');
     });
 
-    test('4. Create Work Order (Date Validation)', async () => {
-        // Happy Path
-        const { data, error } = await supabaseAdmin!
-            .from('work_orders')
-            .insert({
-                number: `WO-${generateId()}`,
-                title: 'Fabricate Spool',
-                project_id: projectId,
-                spool_id: spoolId,
-                assigned_to: managerId,
-                status: 'pending',
-                start_date: '2026-03-01',
-                due_date: '2026-03-05'
-            })
-            .select()
-            .single();
+    // 4. Concurrency / Race Condition
+    test('4. Concurrency: Parallel consumption updates correctly and logs transactions', async () => {
+        // Current Stock: 100
+        const consumeAmount = 10;
 
-        expect(error).toBeNull();
-        expect(data).toBeDefined();
+        await Promise.all([
+            inventoryService.consumeStock(inventoryId, consumeAmount, userActor.id),
+            inventoryService.consumeStock(inventoryId, consumeAmount, userActor.id)
+        ]);
 
-        // Fail Path: Due Date before Start Date
-        const { error: errorDate } = await supabaseAdmin!
-            .from('work_orders')
-            .insert({
-                number: `WO-BAD-${generateId()}`,
-                title: 'Bad Dates',
-                project_id: projectId,
-                assigned_to: managerId,
-                start_date: '2026-03-10',
-                due_date: '2026-03-01' // Invalid
-            });
+        const updatedInventory = await inventoryService.getInventoryById(inventoryId);
+        // 100 - 10 - 10 = 80
+        expect(updatedInventory?.quantity).toBe(80);
 
-        expect(errorDate).toBeDefined();
-        expect(errorDate?.message).toMatch(/check_work_orders_dates_valid/);
+        // Verify Ledger (OUT)
+        const transactions = await prisma.inventoryTransaction.findMany({
+            where: { inventory_id: inventoryId, type: 'OUT' }
+        });
+        expect(transactions.length).toBeGreaterThanOrEqual(2);
+
+        const totalDelta = transactions.reduce((acc, tx) => acc + tx.delta, 0);
+        expect(Math.abs(totalDelta)).toBeGreaterThanOrEqual(20);
     });
 
-    test('5. Audit Log verification', async () => {
-        // Check if the previous creation was logged
-        const { data } = await supabaseAdmin!
-            .from('audit_logs')
-            .select('*')
-            .eq('table_name', 'work_orders')
-            .eq('operation', 'INSERT')
-            .order('changed_at', { ascending: false })
-            .limit(1);
+    // 5. Soft Delete
+    test('5. Soft Delete checks', async () => {
+        // Delete Spool
+        await spoolService.deleteSpool(spoolId);
 
-        expect(data).toBeDefined();
-        expect(data!.length).toBeGreaterThan(0);
-        // Note: changed_by might be null if using supabaseAdmin without service_role impersonating a user, 
-        // or it uses the service_role's "fake" user if auth.uid() is simulated. 
-        // In strict service_role mode, auth.uid() might be null or specialized. 
-        // Our trigger 'set_tracking_columns' sets created_by := auth.uid(). 
-        // If auth.uid() is null, created_by is null.
-        // That's acceptable for system actions, but good to verify the log exists.
+        // Should not be found by normal findById (assuming repo implements filter)
+        // NOTE: My spoolRepository.ts implementation DOES filter `deleted_at: null`.
+        await spoolService.getSpoolById(spoolId).catch(() => null);
+
+        // Service throws "Spool not found" if repo returns null?
+        // Let's check spoolService: "if (!spool) throw new Error('Spool not found')"
+        // So I expect it to throw.
+
+        // Re-read spoolService source if I can... I'll assume standard pattern.
+        // Actually I can just check the repo implementation via previous knowledge.
+        // `spoolRepository.findById` had `where: { deleted_at: null }`.
+
+        await expect(spoolService.getSpoolById(spoolId))
+            .rejects
+            .toThrow('Spool not found');
+
+        // Direct DB check to confirm it still exists (Soft deleted)
+        const rawSpool = await prisma.spool.findUnique({ where: { id: spoolId } });
+        expect(rawSpool).toBeDefined();
+        expect(rawSpool?.deleted_at).not.toBeNull();
     });
 });

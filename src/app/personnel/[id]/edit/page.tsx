@@ -41,7 +41,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PersonnelForm>()
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
       if (data) {
         setPersonnel(data)
         reset({
-          fullName: data.full_name,
+          fullName: data.full_name || '',
           email: data.email,
           phone: data.phone || '',
           department: data.department || '',
@@ -74,22 +74,22 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
 
   const onSubmit = async (data: PersonnelForm) => {
     if (!personnel) return
-    
+
     try {
       setSaving(true)
       setError(null)
-      
+
       const updateData: any = {
         fullName: data.fullName,
         email: data.email,
         department: data.department,
         position: data.position
       }
-      
+
       if (data.phone) updateData.phone = data.phone
-      
+
       const result = await personnelService.updatePersonnel(personnel.id, updateData)
-      
+
       if (result) {
         router.push(`/personnel/${personnel.id}?success=true`)
       } else {
@@ -122,7 +122,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <Link 
+              <Link
                 href={`/personnel/${personnel.id}`}
                 className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
               >
@@ -167,7 +167,7 @@ export default function EditPersonnel({ params }: { params: { id: string } }) {
                   E-posta *
                 </label>
                 <input
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'E-posta gereklidir',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
