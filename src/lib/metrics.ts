@@ -47,16 +47,16 @@ export async function getRecentAuthMetrics(): Promise<AuthMetrics> {
     }
 
     const [attempts, errors, latencies] = await Promise.all([
-        redis.get(`metrics:login_attempts:${minute}`),
-        redis.get(`metrics:login_errors:${minute}`),
-        redis.lrange(`metrics:login_latency:${minute}`, 0, -1)
+        redis.get<string>(`metrics:login_attempts:${minute}`),
+        redis.get<string>(`metrics:login_errors:${minute}`),
+        redis.lrange<string>(`metrics:login_latency:${minute}`, 0, -1)
     ]);
 
     const attemptCount = parseInt(attempts || '0');
     const errorCount = parseInt(errors || '0');
 
     // Calculate P95 latency
-    const sortedLatencies = latencies.map(Number).sort((a, b) => a - b);
+    const sortedLatencies = (latencies || []).map(Number).sort((a, b) => a - b);
     const p95Index = Math.floor(sortedLatencies.length * 0.95);
     const p95 = sortedLatencies.length > 0 ? (sortedLatencies[p95Index] ?? 0) : 0;
 

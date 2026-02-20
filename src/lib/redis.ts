@@ -1,18 +1,19 @@
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
-const redisUrl = process.env.REDIS_URL;
 const isProduction = process.env.NODE_ENV === 'production';
 
-if (isProduction && !redisUrl) {
-    throw new Error('REDIS_URL is mandatory in production environment for rate limiting.');
-}
+// Upstash Redis client (Edge compatible)
+// Automatically uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN from env
+let redis: Redis | null = null;
 
-const redis = redisUrl ? new Redis(redisUrl) : null;
-
-if (!redis && isProduction) {
-    // This should technically never happen due to the throw above, 
-    // but added for type safety and clarity.
-    console.error('CRITICAL: Redis connection failed in production.');
+try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        redis = Redis.fromEnv();
+    } else if (isProduction) {
+        console.warn('CRITICAL: Upstash Redis credentials missing in production.');
+    }
+} catch (error) {
+    console.error('Failed to initialize Upstash Redis:', error);
 }
 
 export default redis;

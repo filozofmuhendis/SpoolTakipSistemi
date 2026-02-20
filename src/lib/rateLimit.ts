@@ -16,16 +16,16 @@ export async function isRateLimited(
         const redisKey = `rate_limit:${key}`;
         try {
             // Sliding window using Redis Sorted Set (ZSET)
-            const multi = redis.multi();
-            multi.zremrangebyscore(redisKey, 0, threshold);
-            multi.zadd(redisKey, now, now.toString());
-            multi.zcard(redisKey);
-            multi.expire(redisKey, windowSeconds);
+            const p = redis.pipeline();
+            p.zremrangebyscore(redisKey, 0, threshold);
+            p.zadd(redisKey, { score: now, member: now.toString() });
+            p.zcard(redisKey);
+            p.expire(redisKey, windowSeconds);
 
-            const results = await multi.exec();
-            if (!results || !results[2]) return false;
+            const results = await p.exec();
+            if (!results) return false;
 
-            const count = results[2][1] as number;
+            const count = results[2] as number;
             return count > limit;
         } catch (error) {
             console.error('Rate limit error (Redis):', error);
