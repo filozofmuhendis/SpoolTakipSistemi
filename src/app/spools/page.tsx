@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { redirect } from 'next/navigation'
 import { UrunAltKalemi } from '@/types'
 import { spoolService } from '@/lib/services/spools'
@@ -14,7 +14,8 @@ import ErrorState from '@/components/ui/ErrorState'
 import { useToast } from '@/components/ui/ToastProvider'
 
 export default function SpoolsPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading: authLoading } = useAuth()
+  const status = authLoading ? 'loading' : (user ? 'authenticated' : 'unauthenticated')
   const [spools, setSpools] = useState<UrunAltKalemi[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,12 +47,12 @@ export default function SpoolsPage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session) {
+    if (!user) {
       redirect('/login')
     }
 
     loadData()
-  }, [session, status, loadData])
+  }, [user, status, loadData])
 
   const filteredSpools = spools.filter(spool => {
     const matchesSearch = spool.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
