@@ -20,13 +20,9 @@ const nextConfig = {
       },
     ],
   },
-  // Vercel için optimize edilmiş ayarlar
+  output: 'export',
   poweredByHeader: false,
   compress: true,
-  // API routes için timeout ayarı
-  serverRuntimeConfig: {
-    maxDuration: 30,
-  },
 }
 
 module.exports = nextConfig

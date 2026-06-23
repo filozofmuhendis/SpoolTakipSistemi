@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Package, Calendar, User } from 'lucide-react'
 import { projectService } from '@/lib/services/projects'
 import { spoolService } from '@/lib/services/spools'
+import { personnelService } from '@/lib/services/personnel'
 import { Project } from '@/types'
 import Link from 'next/link'
 import Loading from '@/components/ui/Loading'
@@ -15,6 +16,7 @@ interface ProjectWithStats extends Project {
   spoolCount: number;
   completedSpools: number;
   progress: number;
+  managerName?: string;
 }
 
 export default function ProjectsPage() {
@@ -30,8 +32,8 @@ export default function ProjectsPage() {
       setLoading(true)
       setError(null)
 
-      // Projeleri ve spool'ları paralel olarak çek
-      const [projectsData, spoolsData] = await Promise.all([
+      // Projeleri, spool'ları ve personelleri paralel olarak çek
+      const [projectsData, spoolsData, personnelData] = await Promise.all([
         projectService.getAllProjects().catch(err => {
           console.log('Projeler yüklenemedi:', err)
           return []
@@ -39,20 +41,28 @@ export default function ProjectsPage() {
         spoolService.getAllSpools().catch(err => {
           console.log('Spools yüklenemedi:', err)
           return []
+        }),
+        personnelService.getAllPersonnel().catch(err => {
+          console.log('Personel yüklenemedi:', err)
+          return []
         })
       ])
 
-      // Her proje için spool istatistiklerini hesapla
+      // Her proje için spool istatistiklerini hesapla ve yönetici ismini bul
       const projectsWithStats = projectsData.map((project: Project) => {
         const projectSpools = spoolsData.filter((spool) => spool.project_id === project.id)
         const completedSpools = projectSpools.filter((spool) => spool.status === 'completed').length
         const progress = projectSpools.length > 0 ? Math.round((completedSpools / projectSpools.length) * 100) : 0
+        
+        const manager = personnelData.find(p => p.id === project.manager_id)
+        const managerName = manager ? (manager.full_name || 'İsimsiz') : 'Atanmamış'
 
         return {
           ...project,
           spoolCount: projectSpools.length,
           completedSpools,
           progress,
+          managerName,
           priority: project.priority
         }
       })
@@ -72,8 +82,9 @@ export default function ProjectsPage() {
   }, [loadProjects])
 
   const filteredProjects = projects.filter(project => {
+    const managerNameSearch = (project.managerName || '').toLowerCase()
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (project.manager_id?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      managerNameSearch.includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -163,7 +174,7 @@ export default function ProjectsPage() {
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <User className="h-4 w-4 mr-2" />
-                {project.manager_id || 'Atanmamış'}
+                {project.managerName || 'Atanmamış'}
               </div>
 
               <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">

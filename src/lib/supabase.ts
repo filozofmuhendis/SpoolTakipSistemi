@@ -12,12 +12,18 @@ class MockSupabaseQueryBuilder {
   private orderAsc: boolean = true
   private limitVal: number | null = null
   private isSingle: boolean = false
+  private action: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select'
+  private payload: any = null
+  private countOptions: { count?: string; head?: boolean } | null = null
 
   constructor(tableName: string) {
     this.tableName = tableName
   }
 
-  select(_fields?: string) {
+  select(_fields?: string, options?: { count?: string; head?: boolean }) {
+    if (options) {
+      this.countOptions = options
+    }
     return this
   }
 
@@ -75,8 +81,55 @@ class MockSupabaseQueryBuilder {
     return this
   }
 
+  lt(col: string, val: any) {
+    this.filters.push(item => {
+      if (item[col] === undefined || item[col] === null) return false
+      return item[col] < val
+    })
+    return this
+  }
+
+  in(col: string, val: any[]) {
+    this.filters.push(item => {
+      return val.includes(item[col])
+    })
+    return this
+  }
+
+  not(col: string, op: string, val: any) {
+    if (op === 'is' && val === null) {
+      this.filters.push(item => item[col] !== null && item[col] !== undefined)
+    } else {
+      this.filters.push(item => item[col] !== val)
+    }
+    return this
+  }
+
   single() {
     this.isSingle = true
+    return this
+  }
+
+  insert(record: any) {
+    this.action = 'insert'
+    this.payload = record
+    return this
+  }
+
+  update(updates: any) {
+    this.action = 'update'
+    this.payload = updates
+    return this
+  }
+
+  delete() {
+    this.action = 'delete'
+    return this
+  }
+
+  upsert(record: any) {
+    this.action = 'upsert'
+    this.payload = record
     return this
   }
 
@@ -92,8 +145,74 @@ class MockSupabaseQueryBuilder {
 
   private async execute() {
     try {
+      if (this.action === 'insert') {
+        let result: any
+        if (Array.isArray(this.payload)) {
+          result = this.payload.map(r => mockDbManager.insertRecord(this.tableName as any, r))
+        } else {
+          result = mockDbManager.insertRecord(this.tableName as any, this.payload)
+        }
+        if (this.isSingle) {
+          return { data: Array.isArray(result) ? result[0] : result, error: null }
+        }
+        return { data: result, error: null }
+      }
+
+      if (this.action === 'upsert') {
+        const data = mockDbManager.getTable(this.tableName as any)
+        const recordArray = Array.isArray(this.payload) ? this.payload : [this.payload]
+        const upsertedList = recordArray.map(r => {
+          if (r.id && data.some(item => item.id === r.id)) {
+            return mockDbManager.updateRecord(this.tableName as any, r.id, r)
+          } else {
+            return mockDbManager.insertRecord(this.tableName as any, r)
+          }
+        })
+        const result = Array.isArray(this.payload) ? upsertedList : upsertedList[0]
+        if (this.isSingle) {
+          return { data: Array.isArray(result) ? result[0] : result, error: null }
+        }
+        return { data: result, error: null }
+      }
+
+      if (this.action === 'update') {
+        const data = mockDbManager.getTable(this.tableName as any)
+        let filtered = data
+        for (const filter of this.filters) {
+          filtered = filtered.filter(filter)
+        }
+        const updatedList = filtered.map(item => mockDbManager.updateRecord(this.tableName as any, item.id, this.payload))
+        if (this.isSingle) {
+          return { data: updatedList[0] || null, error: updatedList.length === 0 ? { message: 'Not found' } : null }
+        }
+        return { data: updatedList, error: null }
+      }
+
+      if (this.action === 'delete') {
+        const data = mockDbManager.getTable(this.tableName as any)
+        let filtered = data
+        for (const filter of this.filters) {
+          filtered = filtered.filter(filter)
+        }
+        filtered.forEach(item => mockDbManager.deleteRecord(this.tableName as any, item.id))
+        return { data: null, error: null }
+      }
+
+      // Default action: select
       let data = mockDbManager.getTable(this.tableName as any)
-      
+
+      // Relation resolution helper
+      if (this.tableName === 'inventory') {
+        data = data.map(item => {
+          const newItem = { ...item }
+          if (newItem.project_id) {
+            const proj = mockDbManager.getTable('projects').find(p => p.id === newItem.project_id)
+            newItem.projects = proj ? { name: proj.name } : null
+          }
+          return newItem
+        })
+      }
+
       // Apply filters
       for (const filter of this.filters) {
         data = data.filter(filter)
@@ -118,130 +237,25 @@ class MockSupabaseQueryBuilder {
         data = data.slice(0, this.limitVal)
       }
 
+      let count: number | null = null
+      if (this.countOptions && this.countOptions.count) {
+        count = data.length
+      }
+
+      if (this.countOptions?.head) {
+        return { data: null, count, error: null }
+      }
+
       if (this.isSingle) {
         if (data.length === 0) {
-          return { data: null, error: { message: 'Not found' } }
+          return { data: null, count, error: { message: 'Not found' } }
         }
-        return { data: data[0], error: null }
+        return { data: data[0], count, error: null }
       }
 
-      return { data, error: null }
+      return { data, count, error: null }
     } catch (err: any) {
-      return { data: null, error: err }
-    }
-  }
-
-  insert(record: any) {
-    try {
-      let result: any
-      if (Array.isArray(record)) {
-        result = record.map(r => mockDbManager.insertRecord(this.tableName as any, r))
-      } else {
-        result = mockDbManager.insertRecord(this.tableName as any, record)
-      }
-      
-      const response = { data: result, error: null }
-      return {
-        ...response,
-        select: () => ({
-          single: () => Promise.resolve({ data: Array.isArray(result) ? result[0] : result, error: null }),
-          then: (onfulfilled: any) => onfulfilled({ data: result, error: null })
-        }),
-        then: (onfulfilled: any) => onfulfilled(response)
-      }
-    } catch (err: any) {
-      return {
-        data: null,
-        error: err,
-        then: (onfulfilled: any) => onfulfilled({ data: null, error: err })
-      }
-    }
-  }
-
-  update(updates: any) {
-    const self = this
-    return {
-      eq(col: string, val: any) {
-        self.eq(col, val)
-        const runUpdate = () => {
-          const data = mockDbManager.getTable(self.tableName as any)
-          let filtered = data
-          for (const filter of self.filters) {
-            filtered = filtered.filter(filter)
-          }
-          const updatedList = filtered.map(item => mockDbManager.updateRecord(self.tableName as any, item.id, updates))
-          return updatedList
-        }
-
-        return {
-          select() {
-            return {
-              single() {
-                const list = runUpdate()
-                if (list.length === 0) {
-                  return Promise.resolve({ data: null, error: { message: 'Not found' } })
-                }
-                return Promise.resolve({ data: list[0], error: null })
-              },
-              then(onfulfilled: any) {
-                const list = runUpdate()
-                return onfulfilled({ data: list, error: null })
-              }
-            }
-          },
-          then(onfulfilled: any) {
-            const list = runUpdate()
-            return onfulfilled({ data: list, error: null })
-          }
-        }
-      }
-    }
-  }
-
-  upsert(record: any) {
-    try {
-      const data = mockDbManager.getTable(this.tableName as any)
-      const recordArray = Array.isArray(record) ? record : [record]
-      const upsertedList = recordArray.map(r => {
-        if (r.id && data.some(item => item.id === r.id)) {
-          return mockDbManager.updateRecord(this.tableName as any, r.id, r)
-        } else {
-          return mockDbManager.insertRecord(this.tableName as any, r)
-        }
-      })
-      const result = Array.isArray(record) ? upsertedList : upsertedList[0]
-
-      const response = { data: result, error: null }
-      return {
-        ...response,
-        select: () => ({
-          single: () => Promise.resolve({ data: Array.isArray(result) ? result[0] : result, error: null }),
-          then: (onfulfilled: any) => onfulfilled({ data: result, error: null })
-        }),
-        then: (onfulfilled: any) => onfulfilled(response)
-      }
-    } catch (err: any) {
-      return {
-        data: null,
-        error: err,
-        then: (onfulfilled: any) => onfulfilled({ data: null, error: err })
-      }
-    }
-  }
-
-  delete() {
-    const self = this
-    return {
-      eq(col: string, val: any) {
-        self.eq(col, val)
-        const data = mockDbManager.getTable(self.tableName as any)
-        let filtered = data
-        for (const filter of self.filters) {
-          filtered = filtered.filter(filter)
-        }
-        filtered.forEach(item => mockDbManager.deleteRecord(self.tableName as any, item.id))
-        return Promise.resolve({ data: null, error: null })
-      }
+      return { data: null, count: null, error: err }
     }
   }
 }
