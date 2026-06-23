@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X } from 'lucide-react'
-import { spoolService } from '@/services/spoolService'
+import { spoolService } from '@/lib/services/spools'
 import { projectService } from '@/lib/services/projects'
 import { Project } from '@/types'
 import Link from 'next/link'
@@ -61,12 +61,13 @@ export default function NewSpoolPage() {
 
       await spoolService.createSpool({
         name: data.name,
-        project: { connect: { id: data.project_id } },
+        project_id: data.project_id,
         material_type: data.material_type,
+        material: data.material_type,
         dimensions: data.dimensions,
         weight: parseFloat(data.weight) || 0,
         status: data.status as any,
-        quantity: 1
+        notes: data.notes || ''
       } as any)
 
       router.push('/spools?success=true')

@@ -307,6 +307,23 @@ const mockAuth = {
   },
   async resetPasswordForEmail(_email: string, _options?: any) {
     return { data: {}, error: null }
+  },
+  async getSession() {
+    return {
+      data: {
+        session: {
+          user: {
+            id: 'u1-uuid-admin',
+            email: 'admin@atolyeakis.com',
+            user_metadata: {
+              full_name: 'Ahmet Yılmaz',
+              role: 'admin'
+            }
+          }
+        }
+      },
+      error: null
+    }
   }
 }
 

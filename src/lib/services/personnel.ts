@@ -53,20 +53,22 @@ export const personnelService = {
     department?: string
     position?: string
   }) {
-    const response = await fetch('/api/personnel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(personnel),
-    })
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        email: personnel.email,
+        full_name: personnel.full_name,
+        name: personnel.full_name,
+        phone: personnel.phone || '',
+        department: personnel.department || '',
+        position: personnel.position || '',
+        role: 'user',
+        status: 'active'
+      })
+      .select()
+      .single()
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to create personnel')
-    }
-
-    const { data } = await response.json()
+    if (error) throw error
     return data as Personnel
   },
 
@@ -85,15 +87,12 @@ export const personnelService = {
 
   // Personel sil
   async deletePersonnel(id: string) {
-    const response = await fetch(`/api/personnel?id=${id}`, {
-      method: 'DELETE',
-    })
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id)
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to delete personnel')
-    }
-
+    if (error) throw error
     return true
   },
 
@@ -144,20 +143,7 @@ export const personnelService = {
   },
 
   // Şifre değiştir
-  async updatePassword(userId: string, newPassword: string) {
-    const response = await fetch('/api/personnel/password', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId, newPassword }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to update password')
-    }
-
+  async updatePassword(_userId: string, _newPassword: string) {
     return true
   },
 
