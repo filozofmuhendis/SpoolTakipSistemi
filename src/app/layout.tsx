@@ -7,6 +7,11 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 
 import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { initMockFetch } from "@/lib/mockFetch";
+
+if (typeof window !== 'undefined') {
+  initMockFetch();
+}
 
 const inter = Inter({ subsets: ["latin"] });
 

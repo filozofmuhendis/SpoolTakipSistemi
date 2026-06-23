@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
@@ -20,17 +19,42 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      if (result?.error) {
-        setError('Email veya şifre hatalı')
+      let mockUser = null
+
+      if (email.includes('admin') || email === 'ahmet@atolyeakis.com') {
+        mockUser = {
+          id: 'u1-uuid-admin',
+          email: email || 'admin@atolyeakis.com',
+          name: 'Ahmet Yılmaz',
+          role: 'admin'
+        }
+      } else if (email.includes('manager') || email === 'mehmet@atolyeakis.com' || email === 'ayse@atolyeakis.com') {
+        mockUser = {
+          id: email === 'ayse@atolyeakis.com' ? 'u3-uuid-qc' : 'u2-uuid-manager',
+          email: email || 'mehmet@atolyeakis.com',
+          name: email === 'ayse@atolyeakis.com' ? 'Ayşe Demir' : 'Mehmet Can',
+          role: 'manager'
+        }
       } else {
-        router.push('/')
+        mockUser = {
+          id: 'u4-uuid-welder',
+          email: email || 'ali@atolyeakis.com',
+          name: 'Ali Veli',
+          role: 'user'
+        }
       }
+
+      const session = {
+        user: mockUser,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }
+
+      localStorage.setItem('mock_user_session', JSON.stringify(session))
+      window.dispatchEvent(new Event('mock-login-change'))
+      router.push('/')
     } catch (error) {
       setError('Giriş işlemi başarısız')
     } finally {

@@ -10,12 +10,7 @@ import { projectService } from '@/lib/services/projects'
 import { personnelService } from '@/lib/services/personnel'
 
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
 const projectSchema = z.object({
