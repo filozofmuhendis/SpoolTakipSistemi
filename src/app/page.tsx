@@ -196,7 +196,7 @@ export default function Home() {
               <QuickActionCard
                 title="Spool Ekle"
                 icon="Package"
-                href="/spools/import"
+                href="/spools/new"
                 color="from-purple-500 to-pink-500"
               />
               <QuickActionCard

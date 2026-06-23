@@ -9,6 +9,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function InventoryDetailPage({ params }: { params: { id: string } }) {
-  return <InventoryDetailPageClient params={params} />
+export default async function InventoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <InventoryDetailPageClient params={resolvedParams} />
 }

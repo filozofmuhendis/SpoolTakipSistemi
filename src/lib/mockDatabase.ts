@@ -18,6 +18,7 @@ export interface MockDatabase {
   work_hours: any[]
   equipment: any[]
   productions: any[]
+  file_uploads: any[]
 }
 
 const DEFAULT_PROJECTS = [
@@ -635,7 +636,8 @@ export const mockDbManager = {
         documents: DEFAULT_DOCUMENTS,
         work_hours: DEFAULT_WORK_HOURS,
         equipment: DEFAULT_EQUIPMENT,
-        productions: DEFAULT_PRODUCTIONS
+        productions: DEFAULT_PRODUCTIONS,
+        file_uploads: []
       }
     }
 
@@ -664,7 +666,8 @@ export const mockDbManager = {
       documents: DEFAULT_DOCUMENTS,
       work_hours: DEFAULT_WORK_HOURS,
       equipment: DEFAULT_EQUIPMENT,
-      productions: DEFAULT_PRODUCTIONS
+      productions: DEFAULT_PRODUCTIONS,
+      file_uploads: []
     }
     localStorage.setItem('spool_takip_db', JSON.stringify(initialDb))
     return initialDb

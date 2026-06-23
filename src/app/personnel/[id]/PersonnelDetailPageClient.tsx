@@ -228,11 +228,14 @@ export default function PersonnelDetailPageClient({ params }: { params: { id: st
               <p className="font-medium text-gray-900 dark:text-white">Düzenle</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Personel bilgilerini güncelle</p>
             </Link>
-            <button className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
+            <Link
+              href="/new-password"
+              className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left block"
+            >
               <Activity className="w-6 h-6 text-green-600 mb-2" />
               <p className="font-medium text-gray-900 dark:text-white">Şifre Değiştir</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Kullanıcı şifresini güncelle</p>
-            </button>
+            </Link>
             <button
               onClick={() => setDeleteModal(true)}
               className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"

@@ -10,6 +10,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function EditSpoolPage({ params }: { params: { id: string } }) {
-  return <EditSpoolPageClient params={params} />
+export default async function EditSpoolPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <EditSpoolPageClient params={resolvedParams} />
 }

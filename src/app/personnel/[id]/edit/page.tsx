@@ -10,6 +10,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function EditPersonnelPage({ params }: { params: { id: string } }) {
-  return <EditPersonnelPageClient params={params} />
+export default async function EditPersonnelPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <EditPersonnelPageClient params={resolvedParams} />
 }

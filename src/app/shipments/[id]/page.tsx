@@ -7,6 +7,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function ShipmentDetailPage({ params }: { params: { id: string } }) {
-  return <ShipmentDetailPageClient params={params} />
+export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <ShipmentDetailPageClient params={resolvedParams} />
 }

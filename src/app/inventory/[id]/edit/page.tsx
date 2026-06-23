@@ -9,6 +9,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function EditInventoryPage({ params }: { params: { id: string } }) {
-  return <EditInventoryPageClient params={params} />
+export default async function EditInventoryPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <EditInventoryPageClient params={resolvedParams} />
 }

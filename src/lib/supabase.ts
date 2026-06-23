@@ -269,6 +269,17 @@ const mockStorage = {
           data: { path },
           error: null
         }
+      },
+      getPublicUrl(path: string) {
+        return {
+          data: { publicUrl: `/mock-files/${path}` }
+        }
+      },
+      async remove(paths: string[]) {
+        return {
+          data: paths.map(p => ({ name: p })),
+          error: null
+        }
       }
     }
   }
@@ -278,6 +289,24 @@ const mockStorage = {
 const mockAuth = {
   async updateUser(_updates: any) {
     return { data: { user: {} }, error: null }
+  },
+  async getUser() {
+    return {
+      data: {
+        user: {
+          id: 'u1-uuid-admin',
+          email: 'admin@atolyeakis.com',
+          user_metadata: {
+            full_name: 'Ahmet Yılmaz',
+            role: 'admin'
+          }
+        }
+      },
+      error: null
+    }
+  },
+  async resetPasswordForEmail(_email: string, _options?: any) {
+    return { data: {}, error: null }
   }
 }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Upload, File, Trash2, ArrowLeft } from 'lucide-react'
-import { workOrderService } from '@/services/workOrderService'
+import { jobOrderService } from '@/lib/services/workOrders'
 import { projectService } from '@/lib/services/projects'
 import { storageService } from '@/lib/services/storage'
 import { useRouter } from 'next/navigation'
@@ -111,15 +111,16 @@ export default function NewWorkOrderPage() {
 
     try {
       // İş emrini oluştur
-      const newJobOrder = await workOrderService.createWorkOrder({
+      const newJobOrder = await jobOrderService.createJobOrder({
         number: `WO-${Date.now()}`,
-        title: 'New Work Order',
-        project: { connect: { id: data.project_id } },
-        ...(data.spool_id && { spool: { connect: { id: data.spool_id } } }),
+        title: `İş Emri - PRJ-${data.project_id.slice(0, 4)}`,
+        project_id: data.project_id,
+        spool_id: data.spool_id,
         description: data.description,
-        status: data.status as any,
-        ...(data.planned_start_date && { start_date: new Date(data.planned_start_date) }),
-        ...(data.planned_end_date && { due_date: new Date(data.planned_end_date) }),
+        status: data.status || 'pending',
+        planned_start_date: data.planned_start_date ? new Date(data.planned_start_date).toISOString() : new Date().toISOString(),
+        planned_end_date: data.planned_end_date ? new Date(data.planned_end_date).toISOString() : new Date().toISOString(),
+        priority: 'medium',
       } as any)
 
       // İş emri oluşturulduktan sonra dosyaları yükle

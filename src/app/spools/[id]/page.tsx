@@ -10,6 +10,7 @@ export async function generateStaticParams() {
   ]
 }
 
-export default function SpoolDetailPage({ params }: { params: { id: string } }) {
-  return <SpoolDetailPageClient params={params} />
+export default async function SpoolDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <SpoolDetailPageClient params={resolvedParams} />
 }
